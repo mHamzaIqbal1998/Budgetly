@@ -1,6 +1,6 @@
 // Glassy Card Component with Spotify Theme
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Card, useTheme } from 'react-native-paper';
 
 interface GlassCardProps {
@@ -50,20 +50,6 @@ export function GlassCard({ children, style, variant = 'default', mode = 'elevat
   );
 }
 
-const styles = StyleSheet.create({
-  glassCard: {
-    overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-});
-
 // Glassy Container for sections
 interface GlassContainerProps {
   children: React.ReactNode;
@@ -98,7 +84,18 @@ export function GlassContainer({ children, style, variant = 'default' }: GlassCo
   );
 }
 
-const styles2 = StyleSheet.create({
+const styles = StyleSheet.create({
+  glassCard: {
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
   glassContainer: {
     borderRadius: 16,
     borderWidth: 1,
@@ -106,6 +103,4 @@ const styles2 = StyleSheet.create({
     overflow: 'hidden',
   },
 });
-
-Object.assign(styles, styles2);
 

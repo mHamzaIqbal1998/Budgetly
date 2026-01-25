@@ -1,11 +1,12 @@
 // First Launch Setup Screen
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator, useTheme } from 'react-native-paper';
-import { useStore } from '@/lib/store';
 import { apiClient } from '@/lib/api-client';
+import { useStore } from '@/lib/store';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SetupScreen() {
   const [instanceUrl, setInstanceUrl] = useState('');
@@ -15,6 +16,10 @@ export default function SetupScreen() {
   
   const theme = useTheme();
   const setCredentials = useStore((state) => state.setCredentials);
+
+  useEffect(() => {
+    RNStatusBar.setHidden(true);
+  }, []);
 
   const handleSetup = async () => {
     setError('');
@@ -73,15 +78,17 @@ export default function SetupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <StatusBar style="auto" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <StatusBar style="auto" hidden={true} />
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.colors.background }]}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: theme.colors.background }}
+        >
         <View style={styles.header}>
           <Text variant="displaySmall" style={styles.title}>
             Welcome to Budgetly
@@ -148,13 +155,15 @@ export default function SetupScreen() {
           </Text>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#191414',
   },
   scrollContent: {
     flexGrow: 1,

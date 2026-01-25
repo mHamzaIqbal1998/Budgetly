@@ -1,21 +1,22 @@
 // Dashboard Screen
-import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { Card, Text, Button, useTheme, FAB, Portal } from 'react-native-paper';
+import { GlassCard } from '@/components/glass-card';
+import { apiClient } from '@/lib/api-client';
+import { useStore } from '@/lib/store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { VictoryPie, VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from 'victory-native';
-import { GlassCard, GlassContainer } from '@/components/glass-card';
+import React from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Card, FAB, Portal, Text, useTheme } from 'react-native-paper';
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const [fabOpen, setFabOpen] = React.useState(false);
+  const { balanceVisible, toggleBalanceVisibility } = useStore();
 
   // Fetch accounts
   const { data: accountsData, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: () => apiClient.getAccounts(),
+    queryFn: () => apiClient.getAccounts(1, 'asset'),
   });
 
   // Fetch budgets
@@ -24,11 +25,26 @@ export default function DashboardScreen() {
     queryFn: () => apiClient.getBudgets(),
   });
 
-  // Calculate total balance
-  const totalBalance = accountsData?.data.reduce((sum, account) => {
+  // Calculate total balance by currency
+  const balancesByCurrency = accountsData?.data.reduce((acc, account) => {
+    const currencySymbol = account.attributes.currency_symbol;
+    const currencyCode = account.attributes.currency_code;
     const balance = parseFloat(account.attributes.current_balance);
-    return sum + balance;
-  }, 0) || 0;
+    
+    if (!acc[currencyCode]) {
+      acc[currencyCode] = {
+        symbol: currencySymbol,
+        code: currencyCode,
+        total: 0,
+      };
+    }
+    
+    acc[currencyCode].total += balance;
+    return acc;
+  }, {} as Record<string, { symbol: string; code: string; total: number }>) || {};
+
+  // Convert to array for easier rendering
+  const currencyBalances = Object.values(balancesByCurrency);
 
   // Count active budgets
   const activeBudgets = budgetsData?.data.filter(b => b.attributes.active).length || 0;
@@ -36,24 +52,69 @@ export default function DashboardScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView style={styles.scrollView}>
+        {/* Net Worth Card */}
+        <GlassCard variant="primary" style={styles.netWorthCard} mode='outlined'>
+          <Card.Content>
+            <View style={styles.netWorthHeader}>
+              <View style={styles.netWorthTitleContainer}>
+                <MaterialCommunityIcons 
+                  name="wallet" 
+                  size={24} 
+                  color={theme.colors.primary} 
+                />
+                <Text variant="labelLarge" style={styles.netWorthLabel}>Net Worth</Text>
+              </View>
+              <MaterialCommunityIcons 
+                name={balanceVisible ? "eye" : "eye-off"}
+                size={24} 
+                color={theme.colors.primary} 
+                onPress={toggleBalanceVisibility}
+                style={styles.eyeIcon}
+              />
+            </View>
+            {currencyBalances.length === 0 ? (
+              <Text variant="displaySmall" style={styles.netWorthValue}>
+                No accounts
+              </Text>
+            ) : (
+              currencyBalances.length === 1 ? (
+                <Text variant="displayLarge" style={styles.netWorthValue}>
+                  {currencyBalances[0].symbol} {currencyBalances[0].total.toFixed(2)}
+                </Text>
+              ) : (
+                <View style={styles.multiCurrencyContainer}>
+                  {currencyBalances.map((currency, index) => (
+                    <Text 
+                      key={currency.code} 
+                      variant="displaySmall" 
+                      style={[styles.netWorthValue, index > 0 && styles.additionalCurrency]}
+                    >
+                      {currency.symbol} {balanceVisible ? currency.total.toFixed(2) : "••••••"}
+                    </Text>
+                  ))}
+                </View>
+              )
+            ) }
+          </Card.Content>
+        </GlassCard>
+
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <GlassCard variant="primary" style={[styles.summaryCard, { flex: 1 }]}>
+          <GlassCard variant="primary" style={styles.summaryCardSmall} mode='outlined'>
             <Card.Content>
               <MaterialCommunityIcons 
-                name="wallet" 
+                name="chart-donut" 
                 size={32} 
                 color={theme.colors.primary} 
                 style={styles.summaryIcon}
               />
-              <Text variant="bodySmall" style={styles.summaryLabel}>Total Balance</Text>
+              <Text variant="bodySmall" style={styles.summaryLabel}>Active Budgets</Text>
               <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
-                ${totalBalance.toFixed(2)}
+                {activeBudgets}
               </Text>
             </Card.Content>
           </GlassCard>
-
-          <GlassCard variant="primary" style={[styles.summaryCard, { flex: 1 }]}>
+          <GlassCard variant="primary" style={styles.summaryCardSmall} mode='outlined'>
             <Card.Content>
               <MaterialCommunityIcons 
                 name="chart-donut" 
@@ -144,7 +205,7 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* Quick Insights */}
-        <GlassCard variant="elevated" style={[styles.card, { marginBottom: 80 }]}>
+        <GlassCard variant="elevated" style={styles.insightsCard}>
           <Card.Title 
             title="Quick Insights" 
             left={(props) => <MaterialCommunityIcons name="lightbulb" {...props} color={theme.colors.primary} />}
@@ -218,8 +279,48 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
+  netWorthCard: {
+    marginBottom: 16,
+  },
+  netWorthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  netWorthTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  netWorthLabel: {
+    opacity: 0.8,
+    letterSpacing: 0.5,
+  },
+  eyeIcon: {
+    padding: 4,
+  },
+  netWorthValue: {
+    color: '#1DB954',
+    fontWeight: 'bold',
+    letterSpacing: -1,
+  },
+  multiCurrencyContainer: {
+    gap: 8,
+  },
+  additionalCurrency: {
+    fontSize: 32,
+  },
   summaryCard: {
+    flex: 1,
     minHeight: 120,
+  },
+  summaryCardSmall: {
+    flex: 1,
+    minHeight: 120,
+  },
+  insightsCard: {
+    marginBottom: 80,
   },
   summaryIcon: {
     marginBottom: 8,

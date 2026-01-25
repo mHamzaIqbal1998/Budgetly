@@ -1,17 +1,19 @@
 // Global State Management with Zustand
-import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
 import { FireflyCredentials } from '@/types/firefly';
+import * as SecureStore from 'expo-secure-store';
+import { create } from 'zustand';
 
 interface AppState {
   credentials: FireflyCredentials | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  balanceVisible: boolean;
   
   // Actions
   setCredentials: (credentials: FireflyCredentials) => Promise<void>;
   loadCredentials: () => Promise<void>;
   clearCredentials: () => Promise<void>;
+  toggleBalanceVisibility: () => void;
 }
 
 const CREDENTIALS_KEY = 'firefly_credentials';
@@ -20,6 +22,7 @@ export const useStore = create<AppState>((set) => ({
   credentials: null,
   isAuthenticated: false,
   isLoading: true,
+  balanceVisible: true,
   
   setCredentials: async (credentials: FireflyCredentials) => {
     try {
@@ -55,6 +58,10 @@ export const useStore = create<AppState>((set) => ({
       console.error('Failed to clear credentials:', error);
       throw error;
     }
+  },
+  
+  toggleBalanceVisibility: () => {
+    set((state) => ({ balanceVisible: !state.balanceVisible }));
   },
 }));
 

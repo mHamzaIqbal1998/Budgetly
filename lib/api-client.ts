@@ -1,18 +1,19 @@
 // Firefly III API Client
-import axios, { AxiosInstance, AxiosError } from 'axios';
 import {
-  FireflyCredentials,
-  FireflyApiResponse,
-  FireflyVersion,
   Account,
-  Transaction,
+  AccountOverview,
   Budget,
   BudgetLimit,
+  CreateBudgetData,
+  CreateTransactionData,
+  FireflyApiResponse,
+  FireflyCredentials,
+  FireflyVersion,
   PiggyBank,
   RecurringTransaction,
-  CreateTransactionData,
-  CreateBudgetData,
+  Transaction,
 } from '@/types/firefly';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 
 class FireflyApiClient {
   private axiosInstance: AxiosInstance | null = null;
@@ -89,10 +90,22 @@ class FireflyApiClient {
   }
 
   // Accounts
-  async getAccounts(page: number = 1): Promise<FireflyApiResponse<Account[]>> {
+  async getAccounts(page: number = 1, type: string = 'all'): Promise<FireflyApiResponse<Account[]>> {
     const api = this.ensureInitialized();
     const response = await api.get<FireflyApiResponse<Account[]>>('accounts', {
-      params: { page },
+      params: { page, type },
+    });
+    return response.data;
+  }
+
+  async getAccountOverview(): Promise<FireflyApiResponse<AccountOverview[]>> {
+    const api = this.ensureInitialized();
+    const response = await api.get<FireflyApiResponse<AccountOverview[]>>('chart/account/overview',{
+      params: {
+        start: '2026-01-01',
+        end: '2026-01-31',
+        preselected: 'assets',
+      },
     });
     return response.data;
   }

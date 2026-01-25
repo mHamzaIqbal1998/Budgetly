@@ -64,7 +64,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={paperTheme}>
         <RootLayoutNav />
-        <StatusBar style="light" />
+        <StatusBar style="light" hidden={true} />
       </PaperProvider>
     </QueryClientProvider>
   );
