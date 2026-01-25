@@ -146,19 +146,25 @@ export default function DashboardScreen() {
               <Text>No accounts found</Text>
             ) : (
               <>
-                {accountsData?.data.slice(0, 5).map((account) => (
-                  <View key={account.id} style={styles.accountItem}>
-                    <View>
-                      <Text variant="bodyLarge">{account.attributes.name}</Text>
-                      <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                        {account.attributes.type}
-                      </Text>
+                {accountsData?.data.slice(0, 5).map((account, index, array) => {
+                  const isLastItem = index === array.length - 1;
+                  const shouldHideBorder = accountsData && accountsData.data.length <= 5 && isLastItem;
+                  return (
+                    <View key={account.id} style={[styles.accountItem, shouldHideBorder && styles.accountItemNoBorder]}>
+                      <View style={styles.accountNameContainer}>
+                        <Text variant="bodyLarge">{account.attributes.name}</Text>
+                        <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                          {account.attributes.type.charAt(0).toUpperCase() + account.attributes.type.slice(1).toLowerCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.accountBalanceContainer}>
+                        <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                          {account.attributes.currency_code} {account.attributes.current_balance}
+                        </Text>
+                      </View>
                     </View>
-                    <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                      {account.attributes.currency_code} {account.attributes.current_balance}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
                 {accountsData && accountsData.data.length > 5 && (
                   <TouchableOpacity
                     onPress={() => router.push('/(drawer)/accounts')}
@@ -202,23 +208,44 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             ) : (
-              budgetsData?.data.slice(0, 5).map((budget) => (
-                <View key={budget.id} style={styles.budgetItem}>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="bodyLarge">{budget.attributes.name}</Text>
-                    {budget.attributes.spent && budget.attributes.spent.length > 0 && (
-                      <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                        Spent: {budget.attributes.spent[0].currency_code} {budget.attributes.spent[0].amount}
-                      </Text>
-                    )}
-                  </View>
-                  <MaterialCommunityIcons
-                    name={budget.attributes.active ? 'check-circle' : 'circle-outline'}
-                    size={24}
-                    color={budget.attributes.active ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                  />
-                </View>
-              ))
+              <>
+                {budgetsData?.data.slice(0, 5).map((budget, index, array) => {
+                  const isLastItem = index === array.length - 1;
+                  const shouldHideBorder = budgetsData && budgetsData.data.length <= 5 && isLastItem;
+                  return (
+                    <View key={budget.id} style={[styles.budgetItem, shouldHideBorder && styles.budgetItemNoBorder]}>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="bodyLarge">{budget.attributes.name}</Text>
+                        {budget.attributes.spent && budget.attributes.spent.length > 0 && (
+                          <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                            Spent: {budget.attributes.spent[0].currency_code} {budget.attributes.spent[0].amount}
+                          </Text>
+                        )}
+                      </View>
+                      <MaterialCommunityIcons
+                        name={budget.attributes.active ? 'check-circle' : 'circle-outline'}
+                        size={24}
+                        color={budget.attributes.active ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                      />
+                    </View>
+                  );
+                })}
+                {budgetsData && budgetsData.data.length > 5 && (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(drawer)/budgets')}
+                    style={styles.showMoreButton}
+                  >
+                    <Text variant="bodyMedium" style={[styles.showMoreText, { color: theme.colors.primary }]}>
+                      Show more
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </Card.Content>
         </GlassCard>
@@ -356,11 +383,26 @@ const styles = StyleSheet.create({
   },
   accountItem: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 8,
+  },
+  accountNameContainer: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 150,
+  },
+  accountBalanceContainer: {
+    flexShrink: 0,
+    alignItems: 'flex-end',
+    marginLeft: 'auto',
+  },
+  accountItemNoBorder: {
+    borderBottomWidth: 0,
   },
   showMoreButton: {
     flexDirection: 'row',
@@ -379,7 +421,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  budgetItemNoBorder: {
+    borderBottomWidth: 0,
   },
   insightItem: {
     flexDirection: 'row',
