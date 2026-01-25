@@ -225,7 +225,6 @@ class FireflyApiClient {
   async getSubscriptionsBills(): Promise<FireflyApiResponse<AllBillsResponse[]>> {
     const api = this.ensureInitialized();
     const response = await api.get<FireflyApiResponse<AllBillsResponse[]>>('bills');
-    console.log(response.data.data);
     return response.data;
   }
 }

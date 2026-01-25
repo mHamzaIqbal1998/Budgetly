@@ -153,8 +153,7 @@ export default function SetupScreen() {
       </KeyboardAvoidingView>
 
       <SuccessModal
-        // visible={successModalVisible}
-        visible={true}
+        visible={successModalVisible}
         onDismiss={() => {
           setSuccessModalVisible(false);
           router.replace('/(drawer)/dashboard');

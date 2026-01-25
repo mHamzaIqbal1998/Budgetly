@@ -12,7 +12,7 @@ import { apiClient } from '@/lib/api-client';
 import { SpotifyDarkTheme, SpotifyLightTheme } from '@/constants/spotify-theme';
 
 export const unstable_settings = {
-  initialRouteName: '(drawer)',
+  initialRouteName: 'index',
 };
 
 function RootLayoutNav() {
@@ -50,6 +50,7 @@ function RootLayoutNav() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/setup" options={{ headerShown: false }} />
       <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
     </Stack>
