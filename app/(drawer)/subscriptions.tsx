@@ -5,6 +5,7 @@ import { Card, Text, useTheme, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { GlassCard } from '@/components/glass-card';
 
 export default function SubscriptionsScreen() {
   const theme = useTheme();
@@ -56,7 +57,7 @@ export default function SubscriptionsScreen() {
             const repetitionText = getRepetitionText(subscription.attributes.repetitions);
 
             return (
-              <Card key={subscription.id} style={styles.subscriptionCard} mode="elevated">
+              <GlassCard key={subscription.id} variant="elevated" style={styles.subscriptionCard}>
                 <Card.Content>
                   <View style={styles.subscriptionHeader}>
                     <View style={styles.subscriptionLeft}>
@@ -100,7 +101,7 @@ export default function SubscriptionsScreen() {
                           <Text 
                             variant="headlineSmall" 
                             style={{ 
-                              color: '#f44336',
+                              color: '#FF5252',
                               fontWeight: 'bold',
                               textAlign: 'right',
                             }}
@@ -150,7 +151,7 @@ export default function SubscriptionsScreen() {
                     )}
                   </View>
                 </Card.Content>
-              </Card>
+              </GlassCard>
             );
           })
         )}

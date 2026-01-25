@@ -5,6 +5,7 @@ import { Card, Text, useTheme, ProgressBar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { GlassCard } from '@/components/glass-card';
 
 export default function PiggyBanksScreen() {
   const theme = useTheme();
@@ -47,7 +48,7 @@ export default function PiggyBanksScreen() {
             const leftToSave = parseFloat(piggyBank.attributes.left_to_save);
 
             return (
-              <Card key={piggyBank.id} style={styles.piggyBankCard} mode="elevated">
+              <GlassCard key={piggyBank.id} variant="elevated" style={styles.piggyBankCard}>
                 <Card.Content>
                   <View style={styles.piggyBankHeader}>
                     <MaterialCommunityIcons
@@ -82,7 +83,7 @@ export default function PiggyBanksScreen() {
 
                   <ProgressBar 
                     progress={percentage / 100} 
-                    color={percentage >= 100 ? '#4caf50' : theme.colors.primary}
+                    color={theme.colors.primary}
                     style={styles.progressBar}
                   />
                   
@@ -116,7 +117,7 @@ export default function PiggyBanksScreen() {
                     </Text>
                   )}
                 </Card.Content>
-              </Card>
+              </GlassCard>
             );
           })
         )}

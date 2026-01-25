@@ -5,6 +5,7 @@ import { Card, Text, useTheme, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { GlassCard } from '@/components/glass-card';
 
 export default function AccountsScreen() {
   const theme = useTheme();
@@ -37,13 +38,13 @@ export default function AccountsScreen() {
       case 'asset':
         return theme.colors.primary;
       case 'cash':
-        return '#4caf50';
+        return theme.colors.primary;
       case 'revenue':
-        return '#2196f3';
+        return '#64B5F6';
       case 'expense':
-        return '#f44336';
+        return '#FF5252';
       case 'liability':
-        return '#ff9800';
+        return '#FFB74D';
       default:
         return theme.colors.onSurface;
     }
@@ -70,7 +71,7 @@ export default function AccountsScreen() {
         }
       >
         {/* Net Worth Summary */}
-        <Card style={styles.summaryCard} mode="contained">
+        <GlassCard variant="primary" style={styles.summaryCard}>
           <Card.Content>
             <Text variant="bodyLarge" style={{ opacity: 0.7, textAlign: 'center' }}>
               Net Worth
@@ -81,7 +82,7 @@ export default function AccountsScreen() {
                 textAlign: 'center', 
                 fontWeight: 'bold',
                 marginTop: 8,
-                color: netWorth >= 0 ? '#4caf50' : '#f44336',
+                color: netWorth >= 0 ? theme.colors.primary : '#FF5252',
               }}
             >
               ${netWorth.toFixed(2)}
@@ -89,19 +90,19 @@ export default function AccountsScreen() {
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text variant="bodySmall" style={{ opacity: 0.6 }}>Assets</Text>
-                <Text variant="titleMedium" style={{ color: '#4caf50', fontWeight: 'bold' }}>
+                <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
                   ${totalAssets.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
                 <Text variant="bodySmall" style={{ opacity: 0.6 }}>Liabilities</Text>
-                <Text variant="titleMedium" style={{ color: '#f44336', fontWeight: 'bold' }}>
+                <Text variant="titleMedium" style={{ color: '#FF5252', fontWeight: 'bold' }}>
                   ${totalLiabilities.toFixed(2)}
                 </Text>
               </View>
             </View>
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* Accounts List */}
         {isLoading ? (
@@ -126,7 +127,7 @@ export default function AccountsScreen() {
             const isPositive = balance >= 0;
 
             return (
-              <Card key={account.id} style={styles.accountCard} mode="elevated">
+              <GlassCard key={account.id} variant="default" style={styles.accountCard}>
                 <Card.Content>
                   <View style={styles.accountHeader}>
                     <View style={styles.accountLeft}>
@@ -159,7 +160,7 @@ export default function AccountsScreen() {
                       <Text 
                         variant="headlineSmall" 
                         style={{ 
-                          color: isPositive ? '#4caf50' : '#f44336',
+                          color: isPositive ? theme.colors.primary : '#FF5252',
                           fontWeight: 'bold',
                         }}
                       >
@@ -169,7 +170,7 @@ export default function AccountsScreen() {
                         <MaterialCommunityIcons
                           name={account.attributes.active ? 'check-circle' : 'pause-circle'}
                           size={16}
-                          color={account.attributes.active ? '#4caf50' : theme.colors.onSurfaceVariant}
+                          color={account.attributes.active ? theme.colors.primary : theme.colors.onSurfaceVariant}
                         />
                         <Text variant="bodySmall" style={{ marginLeft: 4, opacity: 0.6 }}>
                           {account.attributes.active ? 'Active' : 'Inactive'}
@@ -178,7 +179,7 @@ export default function AccountsScreen() {
                     </View>
                   </View>
                 </Card.Content>
-              </Card>
+              </GlassCard>
             );
           })
         )}

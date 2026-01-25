@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { VictoryPie, VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from 'victory-native';
+import { GlassCard, GlassContainer } from '@/components/glass-card';
 
 export default function DashboardScreen() {
   const theme = useTheme();
@@ -37,7 +38,7 @@ export default function DashboardScreen() {
       <ScrollView style={styles.scrollView}>
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <Card style={[styles.summaryCard, { flex: 1 }]} mode="elevated">
+          <GlassCard variant="primary" style={[styles.summaryCard, { flex: 1 }]}>
             <Card.Content>
               <MaterialCommunityIcons 
                 name="wallet" 
@@ -46,33 +47,34 @@ export default function DashboardScreen() {
                 style={styles.summaryIcon}
               />
               <Text variant="bodySmall" style={styles.summaryLabel}>Total Balance</Text>
-              <Text variant="headlineMedium" style={styles.summaryValue}>
+              <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
                 ${totalBalance.toFixed(2)}
               </Text>
             </Card.Content>
-          </Card>
+          </GlassCard>
 
-          <Card style={[styles.summaryCard, { flex: 1 }]} mode="elevated">
+          <GlassCard variant="primary" style={[styles.summaryCard, { flex: 1 }]}>
             <Card.Content>
               <MaterialCommunityIcons 
                 name="chart-donut" 
                 size={32} 
-                color={theme.colors.secondary} 
+                color={theme.colors.primary} 
                 style={styles.summaryIcon}
               />
               <Text variant="bodySmall" style={styles.summaryLabel}>Active Budgets</Text>
-              <Text variant="headlineMedium" style={styles.summaryValue}>
+              <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
                 {activeBudgets}
               </Text>
             </Card.Content>
-          </Card>
+          </GlassCard>
         </View>
 
         {/* Accounts Overview */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="Accounts Overview" 
-            left={(props) => <MaterialCommunityIcons name="bank" {...props} />}
+            left={(props) => <MaterialCommunityIcons name="bank" {...props} color={theme.colors.primary} />}
+            titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
             {accountsLoading ? (
@@ -95,13 +97,14 @@ export default function DashboardScreen() {
               ))
             )}
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* Budgets Overview */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="Budget Status" 
-            left={(props) => <MaterialCommunityIcons name="wallet" {...props} />}
+            left={(props) => <MaterialCommunityIcons name="wallet" {...props} color={theme.colors.primary} />}
+            titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
             {budgetsLoading ? (
@@ -138,13 +141,14 @@ export default function DashboardScreen() {
               ))
             )}
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* Quick Insights */}
-        <Card style={[styles.card, { marginBottom: 80 }]} mode="contained">
+        <GlassCard variant="elevated" style={[styles.card, { marginBottom: 80 }]}>
           <Card.Title 
             title="Quick Insights" 
-            left={(props) => <MaterialCommunityIcons name="lightbulb" {...props} />}
+            left={(props) => <MaterialCommunityIcons name="lightbulb" {...props} color={theme.colors.primary} />}
+            titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
             <View style={styles.insightItem}>
@@ -168,7 +172,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </Card.Content>
-        </Card>
+        </GlassCard>
       </ScrollView>
 
       {/* Floating Action Button */}

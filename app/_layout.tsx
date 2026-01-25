@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { QueryClientProvider } from '@tanstack/react-query';
 import 'react-native-reanimated';
 
@@ -9,6 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStore } from '@/lib/store';
 import { queryClient } from '@/lib/query-client';
 import { apiClient } from '@/lib/api-client';
+import { SpotifyDarkTheme, SpotifyLightTheme } from '@/constants/spotify-theme';
 
 export const unstable_settings = {
   initialRouteName: '(drawer)',
@@ -57,13 +58,13 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const paperTheme = colorScheme === 'dark' ? SpotifyDarkTheme : SpotifyLightTheme;
 
   return (
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={paperTheme}>
         <RootLayoutNav />
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
       </PaperProvider>
     </QueryClientProvider>
   );

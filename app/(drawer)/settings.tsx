@@ -17,6 +17,7 @@ import { useStore } from '@/lib/store';
 import { apiClient } from '@/lib/api-client';
 import { router } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { GlassCard } from '@/components/glass-card';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -90,7 +91,7 @@ export default function SettingsScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView style={styles.scrollView}>
         {/* Account Section */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="Account" 
             left={(props) => <MaterialCommunityIcons name="account" {...props} />}
@@ -108,10 +109,10 @@ export default function SettingsScreen() {
               onPress={() => setModalVisible(true)}
             />
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* App Settings */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="Appearance" 
             left={(props) => <MaterialCommunityIcons name="palette" {...props} />}
@@ -123,10 +124,10 @@ export default function SettingsScreen() {
               left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
             />
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* Data & Privacy */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="Data & Privacy" 
             left={(props) => <MaterialCommunityIcons name="shield-check" {...props} />}
@@ -143,10 +144,10 @@ export default function SettingsScreen() {
               left={(props) => <List.Icon {...props} icon="database" />}
             />
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* About */}
-        <Card style={styles.card} mode="contained">
+        <GlassCard variant="elevated" style={styles.card}>
           <Card.Title 
             title="About" 
             left={(props) => <MaterialCommunityIcons name="information" {...props} />}
@@ -168,14 +169,14 @@ export default function SettingsScreen() {
               left={(props) => <List.Icon {...props} icon="book-open" />}
             />
           </Card.Content>
-        </Card>
+        </GlassCard>
 
         {/* Sign Out */}
         <View style={styles.dangerZone}>
           <Button 
             mode="contained" 
             onPress={handleSignOut}
-            buttonColor="#f44336"
+            buttonColor="#FF5252"
             icon="logout"
             style={styles.signOutButton}
           >

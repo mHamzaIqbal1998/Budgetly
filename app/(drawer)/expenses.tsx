@@ -20,6 +20,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { CreateTransactionData } from '@/types/firefly';
+import { GlassCard } from '@/components/glass-card';
 
 export default function ExpensesScreen() {
   const theme = useTheme();
@@ -106,11 +107,11 @@ export default function ExpensesScreen() {
   const getTransactionColor = (txType: string) => {
     switch (txType.toLowerCase()) {
       case 'withdrawal':
-        return '#f44336';
+        return '#FF5252';
       case 'deposit':
-        return '#4caf50';
-      case 'transfer':
         return theme.colors.primary;
+      case 'transfer':
+        return '#64B5F6';
       default:
         return theme.colors.onSurface;
     }
@@ -164,7 +165,7 @@ export default function ExpensesScreen() {
           filteredTransactions?.map((transaction) => {
             const tx = transaction.attributes.transactions[0];
             return (
-              <Card key={transaction.id} style={styles.transactionCard} mode="elevated">
+              <GlassCard key={transaction.id} variant="default" style={styles.transactionCard}>
                 <Card.Content style={styles.transactionContent}>
                   <View style={styles.transactionLeft}>
                     <MaterialCommunityIcons
@@ -204,7 +205,7 @@ export default function ExpensesScreen() {
                     />
                   </View>
                 </Card.Content>
-              </Card>
+              </GlassCard>
             );
           })
         )}

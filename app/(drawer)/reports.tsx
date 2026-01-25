@@ -3,6 +3,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { GlassCard } from '@/components/glass-card';
 
 export default function ReportsScreen() {
   const theme = useTheme();
@@ -26,7 +27,7 @@ export default function ReportsScreen() {
             Advanced reporting and analytics features coming soon!
           </Text>
           
-          <Card style={styles.featureCard} mode="contained">
+          <GlassCard variant="elevated" style={styles.featureCard}>
             <Card.Content>
               <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 12 }}>
                 Upcoming Features
@@ -62,7 +63,7 @@ export default function ReportsScreen() {
                 </Text>
               </View>
             </Card.Content>
-          </Card>
+          </GlassCard>
         </View>
       </ScrollView>
     </View>

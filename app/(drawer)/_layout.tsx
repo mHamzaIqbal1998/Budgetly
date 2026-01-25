@@ -12,11 +12,15 @@ export default function DrawerLayout() {
       <Drawer
         screenOptions={{
           headerStyle: {
-            backgroundColor: theme.colors.primary,
+            backgroundColor: theme.colors.surface,
           },
-          headerTintColor: '#fff',
+          headerTintColor: theme.colors.onSurface,
+          drawerStyle: {
+            backgroundColor: theme.colors.surface,
+          },
           drawerActiveTintColor: theme.colors.primary,
           drawerInactiveTintColor: theme.colors.onSurfaceVariant,
+          drawerActiveBackgroundColor: 'rgba(29, 185, 84, 0.12)',
         }}
       >
         <Drawer.Screen

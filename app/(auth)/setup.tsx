@@ -119,7 +119,7 @@ export default function SetupScreen() {
           />
 
           {error ? (
-            <Text variant="bodyMedium" style={styles.errorText}>
+            <Text variant="bodyMedium" style={[styles.errorText, { color: '#FF5252' }]}>
               {error}
             </Text>
           ) : null}
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   errorText: {
-    color: '#d32f2f',
     marginBottom: 16,
     textAlign: 'center',
   },

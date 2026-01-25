@@ -18,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { CreateBudgetData } from '@/types/firefly';
+import { GlassCard } from '@/components/glass-card';
 
 export default function BudgetsScreen() {
   const theme = useTheme();
@@ -109,7 +110,7 @@ export default function BudgetsScreen() {
               : 0;
 
             return (
-              <Card key={budget.id} style={styles.budgetCard} mode="elevated">
+              <GlassCard key={budget.id} variant="elevated" style={styles.budgetCard}>
                 <Card.Content>
                   <View style={styles.budgetHeader}>
                     <View style={{ flex: 1 }}>
@@ -141,7 +142,7 @@ export default function BudgetsScreen() {
                       <View style={styles.budgetAmounts}>
                         <View>
                           <Text variant="bodySmall" style={{ opacity: 0.6 }}>Spent</Text>
-                          <Text variant="titleMedium" style={{ color: '#f44336', fontWeight: 'bold' }}>
+                          <Text variant="titleMedium" style={{ color: '#FF5252', fontWeight: 'bold' }}>
                             {spent.currency_symbol}{spentAmount.toFixed(2)}
                           </Text>
                         </View>
@@ -158,7 +159,7 @@ export default function BudgetsScreen() {
                         <>
                           <ProgressBar 
                             progress={Math.min(progress, 1)} 
-                            color={progress > 0.9 ? '#f44336' : progress > 0.7 ? '#ff9800' : theme.colors.primary}
+                            color={progress > 0.9 ? '#FF5252' : progress > 0.7 ? '#FFB74D' : theme.colors.primary}
                             style={styles.progressBar}
                           />
                           <Text variant="bodySmall" style={{ textAlign: 'right', marginTop: 4 }}>
@@ -169,7 +170,7 @@ export default function BudgetsScreen() {
                     </>
                   )}
                 </Card.Content>
-              </Card>
+              </GlassCard>
             );
           })
         )}

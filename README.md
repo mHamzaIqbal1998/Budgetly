@@ -11,7 +11,7 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 - **Accounts**: View all your financial accounts and balances
 - **Piggy Banks**: Monitor your savings goals
 - **Subscriptions**: Manage recurring transactions
-- **Material Design**: Beautiful, modern UI built with React Native Paper
+- **Spotify-Inspired Theme**: Beautiful black and green design with Material Design 3
 - **Offline Support**: Cached data with automatic background refresh
 - **Secure Storage**: Credentials stored securely on device
 
@@ -19,7 +19,8 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 
 - **Framework**: Expo (React Native)
 - **Language**: TypeScript
-- **UI Library**: React Native Paper (Material Design)
+- **UI Library**: React Native Paper (Material Design 3)
+- **Theme**: Spotify-inspired black and green color scheme
 - **Navigation**: Expo Router with Drawer Navigation
 - **State Management**: Zustand (for app state) + TanStack Query (for server state)
 - **API Client**: Axios
@@ -202,7 +203,7 @@ For issues related to:
 - [ ] Export functionality
 - [ ] Multiple currency support
 - [ ] Biometric authentication
-- [ ] Dark mode customization
+- [ ] Theme customization options
 - [ ] Push notifications for recurring transactions
 - [ ] Offline transaction creation with sync
 
