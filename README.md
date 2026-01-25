@@ -1,50 +1,211 @@
-# Welcome to your Expo app 👋
+# Budgetly - Firefly III Mobile Companion
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A beautiful, modern React Native app for managing your personal finances with Firefly III.
 
-## Get started
+## 🚀 Features
 
-1. Install dependencies
+- **Secure Connection**: Connect to your self-hosted Firefly III instance using Personal Access Token
+- **Dashboard**: Overview of your accounts, budgets, and financial insights
+- **Expenses Management**: Create, view, and delete transactions
+- **Budgets**: Track your spending against budgets
+- **Accounts**: View all your financial accounts and balances
+- **Piggy Banks**: Monitor your savings goals
+- **Subscriptions**: Manage recurring transactions
+- **Material Design**: Beautiful, modern UI built with React Native Paper
+- **Offline Support**: Cached data with automatic background refresh
+- **Secure Storage**: Credentials stored securely on device
 
-   ```bash
-   npm install
-   ```
+## 🛠️ Tech Stack
 
-2. Start the app
+- **Framework**: Expo (React Native)
+- **Language**: TypeScript
+- **UI Library**: React Native Paper (Material Design)
+- **Navigation**: Expo Router with Drawer Navigation
+- **State Management**: Zustand (for app state) + TanStack Query (for server state)
+- **API Client**: Axios
+- **Secure Storage**: Expo Secure Store
+- **Charts**: Victory Native
 
-   ```bash
-   npx expo start
-   ```
+## 📋 Prerequisites
 
-In the output, you'll find options to open the app in a
+- Node.js 18+
+- npm or yarn
+- Expo CLI
+- A running Firefly III instance
+- Personal Access Token from your Firefly III instance
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🔧 Installation
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+1. Clone the repository:
 ```bash
-npm run reset-project
+git clone <repository-url>
+cd budgetly
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Install dependencies:
+```bash
+npm install
+```
 
-## Learn more
+3. Start the development server:
+```bash
+npm start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Run on your device:
+   - **iOS**: Press `i` or run `npm run ios`
+   - **Android**: Press `a` or run `npm run android`
+   - **Web**: Press `w` or run `npm run web`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🔐 First Launch Setup
 
-## Join the community
+1. Launch the app
+2. Enter your Firefly III instance URL (e.g., `https://firefly.example.com`)
+3. Enter your Personal Access Token
+4. Tap "Connect"
 
-Join our community of developers creating universal apps.
+The app will validate your credentials and connect to your instance.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📱 Screens
+
+### Dashboard
+- Financial overview with summary cards
+- Recent accounts and budgets
+- Quick action buttons for common tasks
+
+### Expenses
+- List all transactions
+- Search and filter capabilities
+- Create new expenses, income, or transfers
+- Delete transactions
+
+### Budgets
+- View all budgets with progress bars
+- See spending vs. limits
+- Create new budgets
+
+### Accounts
+- View all connected accounts
+- See balances and account types
+- Net worth calculation
+
+### Piggy Banks
+- Track savings goals
+- View progress towards targets
+- See remaining amounts
+
+### Subscriptions
+- Manage recurring transactions
+- View frequency and amounts
+- Track active/inactive subscriptions
+
+### Settings
+- Update Firefly III credentials
+- View app information
+- Sign out
+
+## 🔒 Security
+
+- Personal Access Tokens are stored using Expo Secure Store (encrypted native storage)
+- No credentials are ever logged or transmitted to third parties
+- All API calls go directly to your Firefly III instance
+- No telemetry or tracking
+
+## 🏗️ Project Structure
+
+```
+budgetly/
+├── app/                      # App screens and navigation
+│   ├── (auth)/              # Authentication screens
+│   │   └── setup.tsx        # First-launch setup
+│   ├── (drawer)/            # Main app screens (drawer navigation)
+│   │   ├── dashboard.tsx
+│   │   ├── expenses.tsx
+│   │   ├── budgets.tsx
+│   │   ├── accounts.tsx
+│   │   ├── piggy-banks.tsx
+│   │   ├── subscriptions.tsx
+│   │   ├── reports.tsx
+│   │   └── settings.tsx
+│   └── _layout.tsx          # Root layout with providers
+├── components/              # Reusable UI components
+├── lib/                     # Core functionality
+│   ├── api-client.ts       # Firefly III API client
+│   ├── store.ts            # Zustand global state
+│   └── query-client.ts     # React Query configuration
+├── types/                   # TypeScript type definitions
+│   └── firefly.ts          # Firefly III API types
+├── constants/              # App constants and themes
+├── hooks/                  # Custom React hooks
+└── assets/                 # Images and static assets
+```
+
+## 🔌 API Integration
+
+The app uses the Firefly III REST API v1. All endpoints are documented at:
+https://api-docs.firefly-iii.org/
+
+Key API features used:
+- `/api/v1/about` - Version and validation
+- `/api/v1/accounts` - Account management
+- `/api/v1/transactions` - Transaction CRUD
+- `/api/v1/budgets` - Budget management
+- `/api/v1/piggy-banks` - Piggy bank data
+- `/api/v1/recurring` - Recurring transactions
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+```
+
+## 📦 Building for Production
+
+### iOS
+```bash
+eas build --platform ios
+```
+
+### Android
+```bash
+eas build --platform android
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- [Firefly III](https://www.firefly-iii.org/) - The amazing personal finance manager
+- [React Native Paper](https://reactnativepaper.com/) - Material Design components
+- [Expo](https://expo.dev/) - React Native development platform
+
+## 📞 Support
+
+For issues related to:
+- **This app**: Open an issue in this repository
+- **Firefly III**: Visit https://github.com/firefly-iii/firefly-iii
+
+## 🗺️ Roadmap
+
+- [ ] Advanced charts and analytics
+- [ ] Budget categories and tags
+- [ ] Export functionality
+- [ ] Multiple currency support
+- [ ] Biometric authentication
+- [ ] Dark mode customization
+- [ ] Push notifications for recurring transactions
+- [ ] Offline transaction creation with sync
+
+---
+
+Made with ❤️ for Firefly III users
