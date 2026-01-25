@@ -27,6 +27,12 @@ export default function DashboardScreen() {
     queryFn: () => apiClient.getBudgets(),
   });
 
+  // Fetch subscriptions bills
+  const { data: subscriptionsBillsData, isLoading: isLoadingBills } = useQuery({
+    queryKey: ['subscriptionsBills'],
+    queryFn: () => apiClient.getSubscriptionsBills(),
+  });
+
   // Calculate total balance by currency
   const balancesByCurrency = accountsData?.data.reduce((acc, account) => {
     const currencySymbol = account.attributes.currency_symbol;
@@ -119,14 +125,14 @@ export default function DashboardScreen() {
           <GlassCard variant="primary" style={styles.summaryCardSmall} mode='outlined'>
             <Card.Content>
               <MaterialCommunityIcons 
-                name="chart-donut" 
+                name="repeat" 
                 size={32} 
                 color={theme.colors.primary} 
                 style={styles.summaryIcon}
               />
-              <Text variant="bodySmall" style={styles.summaryLabel}>Active Budgets</Text>
+              <Text variant="bodySmall" style={styles.summaryLabel}>Active Subscriptions</Text>
               <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
-                {activeBudgets}
+                {subscriptionsBillsData?.data.filter(bill => bill.attributes.active).length || 0}
               </Text>
             </Card.Content>
           </GlassCard>

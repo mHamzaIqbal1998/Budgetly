@@ -220,6 +220,67 @@ export interface FireflyApiResponse<T> {
   };
 }
 
+export interface AllBillsResponse {
+  type: string;
+  id: string;
+  attributes: {
+    created_at: string;
+    updated_at: string;
+    name: string;
+    object_has_currency_setting: boolean;
+    currency_id: string;
+    currency_name: string;
+    currency_code: string;
+    currency_symbol: string;
+    currency_decimal_places: number;
+    primary_currency_id: string;
+    primary_currency_name: string;
+    primary_currency_code: string;
+    primary_currency_symbol: string;
+    primary_currency_decimal_places: number;
+    amount_min: string;
+    pc_amount_min: string;
+    amount_max: string;
+    pc_amount_max: string;
+    amount_avg: string;
+    pc_amount_avg: string;
+    date: string;
+    end_date: string;
+    extension_date: string;
+    repeat_freq: string;
+    skip: number;
+    active: boolean;
+    order: number;
+    notes: string;
+    object_group_id: string;
+    object_group_order: number;
+    object_group_title: string;
+    paid_dates: Array<{
+      transaction_group_id: string;
+      transaction_journal_id: string;
+      date: string;
+      subscription_id: string;
+      currency_id: string;
+      currency_name: string;
+      currency_code: string;
+      currency_symbol: string;
+      currency_decimal_places: number;
+      primary_currency_id: string;
+      primary_currency_name: string;
+      primary_currency_code: string;
+      primary_currency_symbol: string;
+      primary_currency_decimal_places: number;
+      amount: string;
+      pc_amount: string;
+      foreign_amount: string;
+      pc_foreign_amount: string;
+    }>;
+    pay_dates: string[];
+    next_expected_match: string;
+    next_expected_match_diff: string;
+  };
+}
+
 export interface FireflyVersion {
   data: {version: string;
   api_version: string;

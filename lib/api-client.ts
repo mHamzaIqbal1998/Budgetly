@@ -2,6 +2,7 @@
 import {
   Account,
   AccountOverview,
+  AllBillsResponse,
   Budget,
   BudgetLimit,
   CreateBudgetData,
@@ -218,6 +219,13 @@ class FireflyApiClient {
   async getRecurringTransaction(id: string): Promise<FireflyApiResponse<RecurringTransaction>> {
     const api = this.ensureInitialized();
     const response = await api.get<FireflyApiResponse<RecurringTransaction>>(`recurring/${id}`);
+    return response.data;
+  }
+
+  async getSubscriptionsBills(): Promise<FireflyApiResponse<AllBillsResponse[]>> {
+    const api = this.ensureInitialized();
+    const response = await api.get<FireflyApiResponse<AllBillsResponse[]>>('bills');
+    console.log(response.data.data);
     return response.data;
   }
 }

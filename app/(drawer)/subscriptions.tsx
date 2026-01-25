@@ -1,11 +1,11 @@
 // Subscriptions (Recurring Transactions) Screen
-import React from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Card, Text, useTheme, Chip } from 'react-native-paper';
+import { GlassCard } from '@/components/glass-card';
+import { apiClient } from '@/lib/api-client';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { GlassCard } from '@/components/glass-card';
+import React from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Card, Chip, Text, useTheme } from 'react-native-paper';
 
 export default function SubscriptionsScreen() {
   const theme = useTheme();
