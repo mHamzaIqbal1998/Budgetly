@@ -4,12 +4,14 @@ import { apiClient } from '@/lib/api-client';
 import { useStore } from '@/lib/store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, FAB, Portal, Text, useTheme } from 'react-native-paper';
 
 export default function DashboardScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [fabOpen, setFabOpen] = React.useState(false);
   const { balanceVisible, toggleBalanceVisibility } = useStore();
 
@@ -143,19 +145,36 @@ export default function DashboardScreen() {
             ) : accountsData?.data.length === 0 ? (
               <Text>No accounts found</Text>
             ) : (
-              accountsData?.data.slice(0, 5).map((account) => (
-                <View key={account.id} style={styles.accountItem}>
-                  <View>
-                    <Text variant="bodyLarge">{account.attributes.name}</Text>
-                    <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                      {account.attributes.type}
+              <>
+                {accountsData?.data.slice(0, 5).map((account) => (
+                  <View key={account.id} style={styles.accountItem}>
+                    <View>
+                      <Text variant="bodyLarge">{account.attributes.name}</Text>
+                      <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                        {account.attributes.type}
+                      </Text>
+                    </View>
+                    <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                      {account.attributes.currency_code} {account.attributes.current_balance}
                     </Text>
                   </View>
-                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                    {account.attributes.currency_code} {account.attributes.current_balance}
-                  </Text>
-                </View>
-              ))
+                ))}
+                {accountsData && accountsData.data.length > 5 && (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(drawer)/accounts')}
+                    style={styles.showMoreButton}
+                  >
+                    <Text variant="bodyMedium" style={[styles.showMoreText, { color: theme.colors.primary }]}>
+                      Show more
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </Card.Content>
         </GlassCard>
@@ -342,6 +361,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    gap: 4,
+  },
+  showMoreText: {
+    fontWeight: '600',
   },
   budgetItem: {
     flexDirection: 'row',

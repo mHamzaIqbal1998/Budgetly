@@ -1,18 +1,22 @@
 // First Launch Setup Screen
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { SuccessModal } from '@/components/success-modal';
 import { apiClient } from '@/lib/api-client';
 import { useStore } from '@/lib/store';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Text, TextInput, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SetupScreen() {
   const [instanceUrl, setInstanceUrl] = useState('');
   const [token, setToken] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [versionInfo, setVersionInfo] = useState('');
   
   const theme = useTheme();
   const setCredentials = useStore((state) => state.setCredentials);
@@ -52,23 +56,14 @@ export default function SetupScreen() {
 
       // Validate connection
       const version = await apiClient.validateConnection();
-      
       // If successful, save credentials
       await setCredentials({
         instanceUrl: formattedUrl,
         personalAccessToken: token.trim(),
       });
 
-      Alert.alert(
-        'Success!',
-        `Connected to Firefly III v${version.version}`,
-        [
-          {
-            text: 'Continue',
-            onPress: () => router.replace('/(drawer)/dashboard'),
-          },
-        ]
-      );
+      setVersionInfo(version.data.version);
+      setSuccessModalVisible(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to Firefly III';
       setError(errorMessage);
@@ -156,6 +151,19 @@ export default function SetupScreen() {
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
+
+      <SuccessModal
+        visible={successModalVisible}
+        onDismiss={() => {
+          setSuccessModalVisible(false);
+          router.replace('/(drawer)/dashboard');
+        }}
+        message={`Connected to Firefly III v${versionInfo}`}
+        onButtonPress={() => {
+          setSuccessModalVisible(false);
+          router.replace('/(drawer)/dashboard');
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -221,10 +221,11 @@ export interface FireflyApiResponse<T> {
 }
 
 export interface FireflyVersion {
-  version: string;
+  data: {version: string;
   api_version: string;
   os: string;
   php_version: string;
+  };
 }
 
 export interface CreateTransactionData {
