@@ -26,17 +26,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.budgetly.app",
-      "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET"
       ],
-      "softwareKeyboardLayoutMode": "pan",
-      "statusBar": {
-        "hidden": true,
-        "translucent": true,
-        "backgroundColor": "#191414",
-        "barStyle": "light-content"
-      }
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "output": "static",
