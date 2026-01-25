@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, FAB, Portal, Text, useTheme } from 'react-native-paper';
 
 export default function DashboardScreen() {
@@ -16,19 +16,19 @@ export default function DashboardScreen() {
   const { balanceVisible, toggleBalanceVisibility } = useStore();
 
   // Fetch accounts
-  const { data: accountsData, isLoading: accountsLoading } = useQuery({
+  const { data: accountsData, isLoading: accountsLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => apiClient.getAccounts(1, 'asset'),
   });
 
   // Fetch budgets
-  const { data: budgetsData, isLoading: budgetsLoading } = useQuery({
+  const { data: budgetsData, isLoading: budgetsLoading, refetch: refetchBudgets } = useQuery({
     queryKey: ['budgets'],
     queryFn: () => apiClient.getBudgets(),
   });
 
   // Fetch subscriptions bills
-  const { data: subscriptionsBillsData, isLoading: isLoadingBills } = useQuery({
+  const { data: subscriptionsBillsData, isLoading: isLoadingBills, refetch: refetchSubscriptionsBills } = useQuery({
     queryKey: ['subscriptionsBills'],
     queryFn: () => apiClient.getSubscriptionsBills(),
   });
@@ -57,9 +57,17 @@ export default function DashboardScreen() {
   // Count active budgets
   const activeBudgets = budgetsData?.data.filter(b => b.attributes.active).length || 0;
 
+  const handleRefresh = () => {
+    refetchAccounts();
+    refetchBudgets();
+    refetchSubscriptionsBills();
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} refreshControl={
+          <RefreshControl refreshing={accountsLoading || budgetsLoading || isLoadingBills} onRefresh={handleRefresh} />
+        }>
         {/* Net Worth Card */}
         <GlassCard variant="primary" style={styles.netWorthCard} mode='outlined'>
           <Card.Content>
@@ -282,6 +290,16 @@ export default function DashboardScreen() {
               />
               <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
                 {activeBudgets} active budgets tracking your spending
+              </Text>
+            </View>
+            <View style={styles.insightItem}>
+              <MaterialCommunityIcons 
+                name="repeat" 
+                size={20} 
+                color={theme.colors.secondary} 
+              />
+              <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
+                {subscriptionsBillsData?.data.filter(bill => bill.attributes.active).length || 0} active subscription(s)
               </Text>
             </View>
           </Card.Content>
