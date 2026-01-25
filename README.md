@@ -206,7 +206,7 @@ For issues related to:
 - [ ] Theme customization options
 - [ ] Push notifications for recurring transactions
 - [ ] Offline transaction creation with sync
-
+- [ ] And a lot of new features requested by community
 ---
 
 Made with ❤️ for Firefly III users
