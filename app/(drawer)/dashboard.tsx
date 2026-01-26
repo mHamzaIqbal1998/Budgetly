@@ -1,13 +1,20 @@
 // Dashboard Screen
-import { GlassCard } from '@/components/glass-card';
-import { apiClient } from '@/lib/api-client';
-import { useStore } from '@/lib/store';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Card, FAB, Portal, Text, useTheme } from 'react-native-paper';
+import { GlassCard } from "@/components/glass-card";
+import { SpotifyColors } from "@/constants/spotify-theme";
+import { apiClient } from "@/lib/api-client";
+import { useStore } from "@/lib/store";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Card, FAB, Portal, Text, useTheme } from "react-native-paper";
 
 export default function DashboardScreen() {
   const theme = useTheme();
@@ -16,46 +23,63 @@ export default function DashboardScreen() {
   const { balanceVisible, toggleBalanceVisibility } = useStore();
 
   // Fetch accounts
-  const { data: accountsData, isLoading: accountsLoading, refetch: refetchAccounts } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => apiClient.getAccounts(1, 'asset'),
+  const {
+    data: accountsData,
+    isLoading: accountsLoading,
+    refetch: refetchAccounts,
+  } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: () => apiClient.getAccounts(1, "asset"),
   });
 
   // Fetch budgets
-  const { data: budgetsData, isLoading: budgetsLoading, refetch: refetchBudgets } = useQuery({
-    queryKey: ['budgets'],
+  const {
+    data: budgetsData,
+    isLoading: budgetsLoading,
+    refetch: refetchBudgets,
+  } = useQuery({
+    queryKey: ["budgets"],
     queryFn: () => apiClient.getBudgets(),
   });
 
   // Fetch subscriptions bills
-  const { data: subscriptionsBillsData, isLoading: isLoadingBills, refetch: refetchSubscriptionsBills } = useQuery({
-    queryKey: ['subscriptionsBills'],
+  const {
+    data: subscriptionsBillsData,
+    isLoading: isLoadingBills,
+    refetch: refetchSubscriptionsBills,
+  } = useQuery({
+    queryKey: ["subscriptionsBills"],
     queryFn: () => apiClient.getSubscriptionsBills(),
   });
 
   // Calculate total balance by currency
-  const balancesByCurrency = accountsData?.data.reduce((acc, account) => {
-    const currencySymbol = account.attributes.currency_symbol;
-    const currencyCode = account.attributes.currency_code;
-    const balance = parseFloat(account.attributes.current_balance);
-    
-    if (!acc[currencyCode]) {
-      acc[currencyCode] = {
-        symbol: currencySymbol,
-        code: currencyCode,
-        total: 0,
-      };
-    }
-    
-    acc[currencyCode].total += balance;
-    return acc;
-  }, {} as Record<string, { symbol: string; code: string; total: number }>) || {};
+  const balancesByCurrency =
+    accountsData?.data.reduce(
+      (acc, account) => {
+        const currencySymbol = account.attributes.currency_symbol;
+        const currencyCode = account.attributes.currency_code;
+        const balance = parseFloat(account.attributes.current_balance);
+
+        if (!acc[currencyCode]) {
+          acc[currencyCode] = {
+            symbol: currencySymbol,
+            code: currencyCode,
+            total: 0,
+          };
+        }
+
+        acc[currencyCode].total += balance;
+        return acc;
+      },
+      {} as Record<string, { symbol: string; code: string; total: number }>,
+    ) || {};
 
   // Convert to array for easier rendering
   const currencyBalances = Object.values(balancesByCurrency);
 
   // Count active budgets
-  const activeBudgets = budgetsData?.data.filter(b => b.attributes.active).length || 0;
+  const activeBudgets =
+    budgetsData?.data.filter((b) => b.attributes.active).length || 0;
 
   const handleRefresh = () => {
     refetchAccounts();
@@ -64,26 +88,40 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView} refreshControl={
-          <RefreshControl refreshing={accountsLoading || budgetsLoading || isLoadingBills} onRefresh={handleRefresh} />
-        }>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={accountsLoading || budgetsLoading || isLoadingBills}
+            onRefresh={handleRefresh}
+          />
+        }
+      >
         {/* Net Worth Card */}
-        <GlassCard variant="primary" style={styles.netWorthCard} mode='outlined'>
+        <GlassCard
+          variant="primary"
+          style={styles.netWorthCard}
+          mode="outlined"
+        >
           <Card.Content>
             <View style={styles.netWorthHeader}>
               <View style={styles.netWorthTitleContainer}>
-                <MaterialCommunityIcons 
-                  name="wallet" 
-                  size={24} 
-                  color={theme.colors.primary} 
+                <MaterialCommunityIcons
+                  name="wallet"
+                  size={24}
+                  color={theme.colors.primary}
                 />
-                <Text variant="labelLarge" style={styles.netWorthLabel}>Net Worth</Text>
+                <Text variant="labelLarge" style={styles.netWorthLabel}>
+                  Net Worth
+                </Text>
               </View>
-              <MaterialCommunityIcons 
+              <MaterialCommunityIcons
                 name={balanceVisible ? "eye" : "eye-off"}
-                size={24} 
-                color={theme.colors.primary} 
+                size={24}
+                color={theme.colors.primary}
                 onPress={toggleBalanceVisibility}
                 style={styles.eyeIcon}
               />
@@ -92,55 +130,78 @@ export default function DashboardScreen() {
               <Text variant="displaySmall" style={styles.netWorthValue}>
                 No accounts
               </Text>
+            ) : currencyBalances.length === 1 ? (
+              <Text variant="displayLarge" style={styles.netWorthValue}>
+                {currencyBalances[0].symbol}{" "}
+                {currencyBalances[0].total.toFixed(2)}
+              </Text>
             ) : (
-              currencyBalances.length === 1 ? (
-                <Text variant="displayLarge" style={styles.netWorthValue}>
-                  {currencyBalances[0].symbol} {currencyBalances[0].total.toFixed(2)}
-                </Text>
-              ) : (
-                <View style={styles.multiCurrencyContainer}>
-                  {currencyBalances.map((currency, index) => (
-                    <Text 
-                      key={currency.code} 
-                      variant="displaySmall" 
-                      style={[styles.netWorthValue, index > 0 && styles.additionalCurrency]}
-                    >
-                      {currency.symbol} {balanceVisible ? currency.total.toFixed(2) : "••••••"}
-                    </Text>
-                  ))}
-                </View>
-              )
-            ) }
+              <View style={styles.multiCurrencyContainer}>
+                {currencyBalances.map((currency, index) => (
+                  <Text
+                    key={currency.code}
+                    variant="displaySmall"
+                    style={[
+                      styles.netWorthValue,
+                      index > 0 && styles.additionalCurrency,
+                    ]}
+                  >
+                    {currency.symbol}{" "}
+                    {balanceVisible ? currency.total.toFixed(2) : "••••••"}
+                  </Text>
+                ))}
+              </View>
+            )}
           </Card.Content>
         </GlassCard>
 
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <GlassCard variant="primary" style={styles.summaryCardSmall} mode='outlined'>
+          <GlassCard
+            variant="blue"
+            style={styles.summaryCardSmall}
+            mode="contained"
+          >
             <Card.Content>
-              <MaterialCommunityIcons 
-                name="chart-donut" 
-                size={32} 
-                color={theme.colors.primary} 
+              <MaterialCommunityIcons
+                name="chart-donut"
+                size={32}
+                color={SpotifyColors.blue}
                 style={styles.summaryIcon}
               />
-              <Text variant="bodySmall" style={styles.summaryLabel}>Active Budgets</Text>
-              <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
+              <Text variant="bodySmall" style={styles.summaryLabel}>
+                Active Budgets
+              </Text>
+              <Text
+                variant="headlineMedium"
+                style={[styles.summaryValue, { color: SpotifyColors.blue }]}
+              >
                 {activeBudgets}
               </Text>
             </Card.Content>
           </GlassCard>
-          <GlassCard variant="primary" style={styles.summaryCardSmall} mode='outlined'>
+          <GlassCard
+            variant="orange"
+            style={styles.summaryCardSmall}
+            mode="contained"
+          >
             <Card.Content>
-              <MaterialCommunityIcons 
-                name="repeat" 
-                size={32} 
-                color={theme.colors.primary} 
+              <MaterialCommunityIcons
+                name="repeat"
+                size={32}
+                color={SpotifyColors.orange}
                 style={styles.summaryIcon}
               />
-              <Text variant="bodySmall" style={styles.summaryLabel}>Active Subscriptions</Text>
-              <Text variant="headlineMedium" style={[styles.summaryValue, { color: theme.colors.primary }]}>
-                {subscriptionsBillsData?.data.filter(bill => bill.attributes.active).length || 0}
+              <Text variant="bodySmall" style={styles.summaryLabel}>
+                Active Subscriptions
+              </Text>
+              <Text
+                variant="headlineMedium"
+                style={[styles.summaryValue, { color: SpotifyColors.orange }]}
+              >
+                {subscriptionsBillsData?.data.filter(
+                  (bill) => bill.attributes.active,
+                ).length || 0}
               </Text>
             </Card.Content>
           </GlassCard>
@@ -148,9 +209,15 @@ export default function DashboardScreen() {
 
         {/* Accounts Overview */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="Accounts Overview" 
-            left={(props) => <MaterialCommunityIcons name="bank" {...props} color={theme.colors.primary} />}
+          <Card.Title
+            title="Accounts Overview"
+            left={(props) => (
+              <MaterialCommunityIcons
+                name="bank"
+                {...props}
+                color={theme.colors.primary}
+              />
+            )}
             titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
@@ -162,18 +229,32 @@ export default function DashboardScreen() {
               <>
                 {accountsData?.data.slice(0, 5).map((account, index, array) => {
                   const isLastItem = index === array.length - 1;
-                  const shouldHideBorder = accountsData && accountsData.data.length <= 5 && isLastItem;
+                  const shouldHideBorder =
+                    accountsData && accountsData.data.length <= 5 && isLastItem;
                   return (
-                    <View key={account.id} style={[styles.accountItem, shouldHideBorder && styles.accountItemNoBorder]}>
+                    <View
+                      key={account.id}
+                      style={[
+                        styles.accountItem,
+                        shouldHideBorder && styles.accountItemNoBorder,
+                      ]}
+                    >
                       <View style={styles.accountNameContainer}>
-                        <Text variant="bodyLarge">{account.attributes.name}</Text>
+                        <Text variant="bodyLarge">
+                          {account.attributes.name}
+                        </Text>
                         <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                          {account.attributes.type.charAt(0).toUpperCase() + account.attributes.type.slice(1).toLowerCase()}
+                          {account.attributes.type.charAt(0).toUpperCase() +
+                            account.attributes.type.slice(1).toLowerCase()}
                         </Text>
                       </View>
                       <View style={styles.accountBalanceContainer}>
-                        <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                          {account.attributes.currency_code} {account.attributes.current_balance}
+                        <Text
+                          variant="titleMedium"
+                          style={{ fontWeight: "bold" }}
+                        >
+                          {account.attributes.currency_code}{" "}
+                          {account.attributes.current_balance}
                         </Text>
                       </View>
                     </View>
@@ -181,10 +262,16 @@ export default function DashboardScreen() {
                 })}
                 {accountsData && accountsData.data.length > 5 && (
                   <TouchableOpacity
-                    onPress={() => router.push('/(drawer)/accounts')}
+                    onPress={() => router.push("/(drawer)/accounts")}
                     style={styles.showMoreButton}
                   >
-                    <Text variant="bodyMedium" style={[styles.showMoreText, { color: theme.colors.primary }]}>
+                    <Text
+                      variant="bodyMedium"
+                      style={[
+                        styles.showMoreText,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
                       Show more
                     </Text>
                     <MaterialCommunityIcons
@@ -201,9 +288,15 @@ export default function DashboardScreen() {
 
         {/* Budgets Overview */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="Budget Status" 
-            left={(props) => <MaterialCommunityIcons name="wallet" {...props} color={theme.colors.primary} />}
+          <Card.Title
+            title="Budget Status"
+            left={(props) => (
+              <MaterialCommunityIcons
+                name="wallet"
+                {...props}
+                color={theme.colors.primary}
+              />
+            )}
             titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
@@ -211,13 +304,18 @@ export default function DashboardScreen() {
               <Text>Loading budgets...</Text>
             ) : budgetsData?.data.length === 0 ? (
               <View style={styles.emptyState}>
-                <MaterialCommunityIcons 
-                  name="wallet-plus" 
-                  size={48} 
-                  color={theme.colors.onSurfaceVariant} 
+                <MaterialCommunityIcons
+                  name="wallet-plus"
+                  size={48}
+                  color={theme.colors.onSurfaceVariant}
                 />
-                <Text variant="bodyLarge" style={{ marginTop: 8 }}>No budgets yet</Text>
-                <Text variant="bodySmall" style={{ opacity: 0.6, marginTop: 4 }}>
+                <Text variant="bodyLarge" style={{ marginTop: 8 }}>
+                  No budgets yet
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={{ opacity: 0.6, marginTop: 4 }}
+                >
                   Create your first budget to start tracking expenses
                 </Text>
               </View>
@@ -225,31 +323,56 @@ export default function DashboardScreen() {
               <>
                 {budgetsData?.data.slice(0, 5).map((budget, index, array) => {
                   const isLastItem = index === array.length - 1;
-                  const shouldHideBorder = budgetsData && budgetsData.data.length <= 5 && isLastItem;
+                  const shouldHideBorder =
+                    budgetsData && budgetsData.data.length <= 5 && isLastItem;
                   return (
-                    <View key={budget.id} style={[styles.budgetItem, shouldHideBorder && styles.budgetItemNoBorder]}>
+                    <View
+                      key={budget.id}
+                      style={[
+                        styles.budgetItem,
+                        shouldHideBorder && styles.budgetItemNoBorder,
+                      ]}
+                    >
                       <View style={{ flex: 1 }}>
-                        <Text variant="bodyLarge">{budget.attributes.name}</Text>
-                        {budget.attributes.spent && budget.attributes.spent.length > 0 && (
-                          <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                            Spent: {budget.attributes.spent[0].currency_code} {budget.attributes.spent[0].amount}
-                          </Text>
-                        )}
+                        <Text variant="bodyLarge">
+                          {budget.attributes.name}
+                        </Text>
+                        {budget.attributes.spent &&
+                          budget.attributes.spent.length > 0 && (
+                            <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                              Spent: {budget.attributes.spent[0].currency_code}{" "}
+                              {budget.attributes.spent[0].amount}
+                            </Text>
+                          )}
                       </View>
                       <MaterialCommunityIcons
-                        name={budget.attributes.active ? 'check-circle' : 'circle-outline'}
+                        name={
+                          budget.attributes.active
+                            ? "check-circle"
+                            : "circle-outline"
+                        }
                         size={24}
-                        color={budget.attributes.active ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                        color={
+                          budget.attributes.active
+                            ? theme.colors.primary
+                            : theme.colors.onSurfaceVariant
+                        }
                       />
                     </View>
                   );
                 })}
                 {budgetsData && budgetsData.data.length > 5 && (
                   <TouchableOpacity
-                    onPress={() => router.push('/(drawer)/budgets')}
+                    onPress={() => router.push("/(drawer)/budgets")}
                     style={styles.showMoreButton}
                   >
-                    <Text variant="bodyMedium" style={[styles.showMoreText, { color: theme.colors.primary }]}>
+                    <Text
+                      variant="bodyMedium"
+                      style={[
+                        styles.showMoreText,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
                       Show more
                     </Text>
                     <MaterialCommunityIcons
@@ -266,40 +389,49 @@ export default function DashboardScreen() {
 
         {/* Quick Insights */}
         <GlassCard variant="elevated" style={styles.insightsCard}>
-          <Card.Title 
-            title="Quick Insights" 
-            left={(props) => <MaterialCommunityIcons name="lightbulb" {...props} color={theme.colors.primary} />}
+          <Card.Title
+            title="Quick Insights"
+            left={(props) => (
+              <MaterialCommunityIcons
+                name="lightbulb"
+                {...props}
+                color={theme.colors.primary}
+              />
+            )}
             titleStyle={{ color: theme.colors.onSurface }}
           />
           <Card.Content>
             <View style={styles.insightItem}>
-              <MaterialCommunityIcons 
-                name="information" 
-                size={20} 
-                color={theme.colors.primary} 
+              <MaterialCommunityIcons
+                name="information"
+                size={20}
+                color={theme.colors.primary}
               />
               <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
                 You have {accountsData?.data.length || 0} accounts connected
               </Text>
             </View>
             <View style={styles.insightItem}>
-              <MaterialCommunityIcons 
-                name="chart-line" 
-                size={20} 
-                color={theme.colors.secondary} 
+              <MaterialCommunityIcons
+                name="chart-line"
+                size={20}
+                color={theme.colors.secondary}
               />
               <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
                 {activeBudgets} active budgets tracking your spending
               </Text>
             </View>
             <View style={styles.insightItem}>
-              <MaterialCommunityIcons 
-                name="repeat" 
-                size={20} 
-                color={theme.colors.secondary} 
+              <MaterialCommunityIcons
+                name="repeat"
+                size={20}
+                color={theme.colors.secondary}
               />
               <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
-                {subscriptionsBillsData?.data.filter(bill => bill.attributes.active).length || 0} active subscription(s)
+                {subscriptionsBillsData?.data.filter(
+                  (bill) => bill.attributes.active,
+                ).length || 0}{" "}
+                active subscription(s)
               </Text>
             </View>
           </Card.Content>
@@ -311,22 +443,22 @@ export default function DashboardScreen() {
         <FAB.Group
           open={fabOpen}
           visible
-          icon={fabOpen ? 'close' : 'plus'}
+          icon={fabOpen ? "close" : "plus"}
           actions={[
             {
-              icon: 'cash-plus',
-              label: 'Add Expense',
-              onPress: () => console.log('Add expense'),
+              icon: "cash-plus",
+              label: "Add Expense",
+              onPress: () => console.log("Add expense"),
             },
             {
-              icon: 'wallet-plus',
-              label: 'Create Budget',
-              onPress: () => console.log('Create budget'),
+              icon: "wallet-plus",
+              label: "Create Budget",
+              onPress: () => console.log("Create budget"),
             },
             {
-              icon: 'bank-transfer',
-              label: 'Transfer',
-              onPress: () => console.log('Transfer'),
+              icon: "bank-transfer",
+              label: "Transfer",
+              onPress: () => console.log("Transfer"),
             },
           ]}
           onStateChange={({ open }) => setFabOpen(open)}
@@ -345,7 +477,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   summaryRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
@@ -353,14 +485,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   netWorthHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   netWorthTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   netWorthLabel: {
@@ -371,8 +503,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   netWorthValue: {
-    color: '#1DB954',
-    fontWeight: 'bold',
+    color: "#1DB954",
+    fontWeight: "bold",
     letterSpacing: -1,
   },
   multiCurrencyContainer: {
@@ -400,19 +532,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   summaryValue: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   card: {
     marginBottom: 16,
   },
   accountItem: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.12)',
+    borderBottomColor: "rgba(255, 255, 255, 0.12)",
     gap: 8,
   },
   accountNameContainer: {
@@ -422,42 +554,41 @@ const styles = StyleSheet.create({
   },
   accountBalanceContainer: {
     flexShrink: 0,
-    alignItems: 'flex-end',
-    marginLeft: 'auto',
+    alignItems: "flex-end",
+    marginLeft: "auto",
   },
   accountItemNoBorder: {
     borderBottomWidth: 0,
   },
   showMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     marginTop: 8,
     gap: 4,
   },
   showMoreText: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   budgetItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.12)',
+    borderBottomColor: "rgba(255, 255, 255, 0.12)",
   },
   budgetItemNoBorder: {
     borderBottomWidth: 0,
   },
   insightItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 32,
   },
 });
-
