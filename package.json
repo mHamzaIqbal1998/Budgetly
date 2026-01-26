@@ -67,6 +67,9 @@
     ],
     "*.{json,md}": [
       "prettier --write"
+    ],
+    ".prettierrc": [
+      "prettier --write"
     ]
   },
   "private": true
