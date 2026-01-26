@@ -9,7 +9,7 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 ## 🗺️ Roadmap
 
 - [x] Secure Connect with firefly instance
-- [-] Dashboard
+- [x] Dashboard
 - [ ] Accounts
 - [ ] Budgets
 - [ ] Piggy bank
