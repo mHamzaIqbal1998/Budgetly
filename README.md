@@ -2,18 +2,33 @@
 
 A beautiful, modern React Native app for managing your personal finances with Firefly III.
 
-## 🚀 Features
+> **⚠️ Disclaimer:**  
+> This app is in early beta and is **just starting development**. Please do **not rely on this app** for critical tasks, and use it **at your own risk**. The author will **not be responsible for any data loss, issues, or damages** arising from its use.  
+> Always keep a backup of your important data in your Firefly III instance before trying experimental software.
 
-- **Secure Connection**: Connect to your self-hosted Firefly III instance using Personal Access Token
-- **Dashboard**: Overview of your accounts, budgets, and financial insights
-- **Expenses Management**: Create, view, and delete transactions
-- **Budgets**: Track your spending against budgets
-- **Accounts**: View all your financial accounts and balances
-- **Piggy Banks**: Monitor your savings goals
-- **Subscriptions**: Manage recurring transactions
-- **Spotify-Inspired Theme**: Beautiful black and green design with Material Design 3
-- **Offline Support**: Cached data with automatic background refresh
-- **Secure Storage**: Credentials stored securely on device
+## 🗺️ Roadmap
+
+- [x] Secure Connect with firefly instance
+- [-] Dashboard
+- [ ] Accounts
+- [ ] Budgets
+- [ ] Piggy bank
+- [ ] Subscription management
+- [ ] Tag management
+- [ ] Recurring transaction improvements
+- [ ] Advanced filtering and search
+- [ ] Offline Support
+- [ ] Advanced charts and analytics
+- [ ] Budget categories and tags
+- [ ] Export functionality
+- [ ] Multiple currency support
+- [ ] Biometric authentication
+- [ ] Theme customization options
+- [ ] Push notifications for recurring transactions
+- [ ] Offline transaction creation with sync
+- [ ] And a lot of new features requested by community
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -38,17 +53,20 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 ## 🔧 Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd budgetly
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm start
 ```
@@ -70,37 +88,44 @@ The app will validate your credentials and connect to your instance.
 ## 📱 Screens
 
 ### Dashboard
+
 - Financial overview with summary cards
 - Recent accounts and budgets
 - Quick action buttons for common tasks
 
 ### Expenses
+
 - List all transactions
 - Search and filter capabilities
 - Create new expenses, income, or transfers
 - Delete transactions
 
 ### Budgets
+
 - View all budgets with progress bars
 - See spending vs. limits
 - Create new budgets
 
 ### Accounts
+
 - View all connected accounts
 - See balances and account types
 - Net worth calculation
 
 ### Piggy Banks
+
 - Track savings goals
 - View progress towards targets
 - See remaining amounts
 
 ### Subscriptions
+
 - Manage recurring transactions
 - View frequency and amounts
 - Track active/inactive subscriptions
 
 ### Settings
+
 - Update Firefly III credentials
 - View app information
 - Sign out
@@ -147,6 +172,7 @@ The app uses the Firefly III REST API v1. All endpoints are documented at:
 https://api-docs.firefly-iii.org/
 
 Key API features used:
+
 - `/api/v1/about` - Version and validation
 - `/api/v1/accounts` - Account management
 - `/api/v1/transactions` - Transaction CRUD
@@ -166,15 +192,15 @@ npm run lint
 
 ## 📦 Building for Production
 
-### iOS
+### Android
+
 ```bash
-eas build --platform ios
+npm run build:android:local
 ```
 
-### Android
-```bash
-eas build --platform android
-```
+This will build the app for Android using the EAS build system locally.
+
+> **TODO:** Add instructions for building the app for iOS.
 
 ## 🤝 Contributing
 
@@ -193,20 +219,8 @@ This project is licensed under the MIT License.
 ## 📞 Support
 
 For issues related to:
+
 - **This app**: Open an issue in this repository
 - **Firefly III**: Visit https://github.com/firefly-iii/firefly-iii
 
-## 🗺️ Roadmap
-
-- [ ] Advanced charts and analytics
-- [ ] Budget categories and tags
-- [ ] Export functionality
-- [ ] Multiple currency support
-- [ ] Biometric authentication
-- [ ] Theme customization options
-- [ ] Push notifications for recurring transactions
-- [ ] Offline transaction creation with sync
-- [ ] And a lot of new features requested by community
----
-
-Made with ❤️ for Firefly III users
+Made with ❤️ for Firefly III users by [M Hamza Iqbal](https://mhamzaiqbal1998.vercel.app).
