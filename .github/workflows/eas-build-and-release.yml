@@ -172,11 +172,7 @@ jobs:
           fi
           echo "Uploading $apk_path as $asset_name to $upload_url_template"
           # URL-encode the asset name
-          encoded_name=$(python3 - <<PY
-import urllib.parse,sys
-print(urllib.parse.quote(sys.argv[1]))
-PY
-"$asset_name")
+          encoded_name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$asset_name")
           curl --fail -s -X POST \
             -H "Authorization: token ${GITHUB_TOKEN}" \
             -H "Content-Type: application/vnd.android.package-archive" \
