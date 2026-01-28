@@ -22,14 +22,14 @@ export default function DashboardScreen() {
   const [fabOpen, setFabOpen] = React.useState(false);
   const { balanceVisible, toggleBalanceVisibility } = useStore();
 
-  // Fetch accounts
+  // Fetch all asset accounts
   const {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
   } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: () => apiClient.getAccounts(1, "asset"),
+    queryKey: ["all-asset-accounts"],
+    queryFn: () => apiClient.getAllAccounts("asset"),
   });
 
   // Fetch budgets
@@ -71,7 +71,7 @@ export default function DashboardScreen() {
         acc[currencyCode].total += balance;
         return acc;
       },
-      {} as Record<string, { symbol: string; code: string; total: number }>,
+      {} as Record<string, { symbol: string; code: string; total: number }>
     ) || {};
 
   // Convert to array for easier rendering
@@ -200,7 +200,7 @@ export default function DashboardScreen() {
                 style={[styles.summaryValue, { color: SpotifyColors.orange }]}
               >
                 {subscriptionsBillsData?.data.filter(
-                  (bill) => bill.attributes.active,
+                  (bill) => bill.attributes.active
                 ).length || 0}
               </Text>
             </Card.Content>
@@ -429,7 +429,7 @@ export default function DashboardScreen() {
               />
               <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
                 {subscriptionsBillsData?.data.filter(
-                  (bill) => bill.attributes.active,
+                  (bill) => bill.attributes.active
                 ).length || 0}{" "}
                 active subscription(s)
               </Text>

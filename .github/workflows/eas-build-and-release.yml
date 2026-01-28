@@ -1,0 +1,188 @@
+name: EAS Build → GitHub Release (Budgetly APK by version)
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write   # needed to create releases/tags/assets
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GITHUB_API: https://api.github.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install repo deps
+        run: npm ci
+
+      - name: Resolve app version (app.json → package.json)
+        id: get_version
+        run: |
+          # prefer app.json (expo.version or version), fall back to package.json
+          node - <<'NODE' > version.txt
+          const fs = require('fs');
+          let v = '';
+          try {
+            const a = JSON.parse(fs.readFileSync('app.json','utf8'));
+            v = a?.expo?.version || a?.version || '';
+          } catch(e) {}
+          if (!v) {
+            try {
+              const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+              v = p?.version || '';
+            } catch(e) {}
+          }
+          if (!v) {
+            console.error('Version not found in app.json or package.json');
+            process.exit(1);
+          }
+          console.log(v);
+          NODE
+          echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+
+      - name: Print version
+        run: echo "Resolved version = ${{ steps.get_version.outputs.version }}"
+
+      - name: Expo login
+        uses: expo/expo-github-action@v3
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Trigger EAS build and save JSON
+        id: eas_build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -e
+          echo "Starting EAS build (android, profile: production) ..."
+          eas build --platform android --profile production --non-interactive --json > eas-build.json
+          echo "Saved eas-build.json"
+          echo "eas_json_saved=true" >> $GITHUB_OUTPUT
+
+      - name: Extract APK download URL from EAS JSON
+        id: extract_url
+        run: |
+          build_url=$(jq -r '(.artifacts.buildUrl // .artifacts[0].buildUrl // .url // .buildUrl) // empty' eas-build.json)
+          if [ -z "$build_url" ]; then
+            echo "No build url found in eas-build.json"
+            cat eas-build.json
+            exit 1
+          fi
+          echo "download_url=$build_url" >> $GITHUB_OUTPUT
+
+      - name: Download APK
+        id: download_apk
+        run: |
+          mkdir -p out
+          SHORT_SHA=${GITHUB_SHA::7}
+          APK_TMP=out/Budgetly-${SHORT_SHA}.apk
+          echo "Downloading ${{ steps.extract_url.outputs.download_url }} to $APK_TMP"
+          curl -L "${{ steps.extract_url.outputs.download_url }}" -o "$APK_TMP"
+          if [ ! -f "$APK_TMP" ]; then
+            echo "APK download failed"
+            ls -l out || true
+            exit 1
+          fi
+          echo "apk_path=$APK_TMP" >> $GITHUB_OUTPUT
+
+      - name: Ensure GitHub Release exists and get upload_url
+        id: ensure_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_API: ${{ env.GITHUB_API }}
+        run: |
+          set -e
+          VERSION="${{ steps.get_version.outputs.version }}"
+          TAG="v${VERSION}"
+          REPO="${GITHUB_REPOSITORY}"
+          AUTH="Authorization: token ${GITHUB_TOKEN}"
+
+          # Try to get release by tag
+          resp=$(curl -s -H "$AUTH" "$GITHUB_API/repos/$REPO/releases/tags/$TAG" || echo "")
+          if echo "$resp" | jq -e .id >/dev/null 2>&1; then
+            release_id=$(echo "$resp" | jq -r .id)
+            upload_url=$(echo "$resp" | jq -r .upload_url)
+            echo "Found existing release id=$release_id"
+          else
+            # create release and tag pointing to the current commit
+            create_resp=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$TAG\",\"target_commitish\":\"${GITHUB_SHA}\",\"name\":\"Budgetly v$VERSION\",\"body\":\"Automated EAS build for version $VERSION\",\"draft\":false,\"prerelease\":false}" \
+              "$GITHUB_API/repos/$REPO/releases")
+            release_id=$(echo "$create_resp" | jq -r .id)
+            upload_url=$(echo "$create_resp" | jq -r .upload_url)
+            if [ -z "$release_id" ] || [ "$release_id" = "null" ]; then
+              echo "Failed creating release:"
+              echo "$create_resp"
+              exit 1
+            fi
+            echo "Created release id=$release_id"
+          fi
+
+          # normalize upload_url (strip template)
+          upload_url_template=$(echo "$upload_url" | sed 's/{.*//')
+          echo "upload_url_template=$upload_url_template" >> $GITHUB_OUTPUT
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+
+      - name: Decide APK name (Budgetly.apk or Budgetly-<sha>.apk if exists)
+        id: choose_name
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_API: ${{ env.GITHUB_API }}
+        run: |
+          REPO="${GITHUB_REPOSITORY}"
+          release_id="${{ steps.ensure_release.outputs.release_id }}"
+          AUTH="Authorization: token ${GITHUB_TOKEN}"
+          desired="Budgetly.apk"
+          assets_resp=$(curl -s -H "$AUTH" "$GITHUB_API/repos/$REPO/releases/$release_id/assets" || echo "[]")
+          exists=$(echo "$assets_resp" | jq -r --arg name "$desired" '.[] | select(.name==$name) | .id' || true)
+          SHORT_SHA=${GITHUB_SHA::7}
+          if [ -n "$exists" ]; then
+            asset_name="Budgetly-${SHORT_SHA}.apk"
+          else
+            asset_name="$desired"
+          fi
+          echo "asset_name=$asset_name" >> $GITHUB_OUTPUT
+
+      - name: Upload APK to Release
+        id: upload_asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          upload_url_template="${{ steps.ensure_release.outputs.upload_url_template }}"
+          asset_name="${{ steps.choose_name.outputs.asset_name }}"
+          apk_path="${{ steps.download_apk.outputs.apk_path }}"
+          if [ ! -f "$apk_path" ]; then
+            echo "APK not found at $apk_path"
+            exit 1
+          fi
+          echo "Uploading $apk_path as $asset_name to $upload_url_template"
+          # URL-encode the asset name
+          encoded_name=$(python3 - <<PY
+import urllib.parse,sys
+print(urllib.parse.quote(sys.argv[1]))
+PY
+"$asset_name")
+          curl --fail -s -X POST \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$apk_path" \
+            "$upload_url_template?name=$encoded_name"
+          echo "Upload finished."
+
+      - name: Done
+        run: echo "Release created/updated: v${{ steps.get_version.outputs.version }} and APK uploaded."
