@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: write # needed to create releases/tags/assets
+  contents: write
 
 jobs:
   build-and-release:
@@ -29,7 +29,6 @@ jobs:
       - name: Resolve app version (app.json → package.json)
         id: get_version
         run: |
-          # prefer app.json (expo.version or version), fall back to package.json
           node - <<'NODE' > version.txt
           const fs = require('fs');
           let v = '';
@@ -52,37 +51,60 @@ jobs:
           echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
 
       - name: Print version
-        run: echo "Resolved version = ${{ steps.get_version.outputs.version }}"
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "Resolved version = ${VERSION}"
 
       - name: Expo login
         uses: expo/expo-github-action@v3
         with:
           expo-token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
+      - name: Install EAS CLI (latest) & jq
+        run: |
+          npm install -g eas-cli@latest
+          # jq is usually available, but install to be safe
+          sudo apt-get update -y
+          sudo apt-get install -y jq
 
-      - name: Trigger EAS build and save JSON
+      - name: Trigger EAS build and wait (non-interactive)
         id: eas_build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -e
           echo "Starting EAS build (android, profile: production) ..."
-          eas build --platform android --profile production --non-interactive --json > eas-build.json
-          echo "Saved eas-build.json"
+          # trigger and wait; we keep the JSON for reference but won't rely on it for artifact URL
+          eas build --platform android --profile production --non-interactive --json > eas-trigger-output.json
+          echo "Saved eas-trigger-output.json"
           echo "eas_json_saved=true" >> $GITHUB_OUTPUT
 
-      - name: Extract APK download URL from EAS JSON
-        id: extract_url
+      - name: Find matching finished build and extract artifact URL (via eas build:list)
+        id: find_build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          build_url=$(jq -r '(.artifacts.buildUrl // .artifacts[0].buildUrl // .url // .buildUrl) // empty' eas-build.json)
-          if [ -z "$build_url" ]; then
-            echo "No build url found in eas-build.json"
-            cat eas-build.json
+          set -e
+          echo "Listing recent finished Android builds..."
+          builds=$(eas build:list --platform android --limit 10 --status finished --non-interactive --json)
+          echo "$builds" > builds.json
+          echo "Saved builds.json for debug."
+
+          # Try to find build matching this commit's gitCommitHash, otherwise fallback to first item
+          download_url=$(echo "$builds" | jq -r --arg sha "${GITHUB_SHA}" '
+            # helper: try match by gitCommitHash first, then fallback to array head
+            def pick:
+              (map(select(.gitCommitHash==$sha)) + .) | .[0];
+            (pick | (.artifacts.buildUrl // .artifacts.applicationArchiveUrl // .artifacts.buildArtifactsUrl // .artifacts.buildArtifactsUrl // .artifacts[0].buildUrl // .url // .buildUrl)) // empty
+          ')
+
+          if [ -z "$download_url" ] || [ "$download_url" = "null" ]; then
+            echo "No artifact URL found in eas build:list output — dumping builds.json for debug:"
+            cat builds.json
             exit 1
           fi
-          echo "download_url=$build_url" >> $GITHUB_OUTPUT
+          echo "download_url=$download_url" >> $GITHUB_OUTPUT
+          echo "Found artifact URL: $download_url"
 
       - name: Download APK
         id: download_apk
@@ -90,8 +112,8 @@ jobs:
           mkdir -p out
           SHORT_SHA=${GITHUB_SHA::7}
           APK_TMP=out/Budgetly-${SHORT_SHA}.apk
-          echo "Downloading ${{ steps.extract_url.outputs.download_url }} to $APK_TMP"
-          curl -L "${{ steps.extract_url.outputs.download_url }}" -o "$APK_TMP"
+          echo "Downloading ${{ steps.find_build.outputs.download_url }} to $APK_TMP"
+          curl -L "${{ steps.find_build.outputs.download_url }}" -o "$APK_TMP"
           if [ ! -f "$APK_TMP" ]; then
             echo "APK download failed"
             ls -l out || true
@@ -171,7 +193,6 @@ jobs:
             exit 1
           fi
           echo "Uploading $apk_path as $asset_name to $upload_url_template"
-          # URL-encode the asset name
           encoded_name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$asset_name")
           curl --fail -s -X POST \
             -H "Authorization: token ${GITHUB_TOKEN}" \
@@ -182,4 +203,5 @@ jobs:
 
       - name: Done
         run: |
-          echo "Release created/updated: v${{ steps.get_version.outputs.version }} and APK uploaded."
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "Release created/updated: v${VERSION} and APK uploaded."
