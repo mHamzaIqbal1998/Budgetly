@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: write   # needed to create releases/tags/assets
+  contents: write # needed to create releases/tags/assets
 
 jobs:
   build-and-release:
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install repo deps
         run: npm ci
@@ -181,4 +181,5 @@ jobs:
           echo "Upload finished."
 
       - name: Done
-        run: echo "Release created/updated: v${{ steps.get_version.outputs.version }} and APK uploaded."
+        run: |
+          echo "Release created/updated: v${{ steps.get_version.outputs.version }} and APK uploaded."
