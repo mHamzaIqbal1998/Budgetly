@@ -1,7 +1,7 @@
 // React Query Client Configuration with Persistence
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient } from "@tanstack/react-query";
 import type { Persister } from "@tanstack/react-query-persist-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Create custom async persister for React Query cache
 export const asyncStoragePersister: Persister = {
