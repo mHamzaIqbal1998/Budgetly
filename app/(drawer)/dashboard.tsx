@@ -1,8 +1,10 @@
 // Dashboard Screen
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
+import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
+import { Account, FireflyApiResponse } from "@/types/firefly";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -27,10 +29,11 @@ export default function DashboardScreen() {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
-  } = useQuery({
-    queryKey: ["all-asset-accounts"],
-    queryFn: () => apiClient.getAllAccounts("asset"),
-  });
+    isCacheData,
+  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
+    ["all-asset-accounts"],
+    () => apiClient.getAllAccounts("asset")
+  );
 
   // Fetch budgets
   const {
@@ -100,6 +103,29 @@ export default function DashboardScreen() {
           />
         }
       >
+        {/* Offline indicator */}
+        {isCacheData && (
+          <Card style={styles.offlineBanner} mode="contained">
+            <Card.Content>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="cloud-off-outline"
+                  size={20}
+                  color={theme.colors.onSurfaceVariant}
+                />
+                <Text
+                  variant="bodySmall"
+                  style={{
+                    marginLeft: 8,
+                    color: theme.colors.onSurfaceVariant,
+                  }}
+                >
+                  Showing cached data (offline)
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
         {/* Net Worth Card */}
         <GlassCard
           variant="primary"
@@ -590,5 +616,11 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: "center",
     paddingVertical: 32,
+  },
+  offlineBanner: {
+    // margin: 16,
+    marginBottom: 16,
+    // marginTop: 8,
+    backgroundColor: "rgba(255, 152, 0, 0.1)",
   },
 });
