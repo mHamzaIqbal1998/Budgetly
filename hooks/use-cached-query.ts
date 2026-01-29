@@ -1,6 +1,6 @@
 // Custom hook to combine React Query with offline cache
 import { useStore } from "@/lib/store";
-import { Account, Transaction } from "@/types/firefly";
+import { Account, Transaction } from "@/types";
 import NetInfo from "@react-native-community/netinfo";
 import {
   UseQueryOptions,

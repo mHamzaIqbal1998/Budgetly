@@ -1,37 +1,38 @@
 // Settings Screen
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { 
-  Card, 
-  Text, 
-  List, 
-  Switch, 
-  Button, 
-  useTheme,
-  Portal,
+import { GlassCard } from "@/components/glass-card";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { apiClient } from "@/lib/api-client";
+import { useStore } from "@/lib/store";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useState } from "react";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Card,
+  List,
   Modal,
+  Portal,
+  Text,
   TextInput,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useStore } from '@/lib/store';
-import { apiClient } from '@/lib/api-client';
-import { router } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { GlassCard } from '@/components/glass-card';
+  useTheme,
+} from "react-native-paper";
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const colorScheme = useColorScheme();
   const { credentials, clearCredentials, setCredentials } = useStore();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
-  const [instanceUrl, setInstanceUrl] = useState(credentials?.instanceUrl || '');
-  const [token, setToken] = useState('');
+  const [instanceUrl, setInstanceUrl] = useState(
+    credentials?.instanceUrl || ""
+  );
+  const [token, setToken] = useState("");
   const [isValidating, setIsValidating] = useState(false);
 
   const handleUpdateCredentials = async () => {
     if (!instanceUrl || !token) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
@@ -40,7 +41,10 @@ export default function SettingsScreen() {
     try {
       // Format URL
       let formattedUrl = instanceUrl.trim();
-      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      if (
+        !formattedUrl.startsWith("http://") &&
+        !formattedUrl.startsWith("https://")
+      ) {
         formattedUrl = `https://${formattedUrl}`;
       }
 
@@ -58,12 +62,16 @@ export default function SettingsScreen() {
         personalAccessToken: token.trim(),
       });
 
-      Alert.alert('Success', `Connected to Firefly III v${version.version}`);
+      Alert.alert(
+        "Success",
+        `Connected to Firefly III v${version.data.version}`
+      );
       setModalVisible(false);
-      setToken('');
+      setToken("");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update credentials';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update credentials";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsValidating(false);
     }
@@ -71,16 +79,16 @@ export default function SettingsScreen() {
 
   const handleSignOut = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out? Your credentials will be removed from this device.',
+      "Sign Out",
+      "Are you sure you want to sign out? Your credentials will be removed from this device.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Sign Out',
-          style: 'destructive',
+          text: "Sign Out",
+          style: "destructive",
           onPress: async () => {
             await clearCredentials();
-            router.replace('/(auth)/setup');
+            router.replace("/(auth)/setup");
           },
         },
       ]
@@ -88,18 +96,22 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView style={styles.scrollView}>
         {/* Account Section */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="Account" 
-            left={(props) => <MaterialCommunityIcons name="account" {...props} />}
+          <Card.Title
+            title="Account"
+            left={(props) => (
+              <MaterialCommunityIcons name="account" {...props} />
+            )}
           />
           <Card.Content>
             <List.Item
               title="Firefly III Instance"
-              description={credentials?.instanceUrl || 'Not configured'}
+              description={credentials?.instanceUrl || "Not configured"}
               left={(props) => <List.Icon {...props} icon="server" />}
             />
             <List.Item
@@ -113,14 +125,16 @@ export default function SettingsScreen() {
 
         {/* App Settings */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="Appearance" 
-            left={(props) => <MaterialCommunityIcons name="palette" {...props} />}
+          <Card.Title
+            title="Appearance"
+            left={(props) => (
+              <MaterialCommunityIcons name="palette" {...props} />
+            )}
           />
           <Card.Content>
             <List.Item
               title="Theme"
-              description={`Current: ${colorScheme === 'dark' ? 'Dark' : 'Light'} (System)`}
+              description={`Current: ${colorScheme === "dark" ? "Dark" : "Light"} (System)`}
               left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
             />
           </Card.Content>
@@ -128,9 +142,11 @@ export default function SettingsScreen() {
 
         {/* Data & Privacy */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="Data & Privacy" 
-            left={(props) => <MaterialCommunityIcons name="shield-check" {...props} />}
+          <Card.Title
+            title="Data & Privacy"
+            left={(props) => (
+              <MaterialCommunityIcons name="shield-check" {...props} />
+            )}
           />
           <Card.Content>
             <List.Item
@@ -148,9 +164,11 @@ export default function SettingsScreen() {
 
         {/* About */}
         <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title 
-            title="About" 
-            left={(props) => <MaterialCommunityIcons name="information" {...props} />}
+          <Card.Title
+            title="About"
+            left={(props) => (
+              <MaterialCommunityIcons name="information" {...props} />
+            )}
           />
           <Card.Content>
             <List.Item
@@ -173,8 +191,8 @@ export default function SettingsScreen() {
 
         {/* Sign Out */}
         <View style={styles.dangerZone}>
-          <Button 
-            mode="contained" 
+          <Button
+            mode="contained"
             onPress={handleSignOut}
             buttonColor="#FF5252"
             icon="logout"
@@ -193,9 +211,12 @@ export default function SettingsScreen() {
           visible={modalVisible}
           onDismiss={() => {
             setModalVisible(false);
-            setToken('');
+            setToken("");
           }}
-          contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+          contentContainerStyle={[
+            styles.modal,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
           <Text variant="headlineSmall" style={styles.modalTitle}>
             Update Credentials
@@ -228,19 +249,19 @@ export default function SettingsScreen() {
           />
 
           <View style={styles.modalActions}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={() => {
                 setModalVisible(false);
-                setToken('');
+                setToken("");
               }}
               style={{ flex: 1 }}
               disabled={isValidating}
             >
               Cancel
             </Button>
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={handleUpdateCredentials}
               loading={isValidating}
               disabled={isValidating}
@@ -280,15 +301,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     marginBottom: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   input: {
     marginBottom: 12,
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
 });
-

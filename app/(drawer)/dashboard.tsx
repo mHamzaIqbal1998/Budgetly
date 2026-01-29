@@ -7,7 +7,7 @@ import {
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
-import { Account, FireflyApiResponse } from "@/types/firefly";
+import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";

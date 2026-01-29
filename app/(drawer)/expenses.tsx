@@ -1,52 +1,57 @@
 // Expenses Screen with CRUD Operations
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { 
-  Card, 
-  Text, 
-  FAB, 
-  Portal, 
-  Modal, 
-  TextInput, 
-  Button, 
-  useTheme,
+import { GlassCard } from "@/components/glass-card";
+import { apiClient } from "@/lib/api-client";
+import { CreateTransactionData } from "@/types";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Card,
   Chip,
-  Searchbar,
+  FAB,
   IconButton,
-  Menu,
-  Divider,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { CreateTransactionData } from '@/types/firefly';
-import { GlassCard } from '@/components/glass-card';
+  Modal,
+  Portal,
+  Searchbar,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 export default function ExpensesScreen() {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  
+
   // Form state
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [type, setType] = useState<'withdrawal' | 'deposit' | 'transfer'>('withdrawal');
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [type, setType] = useState<"withdrawal" | "deposit" | "transfer">(
+    "withdrawal"
+  );
 
   // Fetch transactions
-  const { data: transactionsData, isLoading, refetch } = useQuery({
-    queryKey: ['transactions'],
+  const {
+    data: transactionsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["transactions"],
     queryFn: () => apiClient.getTransactions(1),
   });
 
   // Create transaction mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateTransactionData) => apiClient.createTransaction(data),
+    mutationFn: (data: CreateTransactionData) =>
+      apiClient.createTransaction(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       resetForm();
       setModalVisible(false);
     },
@@ -56,15 +61,15 @@ export default function ExpensesScreen() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.deleteTransaction(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
   const resetForm = () => {
-    setDescription('');
-    setAmount('');
-    setDate(new Date().toISOString().split('T')[0]);
-    setType('withdrawal');
+    setDescription("");
+    setAmount("");
+    setDate(new Date().toISOString().split("T")[0]);
+    setType("withdrawal");
     setSelectedTransaction(null);
   };
 
@@ -74,14 +79,16 @@ export default function ExpensesScreen() {
     }
 
     const transactionData: CreateTransactionData = {
-      transactions: [{
-        type,
-        date,
-        amount,
-        description,
-        source_name: type === 'withdrawal' ? 'Cash Account' : undefined,
-        destination_name: type === 'deposit' ? 'Cash Account' : undefined,
-      }],
+      transactions: [
+        {
+          type,
+          date,
+          amount,
+          description,
+          source_name: type === "withdrawal" ? "Cash Account" : undefined,
+          destination_name: type === "deposit" ? "Cash Account" : undefined,
+        },
+      ],
     };
 
     createMutation.mutate(transactionData);
@@ -93,41 +100,44 @@ export default function ExpensesScreen() {
 
   const getTransactionIcon = (txType: string) => {
     switch (txType.toLowerCase()) {
-      case 'withdrawal':
-        return 'arrow-up-circle';
-      case 'deposit':
-        return 'arrow-down-circle';
-      case 'transfer':
-        return 'swap-horizontal-circle';
+      case "withdrawal":
+        return "arrow-up-circle";
+      case "deposit":
+        return "arrow-down-circle";
+      case "transfer":
+        return "swap-horizontal-circle";
       default:
-        return 'cash';
+        return "cash";
     }
   };
 
   const getTransactionColor = (txType: string) => {
     switch (txType.toLowerCase()) {
-      case 'withdrawal':
-        return '#FF5252';
-      case 'deposit':
+      case "withdrawal":
+        return "#FF5252";
+      case "deposit":
         return theme.colors.primary;
-      case 'transfer':
-        return '#64B5F6';
+      case "transfer":
+        return "#64B5F6";
       default:
         return theme.colors.onSurface;
     }
   };
 
   // Filter transactions based on search
-  const filteredTransactions = transactionsData?.data.filter(transaction => {
+  const filteredTransactions = transactionsData?.data.filter((transaction) => {
     const searchLower = searchQuery.toLowerCase();
-    return transaction.attributes.transactions.some(t => 
-      t.description.toLowerCase().includes(searchLower) ||
-      t.amount.includes(searchQuery)
+    return transaction.attributes.transactions.some(
+      (t) =>
+        t.description.toLowerCase().includes(searchLower) ||
+        t.amount.includes(searchQuery)
     );
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Searchbar
@@ -139,7 +149,7 @@ export default function ExpensesScreen() {
       </View>
 
       {/* Transactions List */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={refetch} />
@@ -151,12 +161,14 @@ export default function ExpensesScreen() {
           </View>
         ) : filteredTransactions?.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons 
-              name="cash-remove" 
-              size={64} 
-              color={theme.colors.onSurfaceVariant} 
+            <MaterialCommunityIcons
+              name="cash-remove"
+              size={64}
+              color={theme.colors.onSurfaceVariant}
             />
-            <Text variant="headlineSmall" style={{ marginTop: 16 }}>No transactions yet</Text>
+            <Text variant="headlineSmall" style={{ marginTop: 16 }}>
+              No transactions yet
+            </Text>
             <Text variant="bodyMedium" style={{ marginTop: 8, opacity: 0.6 }}>
               Tap the + button to add your first transaction
             </Text>
@@ -165,7 +177,11 @@ export default function ExpensesScreen() {
           filteredTransactions?.map((transaction) => {
             const tx = transaction.attributes.transactions[0];
             return (
-              <GlassCard key={transaction.id} variant="default" style={styles.transactionCard}>
+              <GlassCard
+                key={transaction.id}
+                variant="default"
+                style={styles.transactionCard}
+              >
                 <Card.Content style={styles.transactionContent}>
                   <View style={styles.transactionLeft}>
                     <MaterialCommunityIcons
@@ -179,24 +195,23 @@ export default function ExpensesScreen() {
                         {new Date(tx.date).toLocaleDateString()}
                       </Text>
                       {tx.category_name && (
-                        <Chip 
-                          compact 
-                          style={styles.chip}
-                        >
+                        <Chip compact style={styles.chip}>
                           {tx.category_name}
                         </Chip>
                       )}
                     </View>
                   </View>
                   <View style={styles.transactionRight}>
-                    <Text 
-                      variant="titleLarge" 
-                      style={{ 
+                    <Text
+                      variant="titleLarge"
+                      style={{
                         color: getTransactionColor(tx.type),
-                        fontWeight: 'bold',
+                        fontWeight: "bold",
                       }}
                     >
-                      {tx.type === 'withdrawal' ? '-' : '+'}{tx.currency_symbol}{tx.amount}
+                      {tx.type === "withdrawal" ? "-" : "+"}
+                      {tx.currency_symbol}
+                      {tx.amount}
                     </Text>
                     <IconButton
                       icon="delete"
@@ -227,7 +242,10 @@ export default function ExpensesScreen() {
             setModalVisible(false);
             resetForm();
           }}
-          contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+          contentContainerStyle={[
+            styles.modal,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
           <Text variant="headlineSmall" style={styles.modalTitle}>
             Add Transaction
@@ -235,22 +253,22 @@ export default function ExpensesScreen() {
 
           <View style={styles.typeSelector}>
             <Chip
-              selected={type === 'withdrawal'}
-              onPress={() => setType('withdrawal')}
+              selected={type === "withdrawal"}
+              onPress={() => setType("withdrawal")}
               style={styles.typeChip}
             >
               Expense
             </Chip>
             <Chip
-              selected={type === 'deposit'}
-              onPress={() => setType('deposit')}
+              selected={type === "deposit"}
+              onPress={() => setType("deposit")}
               style={styles.typeChip}
             >
               Income
             </Chip>
             <Chip
-              selected={type === 'transfer'}
-              onPress={() => setType('transfer')}
+              selected={type === "transfer"}
+              onPress={() => setType("transfer")}
               style={styles.typeChip}
             >
               Transfer
@@ -284,8 +302,8 @@ export default function ExpensesScreen() {
           />
 
           <View style={styles.modalActions}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={() => {
                 setModalVisible(false);
                 resetForm();
@@ -294,8 +312,8 @@ export default function ExpensesScreen() {
             >
               Cancel
             </Button>
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={handleSubmit}
               loading={createMutation.isPending}
               disabled={createMutation.isPending}
@@ -327,25 +345,25 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 100,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 100,
   },
   transactionCard: {
     marginBottom: 12,
   },
   transactionContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   transactionInfo: {
@@ -353,14 +371,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   transactionRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   chip: {
     marginTop: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 16,
   },
@@ -371,11 +389,11 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     marginBottom: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   typeSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 16,
   },
   typeChip: {
@@ -385,9 +403,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
 });
-
