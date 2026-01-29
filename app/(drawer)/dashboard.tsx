@@ -1,7 +1,10 @@
 // Dashboard Screen
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
-import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
+import {
+  useCachedAccountsQuery,
+  useOnlineStatus,
+} from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
 import { Account, FireflyApiResponse } from "@/types/firefly";
@@ -23,13 +26,13 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [fabOpen, setFabOpen] = React.useState(false);
   const { balanceVisible, toggleBalanceVisibility } = useStore();
+  const { isOnline } = useOnlineStatus();
 
   // Fetch all asset accounts
   const {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
-    isCacheData,
   } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
     ["all-asset-accounts"],
     () => apiClient.getAllAccounts("asset")
@@ -104,7 +107,7 @@ export default function DashboardScreen() {
         }
       >
         {/* Offline indicator */}
-        {isCacheData && (
+        {!isOnline && (
           <Card style={styles.offlineBanner} mode="contained">
             <Card.Content>
               <View style={{ flexDirection: "row", alignItems: "center" }}>

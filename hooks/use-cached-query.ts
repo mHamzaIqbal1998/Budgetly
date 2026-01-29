@@ -1,12 +1,13 @@
 // Custom hook to combine React Query with offline cache
 import { useStore } from "@/lib/store";
 import { Account, Transaction } from "@/types/firefly";
+import NetInfo from "@react-native-community/netinfo";
 import {
   UseQueryOptions,
   UseQueryResult,
   useQuery,
 } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Enhanced useQuery hook with offline cache support
@@ -16,7 +17,7 @@ export function useCachedAccountsQuery<TData = Account[]>(
   queryKey: string[],
   queryFn: () => Promise<TData>,
   options?: Omit<UseQueryOptions<TData>, "queryKey" | "queryFn">
-): UseQueryResult<TData, Error> & { isCacheData: boolean } {
+): UseQueryResult<TData, Error> {
   const { setCachedAccounts, cachedAccounts } = useStore();
 
   const query = useQuery<TData, Error>({
@@ -33,14 +34,15 @@ export function useCachedAccountsQuery<TData = Account[]>(
   }, [query.isSuccess, query.data, setCachedAccounts]);
 
   // If query fails and we have cached data, use that
-  const isCacheData = query.isError && cachedAccounts !== null;
-  const dataToReturn = isCacheData ? (cachedAccounts as TData) : query.data;
+  const dataToReturn =
+    query.isError && cachedAccounts !== null
+      ? (cachedAccounts as TData)
+      : query.data;
 
   return {
     ...query,
     data: dataToReturn,
-    isCacheData,
-  } as UseQueryResult<TData, Error> & { isCacheData: boolean };
+  } as UseQueryResult<TData, Error>;
 }
 
 /**
@@ -50,7 +52,7 @@ export function useCachedTransactionsQuery<TData = Transaction[]>(
   queryKey: string[],
   queryFn: () => Promise<TData>,
   options?: Omit<UseQueryOptions<TData>, "queryKey" | "queryFn">
-): UseQueryResult<TData, Error> & { isCacheData: boolean } {
+): UseQueryResult<TData, Error> {
   const { setCachedTransactions, cachedTransactions } = useStore();
 
   const query = useQuery<TData, Error>({
@@ -67,22 +69,34 @@ export function useCachedTransactionsQuery<TData = Transaction[]>(
   }, [query.isSuccess, query.data, setCachedTransactions]);
 
   // If query fails and we have cached data, use that
-  const isCacheData = query.isError && cachedTransactions !== null;
-  const dataToReturn = isCacheData ? (cachedTransactions as TData) : query.data;
+  const dataToReturn =
+    query.isError && cachedTransactions !== null
+      ? (cachedTransactions as TData)
+      : query.data;
 
   return {
     ...query,
     data: dataToReturn,
-    isCacheData,
-  } as UseQueryResult<TData, Error> & { isCacheData: boolean };
+  } as UseQueryResult<TData, Error>;
 }
 
 /**
- * Hook to check if device is online
- * Can be extended with NetInfo for better offline detection
+ * Hook to check if device is online via NetInfo
  */
 export function useOnlineStatus() {
-  // For now, return true. Can integrate @react-native-community/netinfo
-  // to detect actual network status
-  return { isOnline: true };
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected ?? false);
+    });
+
+    NetInfo.fetch().then((state) => {
+      setIsOnline(state.isConnected ?? false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  return { isOnline: isOnline ?? true };
 }
