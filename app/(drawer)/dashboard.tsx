@@ -1,4 +1,5 @@
 // Dashboard Screen
+import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
 import {
@@ -183,6 +184,9 @@ export default function DashboardScreen() {
             )}
           </Card.Content>
         </GlassCard>
+
+        {/* Top Accounts Pie Card */}
+        <TopAccountsPieCard accounts={accountsData?.data ?? []} type="Asset" />
 
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
