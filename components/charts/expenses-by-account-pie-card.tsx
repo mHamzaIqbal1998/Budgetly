@@ -1,5 +1,7 @@
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
+import { formatAmount } from "@/lib/format-currency";
+import { useStore } from "@/lib/store";
 import { Account, ExpensesByExpenseAccount } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
@@ -119,6 +121,7 @@ export function ExpensesByAccountPieCard({
   expenseAccounts,
 }: ExpensesByAccountPieCardProps) {
   const theme = useTheme();
+  const { balanceVisible } = useStore();
   const chartData = useMemo(
     () => processExpenses(expenses, expenseAccounts),
     [expenses, expenseAccounts]
@@ -267,14 +270,17 @@ export function ExpensesByAccountPieCard({
             </Text>
           ) : totalsByCurrency.length === 1 ? (
             <Text variant="titleLarge" style={styles.totalValue}>
-              {totalsByCurrency[0].code} {totalsByCurrency[0].total.toFixed(2)}
+              {totalsByCurrency[0].code}{" "}
+              {balanceVisible
+                ? formatAmount(totalsByCurrency[0].total)
+                : "••••••"}
             </Text>
           ) : (
             <View style={styles.totalByCurrencyList}>
               {totalsByCurrency.map((c) => (
                 <View key={c.code} style={styles.totalByCurrencyItem}>
                   <Text variant="titleLarge" style={styles.totalValue}>
-                    {c.code} {c.total.toFixed(2)}
+                    {c.code} {balanceVisible ? formatAmount(c.total) : "••••••"}
                   </Text>
                 </View>
               ))}

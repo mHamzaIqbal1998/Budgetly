@@ -8,6 +8,7 @@ import {
   useOnlineStatus,
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
+import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -199,7 +200,7 @@ export default function DashboardScreen() {
             ) : currencyBalances.length === 1 ? (
               <Text variant="displayLarge" style={styles.netWorthValue}>
                 {currencyBalances[0].symbol}{" "}
-                {currencyBalances[0].total.toFixed(2)}
+                {formatAmount(currencyBalances[0].total)}
               </Text>
             ) : (
               <View style={styles.multiCurrencyContainer}>
@@ -213,7 +214,7 @@ export default function DashboardScreen() {
                     ]}
                   >
                     {currency.symbol}{" "}
-                    {balanceVisible ? currency.total.toFixed(2) : "••••••"}
+                    {balanceVisible ? formatAmount(currency.total) : "••••••"}
                   </Text>
                 ))}
               </View>
@@ -329,7 +330,11 @@ export default function DashboardScreen() {
                           style={{ fontWeight: "bold" }}
                         >
                           {account.attributes.currency_code}{" "}
-                          {account.attributes.current_balance}
+                          {balanceVisible
+                            ? formatAmount(
+                                parseFloat(account.attributes.current_balance)
+                              )
+                            : "••••••"}
                         </Text>
                       </View>
                     </View>
@@ -412,13 +417,6 @@ export default function DashboardScreen() {
                         <Text variant="bodyLarge">
                           {budget.attributes.name}
                         </Text>
-                        {budget.attributes.spent &&
-                          budget.attributes.spent.length > 0 && (
-                            <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                              Spent: {budget.attributes.spent[0].currency_code}{" "}
-                              {budget.attributes.spent[0].amount}
-                            </Text>
-                          )}
                       </View>
                       <MaterialCommunityIcons
                         name={
