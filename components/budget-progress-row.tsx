@@ -20,9 +20,10 @@ function getSpentForCurrency(
 ): { spent: number; symbol: string; code: string } | null {
   const spentList = budget.attributes.spent;
   if (!spentList?.length) return null;
+
   const currencyCode =
-    budget.attributes.primary_currency_code ??
     budget.attributes.currency_code ??
+    budget.attributes.primary_currency_code ??
     spentList[0]?.currency_code;
   const entry = spentList.find((s) => s.currency_code === currencyCode);
   if (!entry) return null;
@@ -81,8 +82,8 @@ export function BudgetProgressRow({
 
   const symbol =
     spentInfo?.symbol ??
-    budget.attributes.primary_currency_symbol ??
     budget.attributes.currency_symbol ??
+    budget.attributes.primary_currency_symbol ??
     "";
 
   return (
