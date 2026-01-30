@@ -8,12 +8,50 @@ import type { AxiosInstance } from "axios";
 
 export async function getBudgets(
   api: AxiosInstance,
-  page: number = 1
+  page: number = 1,
+  start?: string,
+  end?: string
 ): Promise<FireflyApiResponse<Budget[]>> {
   const response = await api.get<FireflyApiResponse<Budget[]>>("budgets", {
-    params: { page },
+    params: { page, start, end },
   });
   return response.data;
+}
+
+export async function getAllBudgets(
+  api: AxiosInstance,
+  getBudgetsFn: (
+    api: AxiosInstance,
+    page: number,
+    start?: string,
+    end?: string
+  ) => Promise<FireflyApiResponse<Budget[]>>,
+  start?: string,
+  end?: string
+): Promise<FireflyApiResponse<Budget[]>> {
+  const firstPageResponse = await getBudgetsFn(api, 1, start, end);
+  const allBudgets = [...(firstPageResponse.data || [])];
+
+  const totalPages = firstPageResponse.meta?.pagination?.total_pages || 1;
+
+  if (totalPages > 1) {
+    const pagePromises = [];
+    for (let page = 2; page <= totalPages; page++) {
+      pagePromises.push(getBudgetsFn(api, page, start, end));
+    }
+
+    const remainingPages = await Promise.all(pagePromises);
+    remainingPages.forEach((pageResponse) => {
+      if (pageResponse.data) {
+        allBudgets.push(...pageResponse.data);
+      }
+    });
+  }
+
+  return {
+    ...firstPageResponse,
+    data: allBudgets,
+  };
 }
 
 export async function getBudget(

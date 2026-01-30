@@ -68,10 +68,18 @@ class FireflyApiClientImpl extends FireflyApiClient {
   }
 
   // Budgets
-  async getBudgets(page: number = 1) {
-    return budgetsModule.getBudgets(this.ensureInitialized(), page);
+  async getBudgets(page: number = 1, start?: string, end?: string) {
+    return budgetsModule.getBudgets(this.ensureInitialized(), page, start, end);
   }
 
+  async getAllBudgets(start?: string, end?: string) {
+    return budgetsModule.getAllBudgets(
+      this.ensureInitialized(),
+      budgetsModule.getBudgets,
+      start,
+      end
+    );
+  }
   async getBudget(id: string) {
     return budgetsModule.getBudget(this.ensureInitialized(), id);
   }

@@ -1,4 +1,5 @@
 // Dashboard Screen
+import { BudgetProgressRow } from "@/components/budget-progress-row";
 import { ExpensesByAccountPieCard } from "@/components/charts/expenses-by-account-pie-card";
 import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
 import { GlassCard } from "@/components/glass-card";
@@ -31,6 +32,13 @@ export default function DashboardScreen() {
   const { balanceVisible, toggleBalanceVisibility } = useStore();
   const { isOnline } = useOnlineStatus();
 
+  // Fetch Last 30 days expenses by expense account (dynamic dates)
+  const today = new Date();
+  const endDate = today.toISOString().slice(0, 10);
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - 29); // last 30 days including today
+  const startDateString = startDate.toISOString().slice(0, 10);
+
   // Fetch all asset accounts
   const {
     data: accountsData,
@@ -57,8 +65,8 @@ export default function DashboardScreen() {
     isLoading: budgetsLoading,
     refetch: refetchBudgets,
   } = useQuery({
-    queryKey: ["budgets"],
-    queryFn: () => apiClient.getBudgets(),
+    queryKey: ["budgets", startDateString, endDate],
+    queryFn: () => apiClient.getAllBudgets(startDateString, endDate),
   });
 
   // Fetch subscriptions bills
@@ -70,13 +78,6 @@ export default function DashboardScreen() {
     queryKey: ["subscriptionsBills"],
     queryFn: () => apiClient.getSubscriptionsBills(),
   });
-
-  // Fetch Last 30 days expenses by expense account (dynamic dates)
-  const today = new Date();
-  const endDate = today.toISOString().slice(0, 10);
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - 29); // last 30 days including today
-  const startDateString = startDate.toISOString().slice(0, 10);
 
   const {
     data: expensesData,
@@ -403,35 +404,14 @@ export default function DashboardScreen() {
               <>
                 {budgetsData?.data.slice(0, 5).map((budget, index, array) => {
                   const isLastItem = index === array.length - 1;
-                  const shouldHideBorder =
+                  const hideBorder =
                     budgetsData && budgetsData.data.length <= 5 && isLastItem;
                   return (
-                    <View
+                    <BudgetProgressRow
                       key={budget.id}
-                      style={[
-                        styles.budgetItem,
-                        shouldHideBorder && styles.budgetItemNoBorder,
-                      ]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text variant="bodyLarge">
-                          {budget.attributes.name}
-                        </Text>
-                      </View>
-                      <MaterialCommunityIcons
-                        name={
-                          budget.attributes.active
-                            ? "check-circle"
-                            : "circle-outline"
-                        }
-                        size={24}
-                        color={
-                          budget.attributes.active
-                            ? theme.colors.primary
-                            : theme.colors.onSurfaceVariant
-                        }
-                      />
-                    </View>
+                      budget={budget}
+                      hideBorder={hideBorder}
+                    />
                   );
                 })}
                 {budgetsData && budgetsData.data.length > 5 && (
@@ -643,17 +623,6 @@ const styles = StyleSheet.create({
   },
   showMoreText: {
     fontWeight: "600",
-  },
-  budgetItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.12)",
-  },
-  budgetItemNoBorder: {
-    borderBottomWidth: 0,
   },
   insightItem: {
     flexDirection: "row",

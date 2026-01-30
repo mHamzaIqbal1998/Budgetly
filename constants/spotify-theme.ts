@@ -16,6 +16,7 @@ export const SpotifyColors = {
   lightGray: "#3E3E3E", // Elevated surfaces
   white: "#FFFFFF", // Text on dark
   textSecondary: "#B3B3B3", // Secondary text
+  danger: "#D32F2F", // Critical/danger red (e.g. over budget)
 };
 
 export const SpotifyDarkTheme: MD3Theme = {
