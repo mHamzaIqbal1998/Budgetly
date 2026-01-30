@@ -1,4 +1,5 @@
 // Dashboard Screen
+import { ExpensesByAccountPieCard } from "@/components/charts/expenses-by-account-pie-card";
 import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
@@ -39,6 +40,16 @@ export default function DashboardScreen() {
     () => apiClient.getAllAccounts("asset")
   );
 
+  // Fetch all expense accounts
+  const {
+    data: expenseAccountsData,
+    isLoading: expenseAccountsLoading,
+    refetch: refetchExpenseAccounts,
+  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
+    ["all-expense-accounts"],
+    () => apiClient.getAllAccounts("expense")
+  );
+
   // Fetch budgets
   const {
     data: budgetsData,
@@ -57,6 +68,23 @@ export default function DashboardScreen() {
   } = useQuery({
     queryKey: ["subscriptionsBills"],
     queryFn: () => apiClient.getSubscriptionsBills(),
+  });
+
+  // Fetch Last 30 days expenses by expense account (dynamic dates)
+  const today = new Date();
+  const endDate = today.toISOString().slice(0, 10);
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - 29); // last 30 days including today
+  const startDateString = startDate.toISOString().slice(0, 10);
+
+  const {
+    data: expensesData,
+    isLoading: isLoadingExpenses,
+    refetch: refetchExpenses,
+  } = useQuery({
+    queryKey: ["expensesByExpenseAccount", startDateString, endDate],
+    queryFn: () =>
+      apiClient.getExpensesByExpenseAccount(startDateString, endDate),
   });
 
   // Calculate total balance by currency
@@ -90,8 +118,10 @@ export default function DashboardScreen() {
 
   const handleRefresh = () => {
     refetchAccounts();
+    refetchExpenseAccounts();
     refetchBudgets();
     refetchSubscriptionsBills();
+    refetchExpenses();
   };
 
   return (
@@ -102,7 +132,13 @@ export default function DashboardScreen() {
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
-            refreshing={accountsLoading || budgetsLoading || isLoadingBills}
+            refreshing={
+              accountsLoading ||
+              expenseAccountsLoading ||
+              budgetsLoading ||
+              isLoadingBills ||
+              isLoadingExpenses
+            }
             onRefresh={handleRefresh}
           />
         }
@@ -187,6 +223,12 @@ export default function DashboardScreen() {
 
         {/* Top Accounts Pie Card */}
         <TopAccountsPieCard accounts={accountsData?.data ?? []} type="Asset" />
+
+        {/* Last 30 days expenses by expense account */}
+        <ExpensesByAccountPieCard
+          expenses={expensesData ?? []}
+          expenseAccounts={expenseAccountsData?.data ?? []}
+        />
 
         {/* Summary Cards */}
         <View style={styles.summaryRow}>

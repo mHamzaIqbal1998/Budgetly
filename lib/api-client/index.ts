@@ -2,6 +2,7 @@ import type { CreateBudgetData, CreateTransactionData } from "@/types";
 import * as accountsModule from "./accounts";
 import * as budgetsModule from "./budgets";
 import { FireflyApiClient } from "./core";
+import * as expensesModule from "./expenses";
 import * as piggyBanksModule from "./piggy-banks";
 import * as recurringModule from "./recurring";
 import * as transactionsModule from "./transactions";
@@ -117,6 +118,15 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async getSubscriptionsBills() {
     return recurringModule.getSubscriptionsBills(this.ensureInitialized());
+  }
+
+  // Expenses
+  async getExpensesByExpenseAccount(start: string, end: string) {
+    return expensesModule.getExpensesByExpenseAccount(
+      this.ensureInitialized(),
+      start,
+      end
+    );
   }
 }
 

@@ -28,7 +28,7 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 60 * 24, // 24 hours (formerly cacheTime)
 
       // Consider data stale after 5 minutes
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 30, // 30 minutes
 
       // Retry failed queries
       retry: 2,
