@@ -2,7 +2,7 @@
   "expo": {
     "name": "Budgetly",
     "slug": "budgetly",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "orientation": "portrait",
     "icon": "./assets/android-chrome-512x512.png",
     "scheme": "budgetly",

@@ -1,24 +1,25 @@
-import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { PaperProvider } from 'react-native-paper';
-import { QueryClientProvider } from '@tanstack/react-query';
-import 'react-native-reanimated';
+import { useEffect } from "react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { PaperProvider } from "react-native-paper";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import "react-native-reanimated";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useStore } from '@/lib/store';
-import { queryClient } from '@/lib/query-client';
-import { apiClient } from '@/lib/api-client';
-import { SpotifyDarkTheme, SpotifyLightTheme } from '@/constants/spotify-theme';
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useStore } from "@/lib/store";
+import { queryClient, persistOptions } from "@/lib/query-client";
+import { apiClient } from "@/lib/api-client";
+import { SpotifyDarkTheme, SpotifyLightTheme } from "@/constants/spotify-theme";
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  initialRouteName: "index",
 };
 
 function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
-  const { isAuthenticated, isLoading, loadCredentials, credentials } = useStore();
+  const { isAuthenticated, isLoading, loadCredentials, credentials } =
+    useStore();
 
   // Load credentials on mount
   useEffect(() => {
@@ -36,15 +37,15 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inDrawerGroup = segments[0] === '(drawer)';
+    const inAuthGroup = segments[0] === "(auth)";
+    const inDrawerGroup = segments[0] === "(drawer)";
 
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to setup if not authenticated
-      router.replace('/(auth)/setup');
+      router.replace("/(auth)/setup");
     } else if (isAuthenticated && inAuthGroup) {
       // Redirect to dashboard if authenticated
-      router.replace('/(drawer)/dashboard');
+      router.replace("/(drawer)/dashboard");
     }
   }, [isAuthenticated, isLoading, segments]);
 
@@ -59,14 +60,18 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const paperTheme = colorScheme === 'dark' ? SpotifyDarkTheme : SpotifyLightTheme;
+  const paperTheme =
+    colorScheme === "dark" ? SpotifyDarkTheme : SpotifyLightTheme;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+    >
       <PaperProvider theme={paperTheme}>
         <RootLayoutNav />
         <StatusBar style="light" hidden={true} />
       </PaperProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
