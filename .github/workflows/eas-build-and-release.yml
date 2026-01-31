@@ -168,7 +168,7 @@ jobs:
           REPO="${GITHUB_REPOSITORY}"
           release_id="${{ steps.ensure_release.outputs.release_id }}"
           AUTH="Authorization: token ${GITHUB_TOKEN}"
-          desired="Budgetly.apk"
+          desired="Budgetly-arm64-v8a.apk"
           assets_resp=$(curl -s -H "$AUTH" "$GITHUB_API/repos/$REPO/releases/$release_id/assets" || echo "[]")
           exists=$(echo "$assets_resp" | jq -r --arg name "$desired" '.[] | select(.name==$name) | .id' || true)
           SHORT_SHA=${GITHUB_SHA::7}
