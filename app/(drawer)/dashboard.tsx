@@ -2,6 +2,8 @@
 import { BudgetProgressRow } from "@/components/budget-progress-row";
 import { ExpensesByAccountPieCard } from "@/components/charts/expenses-by-account-pie-card";
 import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
+import { AccountsOverviewCard } from "@/components/dashboard/accounts-overview-card";
+import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
 import {
@@ -9,7 +11,6 @@ import {
   useOnlineStatus,
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
-import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -169,59 +170,11 @@ export default function DashboardScreen() {
           </Card>
         )}
         {/* Net Worth Card */}
-        <GlassCard
-          variant="primary"
-          style={styles.netWorthCard}
-          mode="outlined"
-        >
-          <Card.Content>
-            <View style={styles.netWorthHeader}>
-              <View style={styles.netWorthTitleContainer}>
-                <MaterialCommunityIcons
-                  name="wallet"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text variant="labelLarge" style={styles.netWorthLabel}>
-                  Net Worth
-                </Text>
-              </View>
-              <MaterialCommunityIcons
-                name={balanceVisible ? "eye" : "eye-off"}
-                size={24}
-                color={theme.colors.primary}
-                onPress={toggleBalanceVisibility}
-                style={styles.eyeIcon}
-              />
-            </View>
-            {currencyBalances.length === 0 ? (
-              <Text variant="displaySmall" style={styles.netWorthValue}>
-                No accounts
-              </Text>
-            ) : currencyBalances.length === 1 ? (
-              <Text variant="displayLarge" style={styles.netWorthValue}>
-                {currencyBalances[0].symbol}{" "}
-                {formatAmount(currencyBalances[0].total)}
-              </Text>
-            ) : (
-              <View style={styles.multiCurrencyContainer}>
-                {currencyBalances.map((currency, index) => (
-                  <Text
-                    key={currency.code}
-                    variant="displaySmall"
-                    style={[
-                      styles.netWorthValue,
-                      index > 0 && styles.additionalCurrency,
-                    ]}
-                  >
-                    {currency.symbol}{" "}
-                    {balanceVisible ? formatAmount(currency.total) : "••••••"}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </Card.Content>
-        </GlassCard>
+        <NetWorthCard
+          currencyBalances={currencyBalances}
+          balanceVisible={balanceVisible}
+          toggleBalanceVisibility={toggleBalanceVisibility}
+        />
 
         {/* Top Accounts Pie Card */}
         <TopAccountsPieCard accounts={accountsData?.data ?? []} type="Asset" />
@@ -285,87 +238,11 @@ export default function DashboardScreen() {
         </View>
 
         {/* Accounts Overview */}
-        <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title
-            title="Accounts Overview"
-            left={(props) => (
-              <MaterialCommunityIcons
-                name="bank"
-                {...props}
-                color={theme.colors.primary}
-              />
-            )}
-            titleStyle={{ color: theme.colors.onSurface }}
-          />
-          <Card.Content>
-            {accountsLoading ? (
-              <Text>Loading accounts...</Text>
-            ) : accountsData?.data.length === 0 ? (
-              <Text>No accounts found</Text>
-            ) : (
-              <>
-                {accountsData?.data.slice(0, 5).map((account, index, array) => {
-                  const isLastItem = index === array.length - 1;
-                  const shouldHideBorder =
-                    accountsData && accountsData.data.length <= 5 && isLastItem;
-                  return (
-                    <View
-                      key={account.id}
-                      style={[
-                        styles.accountItem,
-                        shouldHideBorder && styles.accountItemNoBorder,
-                      ]}
-                    >
-                      <View style={styles.accountNameContainer}>
-                        <Text variant="bodyLarge">
-                          {account.attributes.name}
-                        </Text>
-                        <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                          {account.attributes.type.charAt(0).toUpperCase() +
-                            account.attributes.type.slice(1).toLowerCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.accountBalanceContainer}>
-                        <Text
-                          variant="titleMedium"
-                          style={{ fontWeight: "bold" }}
-                        >
-                          {account.attributes.currency_code}{" "}
-                          {balanceVisible
-                            ? formatAmount(
-                                parseFloat(account.attributes.current_balance)
-                              )
-                            : "••••••"}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-                {accountsData && accountsData.data.length > 5 && (
-                  <TouchableOpacity
-                    onPress={() => router.push("/(drawer)/accounts")}
-                    style={styles.showMoreButton}
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      style={[
-                        styles.showMoreText,
-                        { color: theme.colors.primary },
-                      ]}
-                    >
-                      Show more
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </Card.Content>
-        </GlassCard>
+        <AccountsOverviewCard
+          accounts={accountsData?.data ?? []}
+          isLoading={accountsLoading}
+          balanceVisible={balanceVisible}
+        />
 
         {/* Budgets Overview */}
         <GlassCard variant="elevated" style={styles.card}>
@@ -534,38 +411,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  netWorthCard: {
-    marginBottom: 16,
-  },
-  netWorthHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  netWorthTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  netWorthLabel: {
-    opacity: 0.8,
-    letterSpacing: 0.5,
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  netWorthValue: {
-    color: "#1DB954",
-    fontWeight: "bold",
-    letterSpacing: -1,
-  },
-  multiCurrencyContainer: {
-    gap: 8,
-  },
-  additionalCurrency: {
-    fontSize: 32,
-  },
   summaryCard: {
     flex: 1,
     minHeight: 120,
@@ -589,29 +434,6 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-  },
-  accountItem: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.12)",
-    gap: 8,
-  },
-  accountNameContainer: {
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 150,
-  },
-  accountBalanceContainer: {
-    flexShrink: 0,
-    alignItems: "flex-end",
-    marginLeft: "auto",
-  },
-  accountItemNoBorder: {
-    borderBottomWidth: 0,
   },
   showMoreButton: {
     flexDirection: "row",
