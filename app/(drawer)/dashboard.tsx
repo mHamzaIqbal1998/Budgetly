@@ -1,10 +1,13 @@
 // Dashboard Screen
-import { BudgetProgressRow } from "@/components/budget-progress-row";
 import { ExpensesByAccountPieCard } from "@/components/charts/expenses-by-account-pie-card";
 import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
 import { AccountsOverviewCard } from "@/components/dashboard/accounts-overview-card";
+import { BudgetStatusCard } from "@/components/dashboard/budget-status-card";
+import { DashboardCustomizeModal } from "@/components/dashboard/dashboard-customize-modal";
 import { NetWorthCard } from "@/components/dashboard/net-worth-card";
+import { QuickInsightsCard } from "@/components/dashboard/quick-insights-card";
 import { GlassCard } from "@/components/glass-card";
+import { DEFAULT_DASHBOARD_VISIBLE_ORDER } from "@/constants/dashboard-sections";
 import { SpotifyColors } from "@/constants/spotify-theme";
 import {
   useCachedAccountsQuery,
@@ -12,33 +15,53 @@ import {
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
+import { getStartEndDate } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import React from "react";
+import { useNavigation } from "expo-router";
+import React, { useLayoutEffect } from "react";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Card, FAB, Portal, Text, useTheme } from "react-native-paper";
+  Card,
+  FAB,
+  IconButton,
+  Portal,
+  Text,
+  useTheme,
+} from "react-native-paper";
 
 export default function DashboardScreen() {
   const theme = useTheme();
-  const router = useRouter();
+  const navigation = useNavigation();
   const [fabOpen, setFabOpen] = React.useState(false);
-  const { balanceVisible, toggleBalanceVisibility } = useStore();
+  const [customizeModalVisible, setCustomizeModalVisible] =
+    React.useState(false);
+  const {
+    balanceVisible,
+    toggleBalanceVisibility,
+    dashboardVisibleSectionIds,
+  } = useStore();
+  const visibleSectionIds = dashboardVisibleSectionIds ?? [
+    ...DEFAULT_DASHBOARD_VISIBLE_ORDER,
+  ];
   const { isOnline } = useOnlineStatus();
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton
+          icon="view-dashboard-edit"
+          size={24}
+          onPress={() => setCustomizeModalVisible(true)}
+          iconColor={theme.colors.onSurface}
+        />
+      ),
+    });
+  }, [navigation, theme.colors.onSurface]);
+
   // Fetch Last 30 days expenses by expense account (dynamic dates)
-  const today = new Date();
-  const endDate = today.toISOString().slice(0, 10);
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - 29); // last 30 days including today
-  const startDateString = startDate.toISOString().slice(0, 10);
+  const { startDateString, endDate } = getStartEndDate(30);
 
   // Fetch all asset accounts
   const {
@@ -169,204 +192,133 @@ export default function DashboardScreen() {
             </Card.Content>
           </Card>
         )}
-        {/* Net Worth Card */}
-        <NetWorthCard
-          currencyBalances={currencyBalances}
-          balanceVisible={balanceVisible}
-          toggleBalanceVisibility={toggleBalanceVisibility}
-        />
-
-        {/* Top Accounts Pie Card */}
-        <TopAccountsPieCard accounts={accountsData?.data ?? []} type="Asset" />
-
-        {/* Last 30 days expenses by expense account */}
-        <ExpensesByAccountPieCard
-          expenses={expensesData ?? []}
-          expenseAccounts={expenseAccountsData?.data ?? []}
-        />
-
-        {/* Summary Cards */}
-        <View style={styles.summaryRow}>
-          <GlassCard
-            variant="blue"
-            style={styles.summaryCardSmall}
-            mode="contained"
-          >
-            <Card.Content>
-              <MaterialCommunityIcons
-                name="chart-donut"
-                size={32}
-                color={SpotifyColors.blue}
-                style={styles.summaryIcon}
-              />
-              <Text variant="bodySmall" style={styles.summaryLabel}>
-                Active Budgets
-              </Text>
-              <Text
-                variant="headlineMedium"
-                style={[styles.summaryValue, { color: SpotifyColors.blue }]}
-              >
-                {activeBudgets}
-              </Text>
-            </Card.Content>
-          </GlassCard>
-          <GlassCard
-            variant="orange"
-            style={styles.summaryCardSmall}
-            mode="contained"
-          >
-            <Card.Content>
-              <MaterialCommunityIcons
-                name="repeat"
-                size={32}
-                color={SpotifyColors.orange}
-                style={styles.summaryIcon}
-              />
-              <Text variant="bodySmall" style={styles.summaryLabel}>
-                Active Subscriptions
-              </Text>
-              <Text
-                variant="headlineMedium"
-                style={[styles.summaryValue, { color: SpotifyColors.orange }]}
-              >
-                {subscriptionsBillsData?.data.filter(
-                  (bill) => bill.attributes.active
-                ).length || 0}
-              </Text>
-            </Card.Content>
-          </GlassCard>
-        </View>
-
-        {/* Accounts Overview */}
-        <AccountsOverviewCard
-          accounts={accountsData?.data ?? []}
-          isLoading={accountsLoading}
-          balanceVisible={balanceVisible}
-        />
-
-        {/* Budgets Overview */}
-        <GlassCard variant="elevated" style={styles.card}>
-          <Card.Title
-            title="Budget Status"
-            left={(props) => (
-              <MaterialCommunityIcons
-                name="wallet"
-                {...props}
-                color={theme.colors.primary}
-              />
-            )}
-            titleStyle={{ color: theme.colors.onSurface }}
-          />
-          <Card.Content>
-            {budgetsLoading ? (
-              <Text>Loading budgets...</Text>
-            ) : budgetsData?.data.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons
-                  name="wallet-plus"
-                  size={48}
-                  color={theme.colors.onSurfaceVariant}
+        {visibleSectionIds.map((sectionId) => {
+          switch (sectionId) {
+            case "netWorth":
+              return (
+                <NetWorthCard
+                  key={sectionId}
+                  currencyBalances={currencyBalances}
+                  balanceVisible={balanceVisible}
+                  toggleBalanceVisibility={toggleBalanceVisibility}
                 />
-                <Text variant="bodyLarge" style={{ marginTop: 8 }}>
-                  No budgets yet
-                </Text>
-                <Text
-                  variant="bodySmall"
-                  style={{ opacity: 0.6, marginTop: 4 }}
-                >
-                  Create your first budget to start tracking expenses
-                </Text>
-              </View>
-            ) : (
-              <>
-                {budgetsData?.data.slice(0, 5).map((budget, index, array) => {
-                  const isLastItem = index === array.length - 1;
-                  const hideBorder =
-                    budgetsData && budgetsData.data.length <= 5 && isLastItem;
-                  return (
-                    <BudgetProgressRow
-                      key={budget.id}
-                      budget={budget}
-                      hideBorder={hideBorder}
-                    />
-                  );
-                })}
-                {budgetsData && budgetsData.data.length > 5 && (
-                  <TouchableOpacity
-                    onPress={() => router.push("/(drawer)/budgets")}
-                    style={styles.showMoreButton}
+              );
+            case "topAccounts":
+              return (
+                <TopAccountsPieCard
+                  key={sectionId}
+                  accounts={accountsData?.data ?? []}
+                  type="Asset"
+                />
+              );
+            case "expensesByAccount":
+              return (
+                <ExpensesByAccountPieCard
+                  key={sectionId}
+                  expenses={expensesData ?? []}
+                  expenseAccounts={expenseAccountsData?.data ?? []}
+                />
+              );
+            case "summaryCards":
+              return (
+                <View key={sectionId} style={styles.summaryRow}>
+                  <GlassCard
+                    variant="blue"
+                    style={styles.summaryCardSmall}
+                    mode="contained"
                   >
-                    <Text
-                      variant="bodyMedium"
-                      style={[
-                        styles.showMoreText,
-                        { color: theme.colors.primary },
-                      ]}
-                    >
-                      Show more
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </Card.Content>
-        </GlassCard>
-
-        {/* Quick Insights */}
-        <GlassCard variant="elevated" style={styles.insightsCard}>
-          <Card.Title
-            title="Quick Insights"
-            left={(props) => (
-              <MaterialCommunityIcons
-                name="lightbulb"
-                {...props}
-                color={theme.colors.primary}
-              />
-            )}
-            titleStyle={{ color: theme.colors.onSurface }}
-          />
-          <Card.Content>
-            <View style={styles.insightItem}>
-              <MaterialCommunityIcons
-                name="information"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
-                You have {accountsData?.data.length || 0} accounts connected
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <MaterialCommunityIcons
-                name="chart-line"
-                size={20}
-                color={theme.colors.secondary}
-              />
-              <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
-                {activeBudgets} active budgets tracking your spending
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <MaterialCommunityIcons
-                name="repeat"
-                size={20}
-                color={theme.colors.secondary}
-              />
-              <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
-                {subscriptionsBillsData?.data.filter(
-                  (bill) => bill.attributes.active
-                ).length || 0}{" "}
-                active subscription(s)
-              </Text>
-            </View>
-          </Card.Content>
-        </GlassCard>
+                    <Card.Content>
+                      <MaterialCommunityIcons
+                        name="chart-donut"
+                        size={32}
+                        color={SpotifyColors.blue}
+                        style={styles.summaryIcon}
+                      />
+                      <Text variant="bodySmall" style={styles.summaryLabel}>
+                        Active Budgets
+                      </Text>
+                      <Text
+                        variant="headlineMedium"
+                        style={[
+                          styles.summaryValue,
+                          { color: SpotifyColors.blue },
+                        ]}
+                      >
+                        {activeBudgets}
+                      </Text>
+                    </Card.Content>
+                  </GlassCard>
+                  <GlassCard
+                    variant="orange"
+                    style={styles.summaryCardSmall}
+                    mode="contained"
+                  >
+                    <Card.Content>
+                      <MaterialCommunityIcons
+                        name="repeat"
+                        size={32}
+                        color={SpotifyColors.orange}
+                        style={styles.summaryIcon}
+                      />
+                      <Text variant="bodySmall" style={styles.summaryLabel}>
+                        Active Subscriptions
+                      </Text>
+                      <Text
+                        variant="headlineMedium"
+                        style={[
+                          styles.summaryValue,
+                          { color: SpotifyColors.orange },
+                        ]}
+                      >
+                        {subscriptionsBillsData?.data.filter(
+                          (bill) => bill.attributes.active
+                        ).length || 0}
+                      </Text>
+                    </Card.Content>
+                  </GlassCard>
+                </View>
+              );
+            case "accountsOverview":
+              return (
+                <AccountsOverviewCard
+                  key={sectionId}
+                  accounts={accountsData?.data ?? []}
+                  isLoading={accountsLoading}
+                  balanceVisible={balanceVisible}
+                />
+              );
+            case "budgetStatus":
+              return (
+                <BudgetStatusCard
+                  key={sectionId}
+                  budgets={budgetsData?.data}
+                  isLoading={budgetsLoading}
+                />
+              );
+            case "quickInsights":
+              return (
+                <QuickInsightsCard
+                  key={sectionId}
+                  accountsCount={accountsData?.data.length ?? 0}
+                  activeBudgetsCount={activeBudgets}
+                  activeSubscriptionsCount={
+                    subscriptionsBillsData?.data.filter(
+                      (bill) => bill.attributes.active
+                    ).length ?? 0
+                  }
+                />
+              );
+            default:
+              return null;
+          }
+        })}
+        <View style={{ height: 32 }} />
       </ScrollView>
+
+      <DashboardCustomizeModal
+        visible={customizeModalVisible}
+        onDismiss={() => setCustomizeModalVisible(false)}
+      />
 
       {/* Floating Action Button */}
       <Portal>
@@ -419,9 +371,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 120,
   },
-  insightsCard: {
-    marginBottom: 80,
-  },
   summaryIcon: {
     marginBottom: 8,
   },
@@ -434,26 +383,6 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-  },
-  showMoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    marginTop: 8,
-    gap: 4,
-  },
-  showMoreText: {
-    fontWeight: "600",
-  },
-  insightItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 32,
   },
   offlineBanner: {
     // margin: 16,

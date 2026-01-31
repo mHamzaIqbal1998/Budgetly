@@ -1,11 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { AppState } from "./types";
-import { createCredentialsSlice } from "./credentials";
-import { createUiSlice } from "./ui";
 import { createCacheSlice } from "./cache-slice";
+import { createCredentialsSlice } from "./credentials";
+import { createDashboardSlice } from "./dashboard-slice";
 import { createPendingSlice } from "./pending";
+import type { AppState } from "./types";
+import { createUiSlice } from "./ui";
 
 export const useStore = create<AppState>()(
   persist(
@@ -14,6 +15,7 @@ export const useStore = create<AppState>()(
       ...createUiSlice(...a),
       ...createCacheSlice(...a),
       ...createPendingSlice(...a),
+      ...createDashboardSlice(...a),
     }),
     {
       name: "budgetly-storage",
@@ -25,6 +27,8 @@ export const useStore = create<AppState>()(
         lastAccountsSync: state.lastAccountsSync,
         lastTransactionsSync: state.lastTransactionsSync,
         pendingTransactions: state.pendingTransactions,
+        dashboardVisibleSectionIds: state.dashboardVisibleSectionIds,
+        dashboardHiddenSectionIds: state.dashboardHiddenSectionIds,
       }),
     }
   )

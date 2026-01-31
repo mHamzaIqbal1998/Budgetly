@@ -26,4 +26,11 @@ export interface AppState {
 
   addPendingTransaction: (transaction: Transaction) => void;
   clearPendingTransactions: () => void;
+
+  dashboardVisibleSectionIds: string[];
+  dashboardHiddenSectionIds: string[];
+  setDashboardSections: (visible: string[], hidden: string[]) => void;
+  moveDashboardSectionToHidden: (id: string) => void;
+  moveDashboardSectionToVisible: (id: string) => void;
+  reorderDashboardVisible: (fromIndex: number, toIndex: number) => void;
 }
