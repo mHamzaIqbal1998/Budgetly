@@ -34,6 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withHermesCommandFromCompiler.js",
       "expo-router",
       "expo-secure-store",
       [
