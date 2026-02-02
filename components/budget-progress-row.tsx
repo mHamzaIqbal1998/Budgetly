@@ -1,14 +1,18 @@
 import { SpotifyColors } from "@/constants/spotify-theme";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
-import { Budget } from "@/types";
+import { BudgetLimit } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 export interface BudgetProgressRowProps {
-  budget: Budget;
+  budget: BudgetLimit;
+  /** Optional: resolved from included array (budget name). Falls back to budget_id when not passed. */
+  budgetName?: string;
+  /** Optional: resolved from included array (budget active status). */
+  budgetActive?: boolean;
   /** Optional period label (e.g. "This month") - spent data is already for the period used in the API request */
   periodLabel?: string;
   /** Hide bottom border (e.g. for last item in list) */
@@ -16,7 +20,7 @@ export interface BudgetProgressRowProps {
 }
 
 function getSpentForCurrency(
-  budget: Budget
+  budget: BudgetLimit
 ): { spent: number; symbol: string; code: string } | null {
   const spentList = budget.attributes.spent;
   if (!spentList?.length) return null;
@@ -35,18 +39,13 @@ function getSpentForCurrency(
   };
 }
 
-function getBudgetTotal(budget: Budget): number {
-  const amount =
-    budget.attributes.auto_budget_amount ??
-    budget.attributes.pc_auto_budget_amount;
+function getBudgetTotal(budget: BudgetLimit): number {
+  const amount = budget.attributes.amount;
   if (!amount) return 0;
   return parseFloat(amount);
 }
 
-const PERIOD_LABELS: Record<
-  NonNullable<Budget["attributes"]["auto_budget_period"]>,
-  string
-> = {
+const PERIOD_LABELS: Record<string, string> = {
   daily: "Today",
   weekly: "This week",
   monthly: "This month",
@@ -55,13 +54,30 @@ const PERIOD_LABELS: Record<
   yearly: "This year",
 };
 
-function getPeriodLabelFromBudget(budget: Budget): string {
-  const period = budget.attributes.auto_budget_period;
-  return (period && PERIOD_LABELS[period]) || "This period";
+function getPeriodLabelFromBudget(period: string): string {
+  return (
+    (period && PERIOD_LABELS[period as keyof typeof PERIOD_LABELS]) ||
+    "This period"
+  );
+}
+
+function formatBudgetDateRange(start: string, end: string): string | null {
+  if (!start || !end) return null;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()))
+    return null;
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+  };
+  return `${startDate.toLocaleDateString(undefined, opts)} – ${endDate.toLocaleDateString(undefined, opts)}`;
 }
 
 export function BudgetProgressRow({
   budget,
+  budgetName,
+  budgetActive = true,
   periodLabel,
   hideBorder,
 }: BudgetProgressRowProps) {
@@ -86,15 +102,23 @@ export function BudgetProgressRow({
     budget.attributes.primary_currency_symbol ??
     "";
 
+  const periodText = periodLabel
+    ? getPeriodLabelFromBudget(periodLabel)
+    : getPeriodLabelFromBudget(budget.attributes.period);
+  const dateRange = formatBudgetDateRange(
+    budget.attributes.start,
+    budget.attributes.end
+  );
+
   return (
     <View style={[styles.wrapper, hideBorder && styles.wrapperNoBorder]}>
       <View style={styles.headerRow}>
         <View style={styles.nameRow}>
           <MaterialCommunityIcons
-            name={budget.attributes.active ? "wallet" : "wallet-outline"}
+            name={budgetActive ? "wallet" : "wallet-outline"}
             size={20}
             color={
-              budget.attributes.active
+              budgetActive
                 ? theme.colors.primary
                 : theme.colors.onSurfaceVariant
             }
@@ -105,7 +129,7 @@ export function BudgetProgressRow({
             style={[styles.name, { color: theme.colors.onSurface }]}
             numberOfLines={1}
           >
-            {budget.attributes.name}
+            {budgetName ?? budget.attributes.budget_id}
           </Text>
         </View>
         {(spent > 0 || totalBudget > 0) && (
@@ -145,9 +169,10 @@ export function BudgetProgressRow({
           />
         </View>
       ) : null}
-      {(periodLabel ?? getPeriodLabelFromBudget(budget)) && (
+      {periodText && (
         <Text variant="labelSmall" style={styles.periodLabel}>
-          {periodLabel ?? getPeriodLabelFromBudget(budget)}
+          {periodText}
+          {dateRange ? ` · ${dateRange}` : ""}
         </Text>
       )}
     </View>

@@ -96,10 +96,23 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return budgetsModule.deleteBudget(this.ensureInitialized(), id);
   }
 
-  async getBudgetLimits(id: string) {
-    return budgetsModule.getBudgetLimits(this.ensureInitialized(), id);
+  async getBudgetLimits(start: string, end: string, page: number = 1) {
+    return budgetsModule.getBudgetLimits(
+      this.ensureInitialized(),
+      start,
+      end,
+      page
+    );
   }
 
+  async getAllBudgetLimits(start: string, end: string) {
+    return budgetsModule.getAllBudgetLimits(
+      this.ensureInitialized(),
+      budgetsModule.getBudgetLimits,
+      start,
+      end
+    );
+  }
   // Piggy Banks
   async getPiggyBanks(page: number = 1) {
     return piggyBanksModule.getPiggyBanks(this.ensureInitialized(), page);

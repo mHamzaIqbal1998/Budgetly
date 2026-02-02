@@ -1,6 +1,6 @@
 import type {
   Budget,
-  BudgetLimit,
+  BudgetLimitsListResponse,
   CreateBudgetData,
   FireflyApiResponse,
 } from "@/types";
@@ -91,10 +91,52 @@ export async function deleteBudget(
 
 export async function getBudgetLimits(
   api: AxiosInstance,
-  id: string
-): Promise<FireflyApiResponse<BudgetLimit[]>> {
-  const response = await api.get<FireflyApiResponse<BudgetLimit[]>>(
-    `budgets/${id}/limits`
-  );
+  start: string,
+  end: string,
+  page: number = 1
+): Promise<BudgetLimitsListResponse> {
+  const response = await api.get<BudgetLimitsListResponse>(`budget-limits`, {
+    params: {
+      start,
+      end,
+      page,
+    },
+  });
   return response.data;
+}
+
+export async function getAllBudgetLimits(
+  api: AxiosInstance,
+  getBudgetLimitsFn: (
+    api: AxiosInstance,
+    start: string,
+    end: string,
+    page?: number
+  ) => Promise<BudgetLimitsListResponse>,
+  start: string,
+  end: string
+): Promise<BudgetLimitsListResponse> {
+  const firstPageResponse = await getBudgetLimitsFn(api, start, end, 1);
+  const allBudgetLimits = [...(firstPageResponse.data || [])];
+
+  const totalPages = firstPageResponse.meta?.pagination?.total_pages || 1;
+
+  if (totalPages > 1) {
+    const pagePromises = [];
+    for (let page = 2; page <= totalPages; page++) {
+      pagePromises.push(getBudgetLimitsFn(api, start, end, page));
+    }
+
+    const remainingPages = await Promise.all(pagePromises);
+    remainingPages.forEach((pageResponse) => {
+      if (pageResponse.data) {
+        allBudgetLimits.push(...pageResponse.data);
+      }
+    });
+  }
+
+  return {
+    ...firstPageResponse,
+    data: allBudgetLimits,
+  };
 }

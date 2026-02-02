@@ -11,11 +11,12 @@ import { DEFAULT_DASHBOARD_VISIBLE_ORDER } from "@/constants/dashboard-sections"
 import { SpotifyColors } from "@/constants/spotify-theme";
 import {
   useCachedAccountsQuery,
+  useCachedBudgetLimitsQuery,
   useOnlineStatus,
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
-import { getStartEndDate } from "@/lib/utils";
+import { getCurrentMonthStartEndDate, getStartEndDate } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -60,8 +61,10 @@ export default function DashboardScreen() {
     });
   }, [navigation, theme.colors.onSurface]);
 
-  // Fetch Last 30 days expenses by expense account (dynamic dates)
+  // Last 30 days for expense charts
   const { startDateString, endDate } = getStartEndDate(30);
+  // Current month (1st to today) for budgets so monthly reset aligns
+  const budgetDateRange = getCurrentMonthStartEndDate();
 
   // Fetch all asset accounts
   const {
@@ -83,15 +86,18 @@ export default function DashboardScreen() {
     () => apiClient.getAllAccounts("expense")
   );
 
-  // Fetch budgets
   const {
     data: budgetsData,
     isLoading: budgetsLoading,
     refetch: refetchBudgets,
-  } = useQuery({
-    queryKey: ["budgets", startDateString, endDate],
-    queryFn: () => apiClient.getAllBudgets(startDateString, endDate),
-  });
+  } = useCachedBudgetLimitsQuery(
+    ["all-budgets", budgetDateRange.startDateString, budgetDateRange.endDate],
+    () =>
+      apiClient.getAllBudgetLimits(
+        budgetDateRange.startDateString,
+        budgetDateRange.endDate
+      )
+  );
 
   // Fetch subscriptions bills
   const {
@@ -139,8 +145,10 @@ export default function DashboardScreen() {
   const currencyBalances = Object.values(balancesByCurrency);
 
   // Count active budgets
-  const activeBudgets =
-    budgetsData?.data.filter((b) => b.attributes.active).length || 0;
+  const activeBudgets = React.useMemo(
+    () => budgetsData?.included?.filter((b) => b.attributes.active).length || 0,
+    [budgetsData?.included]
+  );
 
   const handleRefresh = () => {
     refetchAccounts();
@@ -291,7 +299,8 @@ export default function DashboardScreen() {
               return (
                 <BudgetStatusCard
                   key={sectionId}
-                  budgets={budgetsData?.data}
+                  budgets={budgetsData?.data ?? null}
+                  included={budgetsData?.included ?? null}
                   isLoading={budgetsLoading}
                 />
               );

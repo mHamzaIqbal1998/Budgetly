@@ -1,5 +1,11 @@
-import type { Account, CacheMetadata, Transaction } from "@/types";
+import type {
+  Account,
+  BudgetLimitsListResponse,
+  CacheMetadata,
+  Transaction,
+} from "@/types";
 import * as accountsModule from "./accounts";
+import * as budgetLimitsModule from "./budget-limits";
 import * as core from "./core";
 import * as transactionsModule from "./transactions";
 
@@ -26,6 +32,14 @@ export const cache = {
 
   async setTransactions(transactions: Transaction[]) {
     return transactionsModule.setTransactions(transactions);
+  },
+
+  async getBudgetLimits() {
+    return budgetLimitsModule.getBudgetLimits();
+  },
+
+  async setBudgetLimits(data: BudgetLimitsListResponse) {
+    return budgetLimitsModule.setBudgetLimits(data);
   },
 
   isCacheStale(metadata: CacheMetadata, maxAgeHours: number = 24): boolean {

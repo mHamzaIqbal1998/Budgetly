@@ -1,6 +1,6 @@
 // Custom hook to combine React Query with offline cache
 import { useStore } from "@/lib/store";
-import { Account, Transaction } from "@/types";
+import { Account, BudgetLimitsListResponse, Transaction } from "@/types";
 import NetInfo from "@react-native-community/netinfo";
 import {
   UseQueryOptions,
@@ -78,6 +78,43 @@ export function useCachedTransactionsQuery<TData = Transaction[]>(
     ...query,
     data: dataToReturn,
   } as UseQueryResult<TData, Error>;
+}
+
+/**
+ * Enhanced useQuery hook for budget limits with offline cache support
+ * Falls back to cached data when offline/error, and updates cache on successful fetch
+ */
+export function useCachedBudgetLimitsQuery(
+  queryKey: string[],
+  queryFn: () => Promise<BudgetLimitsListResponse>,
+  options?: Omit<
+    UseQueryOptions<BudgetLimitsListResponse>,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<BudgetLimitsListResponse, Error> {
+  const { setCachedBudgetLimits, cachedBudgetLimits } = useStore();
+
+  const query = useQuery<BudgetLimitsListResponse, Error>({
+    queryKey,
+    queryFn,
+    ...options,
+  });
+
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      setCachedBudgetLimits(query.data);
+    }
+  }, [query.isSuccess, query.data, setCachedBudgetLimits]);
+
+  const dataToReturn =
+    query.isError && cachedBudgetLimits !== null
+      ? cachedBudgetLimits
+      : query.data;
+
+  return {
+    ...query,
+    data: dataToReturn,
+  } as UseQueryResult<BudgetLimitsListResponse, Error>;
 }
 
 /**

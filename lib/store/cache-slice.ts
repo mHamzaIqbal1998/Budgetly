@@ -1,7 +1,7 @@
-import type { Account, Transaction } from "@/types";
+import type { Account, BudgetLimitsListResponse, Transaction } from "@/types";
 import type { StateCreator } from "zustand";
-import type { AppState } from "./types";
 import { cache } from "../cache";
+import type { AppState } from "./types";
 
 export const createCacheSlice: StateCreator<
   AppState,
@@ -11,19 +11,25 @@ export const createCacheSlice: StateCreator<
     AppState,
     | "cachedAccounts"
     | "cachedTransactions"
+    | "cachedBudgetLimits"
     | "lastAccountsSync"
     | "lastTransactionsSync"
+    | "lastBudgetLimitsSync"
     | "setCachedAccounts"
     | "getCachedAccounts"
     | "setCachedTransactions"
     | "getCachedTransactions"
+    | "setCachedBudgetLimits"
+    | "getCachedBudgetLimits"
     | "clearCache"
   >
 > = (set) => ({
   cachedAccounts: null,
   cachedTransactions: null,
+  cachedBudgetLimits: null,
   lastAccountsSync: null,
   lastTransactionsSync: null,
+  lastBudgetLimitsSync: null,
 
   setCachedAccounts: async (accounts: Account[]) => {
     try {
@@ -80,14 +86,42 @@ export const createCacheSlice: StateCreator<
     }
   },
 
+  setCachedBudgetLimits: async (data: BudgetLimitsListResponse) => {
+    try {
+      await cache.setBudgetLimits(data);
+      set({ cachedBudgetLimits: data, lastBudgetLimitsSync: Date.now() });
+    } catch (error) {
+      console.error("Failed to cache budget limits:", error);
+    }
+  },
+
+  getCachedBudgetLimits: async () => {
+    try {
+      const cached = await cache.getBudgetLimits();
+      if (cached) {
+        set({
+          cachedBudgetLimits: cached.data,
+          lastBudgetLimitsSync: cached.metadata.lastSynced,
+        });
+        return cached.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to get cached budget limits:", error);
+      return null;
+    }
+  },
+
   clearCache: async () => {
     try {
       await cache.clear();
       set({
         cachedAccounts: null,
         cachedTransactions: null,
+        cachedBudgetLimits: null,
         lastAccountsSync: null,
         lastTransactionsSync: null,
+        lastBudgetLimitsSync: null,
       });
     } catch (error) {
       console.error("Failed to clear cache:", error);

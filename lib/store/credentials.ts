@@ -1,8 +1,8 @@
 import type { FireflyCredentials } from "@/types";
 import * as SecureStore from "expo-secure-store";
 import type { StateCreator } from "zustand";
-import type { AppState } from "./types";
 import { cache } from "../cache";
+import type { AppState } from "./types";
 
 const CREDENTIALS_KEY = "firefly_credentials";
 
@@ -66,8 +66,10 @@ export const createCredentialsSlice: StateCreator<
         isAuthenticated: false,
         cachedAccounts: null,
         cachedTransactions: null,
+        cachedBudgetLimits: null,
         lastAccountsSync: null,
         lastTransactionsSync: null,
+        lastBudgetLimitsSync: null,
         pendingTransactions: [],
       });
     } catch (error) {

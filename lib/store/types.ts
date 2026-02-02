@@ -1,4 +1,9 @@
-import type { Account, FireflyCredentials, Transaction } from "@/types";
+import type {
+  Account,
+  BudgetLimitsListResponse,
+  FireflyCredentials,
+  Transaction,
+} from "@/types";
 
 export interface AppState {
   credentials: FireflyCredentials | null;
@@ -8,8 +13,10 @@ export interface AppState {
 
   cachedAccounts: Account[] | null;
   cachedTransactions: Transaction[] | null;
+  cachedBudgetLimits: BudgetLimitsListResponse | null;
   lastAccountsSync: number | null;
   lastTransactionsSync: number | null;
+  lastBudgetLimitsSync: number | null;
 
   pendingTransactions: Transaction[];
 
@@ -22,6 +29,8 @@ export interface AppState {
   getCachedAccounts: () => Promise<Account[] | null>;
   setCachedTransactions: (transactions: Transaction[]) => Promise<void>;
   getCachedTransactions: () => Promise<Transaction[] | null>;
+  setCachedBudgetLimits: (data: BudgetLimitsListResponse) => Promise<void>;
+  getCachedBudgetLimits: () => Promise<BudgetLimitsListResponse | null>;
   clearCache: () => Promise<void>;
 
   addPendingTransaction: (transaction: Transaction) => void;

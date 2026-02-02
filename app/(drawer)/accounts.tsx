@@ -1,12 +1,12 @@
 // Accounts Screen
 import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
-import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
-import { Account, FireflyApiResponse } from "@/types";
+import { Account } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
@@ -73,10 +73,10 @@ export default function AccountsScreen() {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
-  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
-    ["all-accounts"],
-    () => apiClient.getAllAccounts("all")
-  );
+  } = useQuery({
+    queryKey: ["all-accounts"],
+    queryFn: () => apiClient.getAllAccounts("all"),
+  });
 
   const allAccounts = useMemo(
     () => accountsData?.data ?? [],
