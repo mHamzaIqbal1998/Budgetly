@@ -42,6 +42,9 @@ export default function DashboardScreen() {
   const [fabOpen, setFabOpen] = React.useState(false);
   const [customizeModalVisible, setCustomizeModalVisible] =
     React.useState(false);
+  const [expenseChartDays, setExpenseChartDays] = React.useState<7 | 15 | 30>(
+    30
+  );
   const {
     balanceVisible,
     toggleBalanceVisibility,
@@ -65,8 +68,11 @@ export default function DashboardScreen() {
     });
   }, [navigation, theme.colors.onSurface]);
 
-  // Last 30 days for expense charts
-  const { startDateString, endDate } = getStartEndDate(30);
+  // Expense chart range: 7, 15, or 30 days (user-selectable)
+  const expenseChartDateRange = React.useMemo(
+    () => getStartEndDate(expenseChartDays),
+    [expenseChartDays]
+  );
   // Current month (1st to today) for budgets so monthly reset aligns
   const budgetDateRange = getCurrentMonthStartEndDate();
 
@@ -121,9 +127,16 @@ export default function DashboardScreen() {
     isLoading: isLoadingExpenses,
     refetch: refetchExpenses,
   } = useQuery({
-    queryKey: ["expensesByExpenseAccount", startDateString, endDate],
+    queryKey: [
+      "expensesByExpenseAccount",
+      expenseChartDateRange.startDateString,
+      expenseChartDateRange.endDate,
+    ],
     queryFn: () =>
-      apiClient.getExpensesByExpenseAccount(startDateString, endDate),
+      apiClient.getExpensesByExpenseAccount(
+        expenseChartDateRange.startDateString,
+        expenseChartDateRange.endDate
+      ),
   });
 
   // Calculate total balance by currency (asset accounts only)
@@ -227,6 +240,8 @@ export default function DashboardScreen() {
                   key={sectionId}
                   expenses={expensesData ?? []}
                   expenseAccounts={expenseAccounts}
+                  selectedDays={expenseChartDays}
+                  onDaysChange={setExpenseChartDays}
                 />
               );
             case "summaryCards":
