@@ -16,7 +16,11 @@ import {
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
-import { getCurrentMonthStartEndDate, getStartEndDate } from "@/lib/utils";
+import {
+  filterAccountsByType,
+  getCurrentMonthStartEndDate,
+  getStartEndDate,
+} from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -66,24 +70,27 @@ export default function DashboardScreen() {
   // Current month (1st to today) for budgets so monthly reset aligns
   const budgetDateRange = getCurrentMonthStartEndDate();
 
-  // Fetch all asset accounts
+  // Single fetch for all accounts; filter by type for dashboard sections
   const {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
   } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
-    ["all-asset-accounts"],
-    () => apiClient.getAllAccounts("asset")
+    ["all-accounts"],
+    () => apiClient.getAllAccounts("all")
   );
 
-  // Fetch all expense accounts
-  const {
-    data: expenseAccountsData,
-    isLoading: expenseAccountsLoading,
-    refetch: refetchExpenseAccounts,
-  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
-    ["all-expense-accounts"],
-    () => apiClient.getAllAccounts("expense")
+  const allAccounts = React.useMemo(
+    () => accountsData?.data ?? [],
+    [accountsData?.data]
+  );
+  const assetAccounts = React.useMemo(
+    () => filterAccountsByType(allAccounts, "asset"),
+    [allAccounts]
+  );
+  const expenseAccounts = React.useMemo(
+    () => filterAccountsByType(allAccounts, "expense"),
+    [allAccounts]
   );
 
   const {
@@ -119,27 +126,24 @@ export default function DashboardScreen() {
       apiClient.getExpensesByExpenseAccount(startDateString, endDate),
   });
 
-  // Calculate total balance by currency
-  const balancesByCurrency =
-    accountsData?.data.reduce(
-      (acc, account) => {
-        const currencySymbol = account.attributes.currency_symbol;
-        const currencyCode = account.attributes.currency_code;
-        const balance = parseFloat(account.attributes.current_balance);
-
-        if (!acc[currencyCode]) {
-          acc[currencyCode] = {
-            symbol: currencySymbol,
-            code: currencyCode,
-            total: 0,
-          };
-        }
-
-        acc[currencyCode].total += balance;
-        return acc;
-      },
-      {} as Record<string, { symbol: string; code: string; total: number }>
-    ) || {};
+  // Calculate total balance by currency (asset accounts only)
+  const balancesByCurrency = React.useMemo(() => {
+    const acc: Record<string, { symbol: string; code: string; total: number }> =
+      {};
+    for (let i = 0; i < assetAccounts.length; i++) {
+      const account = assetAccounts[i];
+      const currencyCode = account.attributes.currency_code;
+      if (!acc[currencyCode]) {
+        acc[currencyCode] = {
+          symbol: account.attributes.currency_symbol,
+          code: currencyCode,
+          total: 0,
+        };
+      }
+      acc[currencyCode].total += parseFloat(account.attributes.current_balance);
+    }
+    return acc;
+  }, [assetAccounts]);
 
   // Convert to array for easier rendering
   const currencyBalances = Object.values(balancesByCurrency);
@@ -152,7 +156,6 @@ export default function DashboardScreen() {
 
   const handleRefresh = () => {
     refetchAccounts();
-    refetchExpenseAccounts();
     refetchBudgets();
     refetchSubscriptionsBills();
     refetchExpenses();
@@ -168,7 +171,6 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={
               accountsLoading ||
-              expenseAccountsLoading ||
               budgetsLoading ||
               isLoadingBills ||
               isLoadingExpenses
@@ -215,7 +217,7 @@ export default function DashboardScreen() {
               return (
                 <TopAccountsPieCard
                   key={sectionId}
-                  accounts={accountsData?.data ?? []}
+                  accounts={assetAccounts}
                   type="Asset"
                 />
               );
@@ -224,7 +226,7 @@ export default function DashboardScreen() {
                 <ExpensesByAccountPieCard
                   key={sectionId}
                   expenses={expensesData ?? []}
-                  expenseAccounts={expenseAccountsData?.data ?? []}
+                  expenseAccounts={expenseAccounts}
                 />
               );
             case "summaryCards":
@@ -290,7 +292,7 @@ export default function DashboardScreen() {
               return (
                 <AccountsOverviewCard
                   key={sectionId}
-                  accounts={accountsData?.data ?? []}
+                  accounts={assetAccounts}
                   isLoading={accountsLoading}
                   balanceVisible={balanceVisible}
                 />
@@ -308,7 +310,7 @@ export default function DashboardScreen() {
               return (
                 <QuickInsightsCard
                   key={sectionId}
-                  accountsCount={accountsData?.data.length ?? 0}
+                  accountsCount={assetAccounts.length}
                   activeBudgetsCount={activeBudgets}
                   activeSubscriptionsCount={
                     subscriptionsBillsData?.data.filter(

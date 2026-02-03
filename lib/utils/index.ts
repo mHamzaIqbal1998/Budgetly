@@ -30,3 +30,9 @@ export {
   getBudgetInfoFromMap,
   type BudgetInfo,
 } from "./budget-limits";
+
+export {
+  filterAccountsByType,
+  matchesAccountType,
+  type AccountTypeFilter,
+} from "./accounts";

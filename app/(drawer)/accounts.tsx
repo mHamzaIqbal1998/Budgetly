@@ -1,12 +1,13 @@
 // Accounts Screen
 import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
+import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
-import { Account } from "@/types";
+import { filterAccountsByType } from "@/lib/utils";
+import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
@@ -17,7 +18,7 @@ import {
 } from "react-native";
 import { Card, Chip, Searchbar, Text, useTheme } from "react-native-paper";
 
-export type AccountTypeFilter = "asset" | "expense" | "revenue" | "liabilities";
+import type { AccountTypeFilter } from "@/lib/utils";
 
 const ACCOUNT_TYPE_TABS: { key: AccountTypeFilter; label: string }[] = [
   { key: "asset", label: "Assets" },
@@ -25,25 +26,6 @@ const ACCOUNT_TYPE_TABS: { key: AccountTypeFilter; label: string }[] = [
   { key: "revenue", label: "Revenue" },
   { key: "liabilities", label: "Liabilities" },
 ];
-
-function matchesAccountType(
-  accountType: string,
-  selected: AccountTypeFilter
-): boolean {
-  const t = accountType.toLowerCase();
-  switch (selected) {
-    case "asset":
-      return t === "asset" || t === "cash";
-    case "expense":
-      return t.includes("expense");
-    case "revenue":
-      return t.includes("revenue");
-    case "liabilities":
-      return t.includes("liability");
-    default:
-      return false;
-  }
-}
 
 function getAccountIcon(type: string): string {
   switch (type.toLowerCase()) {
@@ -73,10 +55,10 @@ export default function AccountsScreen() {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
-  } = useQuery({
-    queryKey: ["all-accounts"],
-    queryFn: () => apiClient.getAllAccounts("all"),
-  });
+  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
+    ["all-accounts"],
+    () => apiClient.getAllAccounts("all")
+  );
 
   const allAccounts = useMemo(
     () => accountsData?.data ?? [],
@@ -88,32 +70,30 @@ export default function AccountsScreen() {
       string,
       { symbol: string; code: string; total: number }
     > = {};
-    allAccounts
-      .filter((acc) => matchesAccountType(acc.attributes.type, "asset"))
-      .forEach((acc) => {
-        const code = acc.attributes.currency_code;
-        const symbol = acc.attributes.currency_symbol ?? code;
-        const balance = parseFloat(acc.attributes.current_balance);
-        if (!byCode[code]) byCode[code] = { symbol, code, total: 0 };
-        byCode[code].total += balance;
-      });
-    allAccounts
-      .filter((acc) => matchesAccountType(acc.attributes.type, "liabilities"))
-      .forEach((acc) => {
-        const code = acc.attributes.currency_code;
-        const symbol = acc.attributes.currency_symbol ?? code;
-        const balance = parseFloat(acc.attributes.current_balance);
-        if (!byCode[code]) byCode[code] = { symbol, code, total: 0 };
-        byCode[code].total -= balance;
-      });
+    // Net worth = Assets - Liabilities (per currency)
+    const asset = filterAccountsByType(allAccounts, "asset");
+    for (let i = 0; i < asset.length; i++) {
+      const acc = asset[i];
+      const code = acc.attributes.currency_code;
+      const symbol = acc.attributes.currency_symbol ?? code;
+      const balance = parseFloat(acc.attributes.current_balance);
+      if (!byCode[code]) byCode[code] = { symbol, code, total: 0 };
+      byCode[code].total += balance;
+    }
+    const liabilities = filterAccountsByType(allAccounts, "liabilities");
+    for (let i = 0; i < liabilities.length; i++) {
+      const acc = liabilities[i];
+      const code = acc.attributes.currency_code;
+      const symbol = acc.attributes.currency_symbol ?? code;
+      const balance = parseFloat(acc.attributes.debt_amount ?? "0");
+      if (!byCode[code]) byCode[code] = { symbol, code, total: 0 };
+      byCode[code].total -= balance;
+    }
     return Object.values(byCode).filter((c) => c.total !== 0);
   }, [allAccounts]);
 
   const filteredByType = useMemo(
-    () =>
-      allAccounts.filter((acc) =>
-        matchesAccountType(acc.attributes.type, selectedAccountType)
-      ),
+    () => filterAccountsByType(allAccounts, selectedAccountType),
     [allAccounts, selectedAccountType]
   );
 
