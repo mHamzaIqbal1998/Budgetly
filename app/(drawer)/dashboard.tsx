@@ -12,6 +12,7 @@ import { SpotifyColors } from "@/constants/spotify-theme";
 import {
   useCachedAccountsQuery,
   useCachedBudgetLimitsQuery,
+  useCachedExpensesByAccountQuery,
   useOnlineStatus,
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
@@ -126,18 +127,20 @@ export default function DashboardScreen() {
     data: expensesData,
     isLoading: isLoadingExpenses,
     refetch: refetchExpenses,
-  } = useQuery({
-    queryKey: [
+  } = useCachedExpensesByAccountQuery(
+    [
       "expensesByExpenseAccount",
       expenseChartDateRange.startDateString,
       expenseChartDateRange.endDate,
     ],
-    queryFn: () =>
+    expenseChartDateRange.startDateString,
+    expenseChartDateRange.endDate,
+    () =>
       apiClient.getExpensesByExpenseAccount(
         expenseChartDateRange.startDateString,
         expenseChartDateRange.endDate
-      ),
-  });
+      )
+  );
 
   // Calculate total balance by currency (asset accounts only)
   const balancesByCurrency = React.useMemo(() => {

@@ -25,6 +25,7 @@ export const useStore = create<AppState>()(
         cachedAccounts: state.cachedAccounts,
         cachedTransactions: state.cachedTransactions,
         cachedBudgetLimits: state.cachedBudgetLimits,
+        cachedExpensesByRange: state.cachedExpensesByRange,
         lastAccountsSync: state.lastAccountsSync,
         lastTransactionsSync: state.lastTransactionsSync,
         lastBudgetLimitsSync: state.lastBudgetLimitsSync,

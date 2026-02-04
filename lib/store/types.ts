@@ -1,6 +1,7 @@
 import type {
   Account,
   BudgetLimitsListResponse,
+  ExpensesByExpenseAccount,
   FireflyCredentials,
   Transaction,
 } from "@/types";
@@ -14,6 +15,8 @@ export interface AppState {
   cachedAccounts: Account[] | null;
   cachedTransactions: Transaction[] | null;
   cachedBudgetLimits: BudgetLimitsListResponse | null;
+  /** Key: `${start}_${end}` */
+  cachedExpensesByRange: Record<string, ExpensesByExpenseAccount[]> | null;
   lastAccountsSync: number | null;
   lastTransactionsSync: number | null;
   lastBudgetLimitsSync: number | null;
@@ -31,6 +34,15 @@ export interface AppState {
   getCachedTransactions: () => Promise<Transaction[] | null>;
   setCachedBudgetLimits: (data: BudgetLimitsListResponse) => Promise<void>;
   getCachedBudgetLimits: () => Promise<BudgetLimitsListResponse | null>;
+  setCachedExpensesByRange: (
+    start: string,
+    end: string,
+    data: ExpensesByExpenseAccount[]
+  ) => Promise<void>;
+  getCachedExpensesByRange: (
+    start: string,
+    end: string
+  ) => Promise<ExpensesByExpenseAccount[] | null>;
   clearCache: () => Promise<void>;
 
   addPendingTransaction: (transaction: Transaction) => void;

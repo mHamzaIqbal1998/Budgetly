@@ -1,6 +1,11 @@
 // Custom hook to combine React Query with offline cache
 import { useStore } from "@/lib/store";
-import { Account, BudgetLimitsListResponse, Transaction } from "@/types";
+import {
+  Account,
+  BudgetLimitsListResponse,
+  ExpensesByExpenseAccount,
+  Transaction,
+} from "@/types";
 import NetInfo from "@react-native-community/netinfo";
 import {
   UseQueryOptions,
@@ -115,6 +120,48 @@ export function useCachedBudgetLimitsQuery(
     ...query,
     data: dataToReturn,
   } as UseQueryResult<BudgetLimitsListResponse, Error>;
+}
+
+/**
+ * Enhanced useQuery hook for expenses by expense account with offline cache support.
+ * Caches per date range (start/end) so 7, 15, 30 day filters each have their own cache.
+ */
+export function useCachedExpensesByAccountQuery(
+  queryKey: string[],
+  start: string,
+  end: string,
+  queryFn: () => Promise<ExpensesByExpenseAccount[]>,
+  options?: Omit<
+    UseQueryOptions<ExpensesByExpenseAccount[]>,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<ExpensesByExpenseAccount[], Error> {
+  const rangeKey = `${start}_${end}`;
+  const { setCachedExpensesByRange, cachedExpensesByRange } = useStore();
+  const cachedForRange = cachedExpensesByRange?.[rangeKey] ?? null;
+
+  const query = useQuery<ExpensesByExpenseAccount[], Error>({
+    queryKey,
+    queryFn,
+    placeholderData: cachedForRange ?? undefined,
+    ...options,
+  });
+
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      setCachedExpensesByRange(start, end, query.data);
+    }
+  }, [query.isSuccess, query.data, start, end, setCachedExpensesByRange]);
+
+  const useCachedFallback =
+    (query.isPending || query.isError) && cachedForRange !== null;
+  const dataToReturn = useCachedFallback ? cachedForRange : query.data;
+
+  return {
+    ...query,
+    data: dataToReturn,
+    isLoading: useCachedFallback ? false : query.isLoading,
+  } as UseQueryResult<ExpensesByExpenseAccount[], Error>;
 }
 
 /**
