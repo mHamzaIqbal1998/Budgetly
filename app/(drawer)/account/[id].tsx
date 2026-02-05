@@ -174,8 +174,10 @@ const TransactionItem = memo(
                 style={[styles.txAmount, { color: amountColor }]}
               >
                 {isIncoming ? "+" : "-"}
-                {item.currency_symbol}
-                {formatAmount(amount, item.currency_decimal_places ?? 2)}
+                {item.currency_symbol}{" "}
+                {balanceVisible
+                  ? formatAmount(amount, item.currency_decimal_places ?? 2)
+                  : "••••••"}
               </Text>
               <Text variant="labelSmall" style={styles.txDate}>
                 {formatDate(item.date)}
@@ -187,12 +189,13 @@ const TransactionItem = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Custom comparison for better memoization
+    // Custom comparison for better memoization (include balanceVisible so toggle updates immediately)
     return (
       prevProps.item._flatKey === nextProps.item._flatKey &&
       prevProps.primaryColor === nextProps.primaryColor &&
       prevProps.errorColor === nextProps.errorColor &&
-      prevProps.surfaceVariantColor === nextProps.surfaceVariantColor
+      prevProps.surfaceVariantColor === nextProps.surfaceVariantColor &&
+      prevProps.balanceVisible === nextProps.balanceVisible
     );
   }
 );
@@ -263,11 +266,15 @@ const ListHeader = memo(function ListHeader({
   );
 });
 
+// Selector for balanceVisible to prevent re-renders from other store changes
+const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
+  state.balanceVisible;
+
 export default function AccountTransactionsScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
   const router = useRouter();
-  const { balanceVisible } = useStore();
+  const balanceVisible = useStore(selectBalanceVisible);
   const { id: accountId, name: accountName } = useLocalSearchParams<{
     id: string;
     name?: string;
@@ -661,6 +668,7 @@ export default function AccountTransactionsScreen() {
     >
       <FlatList
         data={filteredFlatData}
+        extraData={balanceVisible}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         getItemLayout={getItemLayout}

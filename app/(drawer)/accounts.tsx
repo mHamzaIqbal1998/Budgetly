@@ -9,7 +9,7 @@ import { filterAccountsByType } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, type Href } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -46,10 +46,143 @@ function getAccountIcon(type: string): string {
   }
 }
 
+function getAccountTypeColor(type: string, primaryColor: string): string {
+  switch (type.toLowerCase()) {
+    case "asset":
+    case "cash":
+      return primaryColor;
+    case "revenue":
+      return "#64B5F6";
+    case "expense":
+      return "#FF5252";
+    case "liability":
+    case "liabilities":
+      return "#FFB74D";
+    default:
+      return primaryColor;
+  }
+}
+
+// Memoized Account Item Component
+interface AccountItemProps {
+  account: Account;
+  balanceVisible: boolean;
+  primaryColor: string;
+  onSurfaceVariantColor: string;
+  onPress: () => void;
+}
+
+const AccountItem = memo(
+  function AccountItem({
+    account,
+    balanceVisible,
+    primaryColor,
+    onSurfaceVariantColor,
+    onPress,
+  }: AccountItemProps) {
+    const balance = parseFloat(account.attributes.current_balance);
+    const isPositive = balance >= 0;
+    const typeColor = getAccountTypeColor(
+      account.attributes.type,
+      primaryColor
+    );
+
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.accountCard,
+          pressed && styles.accountCardPressed,
+        ]}
+      >
+        <GlassCard variant="default" style={styles.accountCardInner}>
+          <Card.Content>
+            <View style={styles.accountHeader}>
+              <View style={styles.accountLeft}>
+                <MaterialCommunityIcons
+                  name={
+                    getAccountIcon(
+                      account.attributes.type
+                    ) as keyof typeof MaterialCommunityIcons.glyphMap
+                  }
+                  size={40}
+                  color={typeColor}
+                />
+                <View style={styles.accountInfo}>
+                  <Text variant="titleMedium" style={styles.accountName}>
+                    {account.attributes.name}
+                  </Text>
+                  <View style={styles.accountMeta}>
+                    <View style={styles.chipWrapper}>
+                      <Chip
+                        compact
+                        style={styles.chip}
+                        textStyle={styles.chipText}
+                      >
+                        {account.attributes.type}
+                      </Chip>
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.accountRight}>
+                <Text
+                  variant="titleMedium"
+                  style={[
+                    styles.accountBalance,
+                    { color: isPositive ? primaryColor : "#FF5252" },
+                  ]}
+                >
+                  {account.attributes.currency_code}{" "}
+                  {balanceVisible ? formatAmount(balance) : "••••••"}
+                </Text>
+                <View style={styles.accountStatus}>
+                  <MaterialCommunityIcons
+                    name={
+                      account.attributes.active
+                        ? "check-circle"
+                        : "pause-circle"
+                    }
+                    size={16}
+                    color={
+                      account.attributes.active
+                        ? primaryColor
+                        : onSurfaceVariantColor
+                    }
+                  />
+                  <Text variant="bodySmall" style={styles.statusText}>
+                    {account.attributes.active ? "Active" : "Inactive"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </GlassCard>
+      </Pressable>
+    );
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.account.id === nextProps.account.id &&
+      prevProps.balanceVisible === nextProps.balanceVisible &&
+      prevProps.primaryColor === nextProps.primaryColor &&
+      prevProps.onSurfaceVariantColor === nextProps.onSurfaceVariantColor
+    );
+  }
+);
+
+// Selectors for store to prevent unnecessary re-renders
+const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
+  state.balanceVisible;
+const selectToggleBalanceVisibility = (state: {
+  toggleBalanceVisibility: () => void;
+}) => state.toggleBalanceVisibility;
+
 export default function AccountsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { balanceVisible, toggleBalanceVisibility } = useStore();
+  const balanceVisible = useStore(selectBalanceVisible);
+  const toggleBalanceVisibility = useStore(selectToggleBalanceVisibility);
   const [selectedAccountType, setSelectedAccountType] =
     useState<AccountTypeFilter>("asset");
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,25 +244,9 @@ export default function AccountsScreen() {
     );
   }, [filteredByType, searchQuery]);
 
-  const getAccountTypeColor = useCallback(
-    (type: string) => {
-      switch (type.toLowerCase()) {
-        case "asset":
-        case "cash":
-          return theme.colors.primary;
-        case "revenue":
-          return "#64B5F6";
-        case "expense":
-          return "#FF5252";
-        case "liability":
-        case "liabilities":
-          return "#FFB74D";
-        default:
-          return theme.colors.onSurface;
-      }
-    },
-    [theme]
-  );
+  // Extract colors for stable references
+  const primaryColor = theme.colors.primary;
+  const onSurfaceVariantColor = theme.colors.onSurfaceVariant;
 
   const listHeader = useMemo(
     () => (
@@ -223,93 +340,26 @@ export default function AccountsScreen() {
     theme.colors.onSurfaceVariant,
   ]);
 
+  // Memoized render function using the AccountItem component
   const renderAccountItem = useCallback(
-    ({ item: account }: { item: Account }) => {
-      const balance = parseFloat(account.attributes.current_balance);
-      const isPositive = balance >= 0;
-      return (
-        <Pressable
-          onPress={() =>
-            router.push(
-              `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
-            )
-          }
-          style={({ pressed }) => [
-            styles.accountCard,
-            pressed && styles.accountCardPressed,
-          ]}
-        >
-          <GlassCard variant="default" style={styles.accountCardInner}>
-            <Card.Content>
-              <View style={styles.accountHeader}>
-                <View style={styles.accountLeft}>
-                  <MaterialCommunityIcons
-                    name={
-                      getAccountIcon(
-                        account.attributes.type
-                      ) as keyof typeof MaterialCommunityIcons.glyphMap
-                    }
-                    size={40}
-                    color={getAccountTypeColor(account.attributes.type)}
-                  />
-                  <View style={styles.accountInfo}>
-                    <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                      {account.attributes.name}
-                    </Text>
-                    <View style={styles.accountMeta}>
-                      <View style={styles.chipWrapper}>
-                        <Chip
-                          compact
-                          style={styles.chip}
-                          textStyle={styles.chipText}
-                        >
-                          {account.attributes.type}
-                        </Chip>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.accountRight}>
-                  <Text
-                    variant="titleMedium"
-                    style={{
-                      color: isPositive ? theme.colors.primary : "#FF5252",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {account.attributes.currency_code}{" "}
-                    {balanceVisible ? formatAmount(balance) : "••••••"}
-                  </Text>
-                  <View style={styles.accountStatus}>
-                    <MaterialCommunityIcons
-                      name={
-                        account.attributes.active
-                          ? "check-circle"
-                          : "pause-circle"
-                      }
-                      size={16}
-                      color={
-                        account.attributes.active
-                          ? theme.colors.primary
-                          : theme.colors.onSurfaceVariant
-                      }
-                    />
-                    <Text
-                      variant="bodySmall"
-                      style={{ marginLeft: 4, opacity: 0.6 }}
-                    >
-                      {account.attributes.active ? "Active" : "Inactive"}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </Card.Content>
-          </GlassCard>
-        </Pressable>
-      );
-    },
-    [balanceVisible, theme, getAccountTypeColor, router]
+    ({ item: account }: { item: Account }) => (
+      <AccountItem
+        account={account}
+        balanceVisible={balanceVisible}
+        primaryColor={primaryColor}
+        onSurfaceVariantColor={onSurfaceVariantColor}
+        onPress={() =>
+          router.push(
+            `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
+          )
+        }
+      />
+    ),
+    [balanceVisible, primaryColor, onSurfaceVariantColor, router]
   );
+
+  // Stable key extractor
+  const keyExtractor = useCallback((item: Account) => item.id, []);
 
   return (
     <View
@@ -317,7 +367,8 @@ export default function AccountsScreen() {
     >
       <FlatList
         data={filteredBySearch}
-        keyExtractor={(item) => item.id}
+        extraData={balanceVisible}
+        keyExtractor={keyExtractor}
         renderItem={renderAccountItem}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
@@ -326,6 +377,7 @@ export default function AccountsScreen() {
         maxToRenderPerBatch={12}
         windowSize={6}
         initialNumToRender={10}
+        updateCellsBatchingPeriod={50}
         refreshControl={
           <RefreshControl
             refreshing={accountsLoading}
@@ -410,10 +462,20 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     marginLeft: 12,
   },
+  accountName: {
+    fontWeight: "bold",
+  },
+  accountBalance: {
+    fontWeight: "bold",
+  },
   accountStatus: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,
+  },
+  statusText: {
+    marginLeft: 4,
+    opacity: 0.6,
   },
   chip: {
     height: 28,
