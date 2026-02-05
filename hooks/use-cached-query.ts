@@ -1,6 +1,11 @@
 // Custom hook to combine React Query with offline cache
 import { useStore } from "@/lib/store";
-import { Account, Transaction } from "@/types";
+import {
+  Account,
+  BudgetLimitsListResponse,
+  ExpensesByExpenseAccount,
+  Transaction,
+} from "@/types";
 import NetInfo from "@react-native-community/netinfo";
 import {
   UseQueryOptions,
@@ -78,6 +83,85 @@ export function useCachedTransactionsQuery<TData = Transaction[]>(
     ...query,
     data: dataToReturn,
   } as UseQueryResult<TData, Error>;
+}
+
+/**
+ * Enhanced useQuery hook for budget limits with offline cache support
+ * Falls back to cached data when offline/error, and updates cache on successful fetch
+ */
+export function useCachedBudgetLimitsQuery(
+  queryKey: string[],
+  queryFn: () => Promise<BudgetLimitsListResponse>,
+  options?: Omit<
+    UseQueryOptions<BudgetLimitsListResponse>,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<BudgetLimitsListResponse, Error> {
+  const { setCachedBudgetLimits, cachedBudgetLimits } = useStore();
+
+  const query = useQuery<BudgetLimitsListResponse, Error>({
+    queryKey,
+    queryFn,
+    ...options,
+  });
+
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      setCachedBudgetLimits(query.data);
+    }
+  }, [query.isSuccess, query.data, setCachedBudgetLimits]);
+
+  const dataToReturn =
+    query.isError && cachedBudgetLimits !== null
+      ? cachedBudgetLimits
+      : query.data;
+
+  return {
+    ...query,
+    data: dataToReturn,
+  } as UseQueryResult<BudgetLimitsListResponse, Error>;
+}
+
+/**
+ * Enhanced useQuery hook for expenses by expense account with offline cache support.
+ * Caches per date range (start/end) so 7, 15, 30 day filters each have their own cache.
+ */
+export function useCachedExpensesByAccountQuery(
+  queryKey: string[],
+  start: string,
+  end: string,
+  queryFn: () => Promise<ExpensesByExpenseAccount[]>,
+  options?: Omit<
+    UseQueryOptions<ExpensesByExpenseAccount[]>,
+    "queryKey" | "queryFn"
+  >
+): UseQueryResult<ExpensesByExpenseAccount[], Error> {
+  const rangeKey = `${start}_${end}`;
+  const { setCachedExpensesByRange, cachedExpensesByRange } = useStore();
+  const cachedForRange = cachedExpensesByRange?.[rangeKey] ?? null;
+
+  const query = useQuery<ExpensesByExpenseAccount[], Error>({
+    queryKey,
+    queryFn,
+    placeholderData: cachedForRange ?? undefined,
+    ...options,
+  });
+
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      setCachedExpensesByRange(start, end, query.data);
+    }
+  }, [query.isSuccess, query.data, start, end, setCachedExpensesByRange]);
+
+  const useCachedFallback =
+    (query.isPending || query.isError) && cachedForRange !== null;
+  const dataToReturn = useCachedFallback ? cachedForRange : query.data;
+
+  return {
+    ...query,
+    data: dataToReturn,
+    isLoading: useCachedFallback ? false : query.isLoading,
+  } as UseQueryResult<ExpensesByExpenseAccount[], Error>;
 }
 
 /**

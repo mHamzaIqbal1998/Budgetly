@@ -1,27 +1,47 @@
 import { BudgetProgressRow } from "@/components/budget-progress-row";
 import { GlassCard } from "@/components/glass-card";
-import { Budget } from "@/types";
+import { useStore } from "@/lib/store";
+import {
+  createBudgetByIdMap,
+  getBudgetInfoFromMap,
+} from "@/lib/utils/budget-limits";
+import type { Budget, BudgetLimit } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
 
 export interface BudgetStatusCardProps {
-  budgets: Budget[] | undefined;
   isLoading: boolean;
+  /** Optional: pass from parent (e.g. from useCachedBudgetLimitsQuery). Falls back to cachedBudgetLimits from store when not passed. */
+  budgets?: BudgetLimit[] | null;
+  /** Optional: included budgets for name/active lookup. Falls back to cachedBudgetLimits?.included when not passed. */
+  included?: Budget[] | null;
 }
 
 const MAX_VISIBLE = 5;
 
 export function BudgetStatusCard({
-  budgets,
   isLoading,
+  budgets: budgetsProp,
+  included: includedProp,
 }: BudgetStatusCardProps) {
   const theme = useTheme();
   const router = useRouter();
-  const visibleBudgets = (budgets ?? []).slice(0, MAX_VISIBLE);
-  const hasMore = (budgets?.length ?? 0) > MAX_VISIBLE;
+  const { cachedBudgetLimits } = useStore();
+
+  const budgets = budgetsProp ?? cachedBudgetLimits?.data ?? [];
+  const included = useMemo(
+    () => includedProp ?? cachedBudgetLimits?.included ?? [],
+    [includedProp, cachedBudgetLimits?.included]
+  );
+  const budgetByIdMap = useMemo(
+    () => createBudgetByIdMap(included),
+    [included]
+  );
+  const visibleBudgets = budgets.slice(0, MAX_VISIBLE);
+  const hasMore = budgets.length > MAX_VISIBLE;
 
   return (
     <GlassCard variant="elevated" style={styles.card}>
@@ -39,7 +59,7 @@ export function BudgetStatusCard({
       <Card.Content>
         {isLoading ? (
           <Text>Loading budgets...</Text>
-        ) : !budgets?.length ? (
+        ) : budgets.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
               name="wallet-plus"
@@ -57,12 +77,18 @@ export function BudgetStatusCard({
           <>
             {visibleBudgets.map((budget, index, array) => {
               const isLastItem = index === array.length - 1;
-              const hideBorder =
-                (budgets?.length ?? 0) <= MAX_VISIBLE && isLastItem;
+              const hideBorder = budgets.length <= MAX_VISIBLE && isLastItem;
+              const { name, active, period } = getBudgetInfoFromMap(
+                budget,
+                budgetByIdMap
+              );
               return (
                 <BudgetProgressRow
                   key={budget.id}
                   budget={budget}
+                  budgetName={name}
+                  budgetActive={active}
+                  periodLabel={period}
                   hideBorder={hideBorder}
                 />
               );

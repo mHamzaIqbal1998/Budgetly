@@ -4,8 +4,8 @@ import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { Account, ExpensesByExpenseAccount } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
 import { Pie, PolarChart } from "victory-native";
 
@@ -19,13 +19,33 @@ const CHART_SLICE_COLORS = [
 
 const MAX_VISIBLE_ITEMS = 4;
 
+export const EXPENSE_CHART_DAY_OPTIONS = [7, 15, 30] as const;
+export type ExpenseChartDays = (typeof EXPENSE_CHART_DAY_OPTIONS)[number];
+
 /** Minimum slice angle in degrees so tiny percentages stay visible */
 const MIN_SLICE_ANGLE_DEGREES = 4;
 const MIN_SLICE_FRACTION = MIN_SLICE_ANGLE_DEGREES / 360;
 
+/** Orange card-matching colors for period segmented control (light bg, border, dark orange selected) */
+const PERIOD_SEGMENTED_COLORS = {
+  wrap: {
+    backgroundColor: "rgba(255, 107, 60, 0.12)",
+    borderColor: "rgba(255, 107, 60, 0.28)",
+    borderWidth: 1,
+  },
+  segmentSelected: {
+    backgroundColor: "rgba(255, 107, 60, 0.5)",
+  },
+  labelDefault: { color: "rgba(255, 255, 255, 0.75)" },
+  labelSelected: { color: "#FFFFFF" },
+} as const;
+
 export interface ExpensesByAccountPieCardProps {
   expenses: ExpensesByExpenseAccount[];
   expenseAccounts?: Account[];
+  /** Selected period in days; when with onDaysChange, shows period selector on card */
+  selectedDays?: ExpenseChartDays;
+  onDaysChange?: (days: ExpenseChartDays) => void;
 }
 
 interface ChartDatum {
@@ -119,9 +139,18 @@ function withMinimumSliceVisibility(
 export function ExpensesByAccountPieCard({
   expenses,
   expenseAccounts,
+  selectedDays = 30,
+  onDaysChange,
 }: ExpensesByAccountPieCardProps) {
   const theme = useTheme();
   const { balanceVisible } = useStore();
+  const showPeriodSelector = typeof onDaysChange === "function";
+  const handleDaysPress = useCallback(
+    (days: ExpenseChartDays) => {
+      onDaysChange?.(days);
+    },
+    [onDaysChange]
+  );
   const chartData = useMemo(
     () => processExpenses(expenses, expenseAccounts),
     [expenses, expenseAccounts]
@@ -150,22 +179,62 @@ export function ExpensesByAccountPieCard({
     return Object.values(byCode);
   }, [expenses]);
 
+  const periodSelector = showPeriodSelector ? (
+    <View style={[styles.periodSegmentedWrap, PERIOD_SEGMENTED_COLORS.wrap]}>
+      {EXPENSE_CHART_DAY_OPTIONS.map((days, index) => {
+        const isSelected = selectedDays === days;
+        return (
+          <TouchableOpacity
+            key={days}
+            activeOpacity={0.7}
+            onPress={() => handleDaysPress(days)}
+            style={[
+              styles.periodSegmentedItem,
+              index === 0 && styles.periodSegmentedItemFirst,
+              index === EXPENSE_CHART_DAY_OPTIONS.length - 1 &&
+                styles.periodSegmentedItemLast,
+              isSelected && PERIOD_SEGMENTED_COLORS.segmentSelected,
+            ]}
+          >
+            <Text
+              variant="labelSmall"
+              style={[
+                styles.periodSegmentedLabel,
+                isSelected
+                  ? PERIOD_SEGMENTED_COLORS.labelSelected
+                  : PERIOD_SEGMENTED_COLORS.labelDefault,
+              ]}
+            >
+              {days}d
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  ) : null;
+
+  const headerContent = (
+    <View style={styles.header}>
+      <View style={styles.titleRow}>
+        <MaterialCommunityIcons
+          name="chart-pie"
+          size={24}
+          color={theme.colors.primary}
+        />
+        <Text variant="labelLarge" style={styles.title}>
+          Expenses by account
+          {!showPeriodSelector ? ` (${selectedDays} days)` : ""}
+        </Text>
+      </View>
+      {periodSelector}
+    </View>
+  );
+
   if (!expenses?.length) {
     return (
       <GlassCard variant="orange" style={styles.card} mode="outlined">
         <Card.Content>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <MaterialCommunityIcons
-                name="chart-pie"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text variant="labelLarge" style={styles.title}>
-                Expenses by account (30 days)
-              </Text>
-            </View>
-          </View>
+          {headerContent}
           <View style={styles.emptyContainer}>
             <Text variant="bodyMedium" style={styles.emptyText}>
               No expenses
@@ -180,18 +249,7 @@ export function ExpensesByAccountPieCard({
     return (
       <GlassCard variant="orange" style={styles.card} mode="outlined">
         <Card.Content>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <MaterialCommunityIcons
-                name="chart-pie"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text variant="labelLarge" style={styles.title}>
-                Expenses by account (30 days)
-              </Text>
-            </View>
-          </View>
+          {headerContent}
           <View style={styles.emptyContainer}>
             <Text variant="bodyMedium" style={styles.emptyText}>
               No expense data
@@ -205,18 +263,7 @@ export function ExpensesByAccountPieCard({
   return (
     <GlassCard variant="orange" style={styles.card} mode="outlined">
       <Card.Content>
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <MaterialCommunityIcons
-              name="chart-pie"
-              size={24}
-              color={theme.colors.primary}
-            />
-            <Text variant="labelLarge" style={styles.title}>
-              Expenses by account (30 days)
-            </Text>
-          </View>
-        </View>
+        {headerContent}
         <View style={styles.content}>
           <View style={styles.chartWrapper}>
             <PolarChart
@@ -312,6 +359,30 @@ const styles = StyleSheet.create({
   title: {
     opacity: 0.9,
     letterSpacing: 0.5,
+  },
+  periodSegmentedWrap: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  periodSegmentedItem: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    minWidth: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  periodSegmentedItemFirst: {
+    borderTopLeftRadius: 7,
+    borderBottomLeftRadius: 7,
+  },
+  periodSegmentedItemLast: {
+    borderTopRightRadius: 7,
+    borderBottomRightRadius: 7,
+  },
+  periodSegmentedLabel: {
+    fontWeight: "600",
   },
   content: {
     flexDirection: "row",

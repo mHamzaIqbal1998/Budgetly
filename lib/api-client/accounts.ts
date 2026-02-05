@@ -1,4 +1,9 @@
-import type { Account, AccountOverview, FireflyApiResponse } from "@/types";
+import type {
+  Account,
+  AccountOverview,
+  AccountTransactionGroup,
+  FireflyApiResponse,
+} from "@/types";
 import type { AxiosInstance } from "axios";
 
 export async function getAccounts(
@@ -68,4 +73,72 @@ export async function getAccount(
 ): Promise<FireflyApiResponse<Account>> {
   const response = await api.get<FireflyApiResponse<Account>>(`accounts/${id}`);
   return response.data;
+}
+
+export async function getAccountTransactions(
+  api: AxiosInstance,
+  accountId: string,
+  page: number = 1,
+  start?: string,
+  end?: string,
+  type?: string
+): Promise<FireflyApiResponse<AccountTransactionGroup[]>> {
+  const response = await api.get<FireflyApiResponse<AccountTransactionGroup[]>>(
+    `accounts/${accountId}/transactions`,
+    {
+      params: { page, start, end, type },
+    }
+  );
+  return response.data;
+}
+
+export async function getAllAccountTransactions(
+  api: AxiosInstance,
+  getAccountTransactionsFn: (
+    api: AxiosInstance,
+    accountId: string,
+    page: number,
+    start?: string,
+    end?: string,
+    type?: string
+  ) => Promise<FireflyApiResponse<AccountTransactionGroup[]>>,
+  accountId: string,
+  start?: string,
+  end?: string,
+  type?: string
+): Promise<FireflyApiResponse<AccountTransactionGroup[]>> {
+  const firstPageResponse = await getAccountTransactionsFn(
+    api,
+    accountId,
+    1,
+    start,
+    end,
+    type
+  );
+  const allGroups = [...(firstPageResponse.data || [])];
+
+  const totalPages = firstPageResponse.meta?.pagination?.total_pages || 1;
+
+  if (totalPages > 1) {
+    const pagePromises: Promise<
+      FireflyApiResponse<AccountTransactionGroup[]>
+    >[] = [];
+    for (let page = 2; page <= totalPages; page++) {
+      pagePromises.push(
+        getAccountTransactionsFn(api, accountId, page, start, end, type)
+      );
+    }
+
+    const remainingPages = await Promise.all(pagePromises);
+    remainingPages.forEach((pageResponse) => {
+      if (pageResponse.data) {
+        allGroups.push(...pageResponse.data);
+      }
+    });
+  }
+
+  return {
+    ...firstPageResponse,
+    data: allGroups,
+  };
 }

@@ -11,11 +11,17 @@ import { DEFAULT_DASHBOARD_VISIBLE_ORDER } from "@/constants/dashboard-sections"
 import { SpotifyColors } from "@/constants/spotify-theme";
 import {
   useCachedAccountsQuery,
+  useCachedBudgetLimitsQuery,
+  useCachedExpensesByAccountQuery,
   useOnlineStatus,
 } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
-import { getStartEndDate } from "@/lib/utils";
+import {
+  filterAccountsByType,
+  getCurrentMonthStartEndDate,
+  getStartEndDate,
+} from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +43,9 @@ export default function DashboardScreen() {
   const [fabOpen, setFabOpen] = React.useState(false);
   const [customizeModalVisible, setCustomizeModalVisible] =
     React.useState(false);
+  const [expenseChartDays, setExpenseChartDays] = React.useState<7 | 15 | 30>(
+    30
+  );
   const {
     balanceVisible,
     toggleBalanceVisibility,
@@ -60,38 +69,49 @@ export default function DashboardScreen() {
     });
   }, [navigation, theme.colors.onSurface]);
 
-  // Fetch Last 30 days expenses by expense account (dynamic dates)
-  const { startDateString, endDate } = getStartEndDate(30);
+  // Expense chart range: 7, 15, or 30 days (user-selectable)
+  const expenseChartDateRange = React.useMemo(
+    () => getStartEndDate(expenseChartDays),
+    [expenseChartDays]
+  );
+  // Current month (1st to today) for budgets so monthly reset aligns
+  const budgetDateRange = getCurrentMonthStartEndDate();
 
-  // Fetch all asset accounts
+  // Single fetch for all accounts; filter by type for dashboard sections
   const {
     data: accountsData,
     isLoading: accountsLoading,
     refetch: refetchAccounts,
   } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
-    ["all-asset-accounts"],
-    () => apiClient.getAllAccounts("asset")
+    ["all-accounts"],
+    () => apiClient.getAllAccounts("all")
   );
 
-  // Fetch all expense accounts
-  const {
-    data: expenseAccountsData,
-    isLoading: expenseAccountsLoading,
-    refetch: refetchExpenseAccounts,
-  } = useCachedAccountsQuery<FireflyApiResponse<Account[]>>(
-    ["all-expense-accounts"],
-    () => apiClient.getAllAccounts("expense")
+  const allAccounts = React.useMemo(
+    () => accountsData?.data ?? [],
+    [accountsData?.data]
+  );
+  const assetAccounts = React.useMemo(
+    () => filterAccountsByType(allAccounts, "asset"),
+    [allAccounts]
+  );
+  const expenseAccounts = React.useMemo(
+    () => filterAccountsByType(allAccounts, "expense"),
+    [allAccounts]
   );
 
-  // Fetch budgets
   const {
     data: budgetsData,
     isLoading: budgetsLoading,
     refetch: refetchBudgets,
-  } = useQuery({
-    queryKey: ["budgets", startDateString, endDate],
-    queryFn: () => apiClient.getAllBudgets(startDateString, endDate),
-  });
+  } = useCachedBudgetLimitsQuery(
+    ["all-budgets", budgetDateRange.startDateString, budgetDateRange.endDate],
+    () =>
+      apiClient.getAllBudgetLimits(
+        budgetDateRange.startDateString,
+        budgetDateRange.endDate
+      )
+  );
 
   // Fetch subscriptions bills
   const {
@@ -107,44 +127,51 @@ export default function DashboardScreen() {
     data: expensesData,
     isLoading: isLoadingExpenses,
     refetch: refetchExpenses,
-  } = useQuery({
-    queryKey: ["expensesByExpenseAccount", startDateString, endDate],
-    queryFn: () =>
-      apiClient.getExpensesByExpenseAccount(startDateString, endDate),
-  });
+  } = useCachedExpensesByAccountQuery(
+    [
+      "expensesByExpenseAccount",
+      expenseChartDateRange.startDateString,
+      expenseChartDateRange.endDate,
+    ],
+    expenseChartDateRange.startDateString,
+    expenseChartDateRange.endDate,
+    () =>
+      apiClient.getExpensesByExpenseAccount(
+        expenseChartDateRange.startDateString,
+        expenseChartDateRange.endDate
+      )
+  );
 
-  // Calculate total balance by currency
-  const balancesByCurrency =
-    accountsData?.data.reduce(
-      (acc, account) => {
-        const currencySymbol = account.attributes.currency_symbol;
-        const currencyCode = account.attributes.currency_code;
-        const balance = parseFloat(account.attributes.current_balance);
-
-        if (!acc[currencyCode]) {
-          acc[currencyCode] = {
-            symbol: currencySymbol,
-            code: currencyCode,
-            total: 0,
-          };
-        }
-
-        acc[currencyCode].total += balance;
-        return acc;
-      },
-      {} as Record<string, { symbol: string; code: string; total: number }>
-    ) || {};
+  // Calculate total balance by currency (asset accounts only)
+  const balancesByCurrency = React.useMemo(() => {
+    const acc: Record<string, { symbol: string; code: string; total: number }> =
+      {};
+    for (let i = 0; i < assetAccounts.length; i++) {
+      const account = assetAccounts[i];
+      const currencyCode = account.attributes.currency_code;
+      if (!acc[currencyCode]) {
+        acc[currencyCode] = {
+          symbol: account.attributes.currency_symbol,
+          code: currencyCode,
+          total: 0,
+        };
+      }
+      acc[currencyCode].total += parseFloat(account.attributes.current_balance);
+    }
+    return acc;
+  }, [assetAccounts]);
 
   // Convert to array for easier rendering
   const currencyBalances = Object.values(balancesByCurrency);
 
   // Count active budgets
-  const activeBudgets =
-    budgetsData?.data.filter((b) => b.attributes.active).length || 0;
+  const activeBudgets = React.useMemo(
+    () => budgetsData?.included?.filter((b) => b.attributes.active).length || 0,
+    [budgetsData?.included]
+  );
 
   const handleRefresh = () => {
     refetchAccounts();
-    refetchExpenseAccounts();
     refetchBudgets();
     refetchSubscriptionsBills();
     refetchExpenses();
@@ -160,7 +187,6 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={
               accountsLoading ||
-              expenseAccountsLoading ||
               budgetsLoading ||
               isLoadingBills ||
               isLoadingExpenses
@@ -207,7 +233,7 @@ export default function DashboardScreen() {
               return (
                 <TopAccountsPieCard
                   key={sectionId}
-                  accounts={accountsData?.data ?? []}
+                  accounts={assetAccounts}
                   type="Asset"
                 />
               );
@@ -216,7 +242,9 @@ export default function DashboardScreen() {
                 <ExpensesByAccountPieCard
                   key={sectionId}
                   expenses={expensesData ?? []}
-                  expenseAccounts={expenseAccountsData?.data ?? []}
+                  expenseAccounts={expenseAccounts}
+                  selectedDays={expenseChartDays}
+                  onDaysChange={setExpenseChartDays}
                 />
               );
             case "summaryCards":
@@ -282,7 +310,7 @@ export default function DashboardScreen() {
               return (
                 <AccountsOverviewCard
                   key={sectionId}
-                  accounts={accountsData?.data ?? []}
+                  accounts={assetAccounts}
                   isLoading={accountsLoading}
                   balanceVisible={balanceVisible}
                 />
@@ -291,7 +319,8 @@ export default function DashboardScreen() {
               return (
                 <BudgetStatusCard
                   key={sectionId}
-                  budgets={budgetsData?.data}
+                  budgets={budgetsData?.data ?? null}
+                  included={budgetsData?.included ?? null}
                   isLoading={budgetsLoading}
                 />
               );
@@ -299,7 +328,7 @@ export default function DashboardScreen() {
               return (
                 <QuickInsightsCard
                   key={sectionId}
-                  accountsCount={accountsData?.data.length ?? 0}
+                  accountsCount={assetAccounts.length}
                   activeBudgetsCount={activeBudgets}
                   activeSubscriptionsCount={
                     subscriptionsBillsData?.data.filter(

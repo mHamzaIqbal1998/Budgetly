@@ -15,12 +15,15 @@ export interface NetWorthCardProps {
   currencyBalances: CurrencyBalance[];
   balanceVisible: boolean;
   toggleBalanceVisibility: () => void;
+  /** Optional card title (default: "Total Assets") */
+  title?: string;
 }
 
 export function NetWorthCard({
   currencyBalances,
   balanceVisible,
   toggleBalanceVisibility,
+  title = "Total Assets",
 }: NetWorthCardProps) {
   const theme = useTheme();
 
@@ -35,7 +38,7 @@ export function NetWorthCard({
               color={theme.colors.primary}
             />
             <Text variant="labelLarge" style={styles.label}>
-              Net Worth
+              {title}
             </Text>
           </View>
           <MaterialCommunityIcons

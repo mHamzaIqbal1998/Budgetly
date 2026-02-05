@@ -2,7 +2,7 @@
   "expo": {
     "name": "Budgetly",
     "slug": "budgetly",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "orientation": "portrait",
     "icon": "./assets/android-chrome-512x512.png",
     "scheme": "budgetly",
@@ -31,7 +31,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.ico"
     },
     "plugins": [
       "expo-router",

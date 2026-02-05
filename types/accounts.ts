@@ -12,6 +12,7 @@ export interface Account {
     currency_decimal_places: number;
     current_balance: string;
     current_balance_date?: string;
+    debt_amount?: string;
     iban?: string;
     account_number?: string;
     bic?: string;
