@@ -8,9 +8,11 @@ import { useStore } from "@/lib/store";
 import { filterAccountsByType } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter, type Href } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -46,6 +48,7 @@ function getAccountIcon(type: string): string {
 
 export default function AccountsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { balanceVisible, toggleBalanceVisibility } = useStore();
   const [selectedAccountType, setSelectedAccountType] =
     useState<AccountTypeFilter>("asset");
@@ -225,75 +228,87 @@ export default function AccountsScreen() {
       const balance = parseFloat(account.attributes.current_balance);
       const isPositive = balance >= 0;
       return (
-        <GlassCard variant="default" style={styles.accountCard}>
-          <Card.Content>
-            <View style={styles.accountHeader}>
-              <View style={styles.accountLeft}>
-                <MaterialCommunityIcons
-                  name={
-                    getAccountIcon(
-                      account.attributes.type
-                    ) as keyof typeof MaterialCommunityIcons.glyphMap
-                  }
-                  size={40}
-                  color={getAccountTypeColor(account.attributes.type)}
-                />
-                <View style={styles.accountInfo}>
-                  <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                    {account.attributes.name}
-                  </Text>
-                  <View style={styles.accountMeta}>
-                    <View style={styles.chipWrapper}>
-                      <Chip
-                        compact
-                        style={styles.chip}
-                        textStyle={styles.chipText}
-                      >
-                        {account.attributes.type}
-                      </Chip>
+        <Pressable
+          onPress={() =>
+            router.push(
+              `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
+            )
+          }
+          style={({ pressed }) => [
+            styles.accountCard,
+            pressed && styles.accountCardPressed,
+          ]}
+        >
+          <GlassCard variant="default" style={styles.accountCardInner}>
+            <Card.Content>
+              <View style={styles.accountHeader}>
+                <View style={styles.accountLeft}>
+                  <MaterialCommunityIcons
+                    name={
+                      getAccountIcon(
+                        account.attributes.type
+                      ) as keyof typeof MaterialCommunityIcons.glyphMap
+                    }
+                    size={40}
+                    color={getAccountTypeColor(account.attributes.type)}
+                  />
+                  <View style={styles.accountInfo}>
+                    <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+                      {account.attributes.name}
+                    </Text>
+                    <View style={styles.accountMeta}>
+                      <View style={styles.chipWrapper}>
+                        <Chip
+                          compact
+                          style={styles.chip}
+                          textStyle={styles.chipText}
+                        >
+                          {account.attributes.type}
+                        </Chip>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-              <View style={styles.accountRight}>
-                <Text
-                  variant="titleMedium"
-                  style={{
-                    color: isPositive ? theme.colors.primary : "#FF5252",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {account.attributes.currency_code}{" "}
-                  {balanceVisible ? formatAmount(balance) : "••••••"}
-                </Text>
-                <View style={styles.accountStatus}>
-                  <MaterialCommunityIcons
-                    name={
-                      account.attributes.active
-                        ? "check-circle"
-                        : "pause-circle"
-                    }
-                    size={16}
-                    color={
-                      account.attributes.active
-                        ? theme.colors.primary
-                        : theme.colors.onSurfaceVariant
-                    }
-                  />
+                <View style={styles.accountRight}>
                   <Text
-                    variant="bodySmall"
-                    style={{ marginLeft: 4, opacity: 0.6 }}
+                    variant="titleMedium"
+                    style={{
+                      color: isPositive ? theme.colors.primary : "#FF5252",
+                      fontWeight: "bold",
+                    }}
                   >
-                    {account.attributes.active ? "Active" : "Inactive"}
+                    {account.attributes.currency_code}{" "}
+                    {balanceVisible ? formatAmount(balance) : "••••••"}
                   </Text>
+                  <View style={styles.accountStatus}>
+                    <MaterialCommunityIcons
+                      name={
+                        account.attributes.active
+                          ? "check-circle"
+                          : "pause-circle"
+                      }
+                      size={16}
+                      color={
+                        account.attributes.active
+                          ? theme.colors.primary
+                          : theme.colors.onSurfaceVariant
+                      }
+                    />
+                    <Text
+                      variant="bodySmall"
+                      style={{ marginLeft: 4, opacity: 0.6 }}
+                    >
+                      {account.attributes.active ? "Active" : "Inactive"}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </Card.Content>
-        </GlassCard>
+            </Card.Content>
+          </GlassCard>
+        </Pressable>
       );
     },
-    [balanceVisible, theme, getAccountTypeColor]
+    [balanceVisible, theme, getAccountTypeColor, router]
   );
 
   return (
@@ -358,6 +373,12 @@ const styles = StyleSheet.create({
   },
   accountCard: {
     marginBottom: 12,
+  },
+  accountCardPressed: {
+    opacity: 0.85,
+  },
+  accountCardInner: {
+    flex: 1,
   },
   accountHeader: {
     flexDirection: "row",

@@ -31,6 +31,39 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return accountsModule.getAccount(this.ensureInitialized(), id);
   }
 
+  async getAccountTransactions(
+    accountId: string,
+    page: number = 1,
+    start?: string,
+    end?: string,
+    type?: string
+  ) {
+    return accountsModule.getAccountTransactions(
+      this.ensureInitialized(),
+      accountId,
+      page,
+      start,
+      end,
+      type
+    );
+  }
+
+  async getAllAccountTransactions(
+    accountId: string,
+    start?: string,
+    end?: string,
+    type?: string
+  ) {
+    return accountsModule.getAllAccountTransactions(
+      this.ensureInitialized(),
+      accountsModule.getAccountTransactions,
+      accountId,
+      start,
+      end,
+      type
+    );
+  }
+
   // Transactions
   async getTransactions(
     page: number = 1,
