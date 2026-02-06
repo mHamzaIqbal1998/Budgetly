@@ -31,10 +31,13 @@ export function useCachedAccountsQuery<TData = Account[]>(
     ...options,
   });
 
-  // Update cache when data is successfully fetched
+  // Update cache when data is successfully fetched (store the array, not the response wrapper)
   useEffect(() => {
     if (query.isSuccess && query.data) {
-      setCachedAccounts(query.data as Account[]);
+      const list = Array.isArray(query.data)
+        ? query.data
+        : (query.data as { data?: Account[] })?.data;
+      if (list?.length !== undefined) setCachedAccounts(list);
     }
   }, [query.isSuccess, query.data, setCachedAccounts]);
 

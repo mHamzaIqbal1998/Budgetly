@@ -2,6 +2,7 @@ import type {
   Account,
   AccountOverview,
   AccountTransactionGroup,
+  AccountUpdateRequestBody,
   FireflyApiResponse,
 } from "@/types";
 import type { AxiosInstance } from "axios";
@@ -72,6 +73,18 @@ export async function getAccount(
   id: string
 ): Promise<FireflyApiResponse<Account>> {
   const response = await api.get<FireflyApiResponse<Account>>(`accounts/${id}`);
+  return response.data;
+}
+
+export async function updateAccount(
+  api: AxiosInstance,
+  id: string,
+  body: AccountUpdateRequestBody
+): Promise<FireflyApiResponse<Account>> {
+  const response = await api.put<FireflyApiResponse<Account>>(
+    `accounts/${id}`,
+    body
+  );
   return response.data;
 }
 

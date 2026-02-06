@@ -1,7 +1,12 @@
-import type { CreateBudgetData, CreateTransactionData } from "@/types";
+import type {
+  AccountUpdateRequestBody,
+  CreateBudgetData,
+  CreateTransactionData,
+} from "@/types";
 import * as accountsModule from "./accounts";
 import * as budgetsModule from "./budgets";
 import { FireflyApiClient } from "./core";
+import * as currenciesModule from "./currencies";
 import * as expensesModule from "./expenses";
 import * as piggyBanksModule from "./piggy-banks";
 import * as recurringModule from "./recurring";
@@ -29,6 +34,10 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async getAccount(id: string) {
     return accountsModule.getAccount(this.ensureInitialized(), id);
+  }
+
+  async updateAccount(id: string, body: AccountUpdateRequestBody) {
+    return accountsModule.updateAccount(this.ensureInitialized(), id, body);
   }
 
   async getAccountTransactions(
@@ -181,6 +190,11 @@ class FireflyApiClientImpl extends FireflyApiClient {
       start,
       end
     );
+  }
+
+  // Currencies
+  async getUserCurrencies() {
+    return currenciesModule.getUserCurrencies(this.ensureInitialized());
   }
 }
 

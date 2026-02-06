@@ -1,3 +1,59 @@
+/** Account role. Mandatory when type is asset. */
+export type AccountRole =
+  | "defaultAsset"
+  | "sharedAsset"
+  | "savingAsset"
+  | "ccAsset"
+  | "cashWalletAsset";
+
+/** Credit card type. Mandatory when account_role is ccAsset. */
+export type CreditCardType = "monthlyFull";
+
+/** Liability type. Mandatory when type is liability. */
+export type LiabilityType = "loan" | "debt" | "mortgage";
+
+/**
+ * Request body for account update API (PATCH/PUT accounts/{id}).
+ * Aligned with Firefly III account update schema.
+ */
+export interface AccountUpdateRequestBody {
+  /** Account name (required). */
+  name: string;
+  iban?: string | null;
+  bic?: string | null;
+  account_number?: string | null;
+  /** Opening balance amount (e.g. "-1012.12"). */
+  opening_balance?: string;
+  /** ISO 8601 date-time (e.g. "2026-01-01T00:00:00+00:00"). */
+  opening_balance_date?: string | null;
+  virtual_balance?: string;
+  /** Use either currency_id or currency_code. Defaults to financial administration currency. */
+  currency_id?: string;
+  currency_code?: string;
+  /** Defaults to true if omitted. */
+  active?: boolean;
+  /** Order of the account. */
+  order?: number;
+  /** Defaults to true if omitted. */
+  include_net_worth?: boolean;
+  /** Mandatory when type is asset. */
+  account_role?: AccountRole | null;
+  /** Mandatory when account_role is ccAsset. */
+  credit_card_type?: CreditCardType | null;
+  /** Mandatory when account_role is ccAsset. ISO 8601 date-time (e.g. 2026-01-01T00:00:00+00:00). */
+  monthly_payment_date?: string | null;
+  /** Mandatory when type is liability. */
+  liability_type?: LiabilityType | null;
+  /** Mandatory when type is liability. Interest percentage. */
+  interest?: string | null;
+  interest_period?: string;
+  notes?: string | null;
+  /** Omit to keep existing; send null to remove location. */
+  latitude?: number | null;
+  longitude?: number | null;
+  zoom_level?: number | null;
+}
+
 export interface Account {
   id: string;
   type: string;
@@ -20,6 +76,9 @@ export interface Account {
     include_net_worth: boolean;
     opening_balance?: string;
     opening_balance_date?: string;
+    /** CC monthly payment date (YYYY-MM-DD or ISO). */
+    monthly_payment_date?: string;
+    cc_monthly_payment_date?: string;
     virtual_balance?: string;
     notes?: string;
     latitude?: number;
