@@ -1,6 +1,7 @@
 // Edit Transaction Screen
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import type {
   Account,
@@ -95,6 +96,8 @@ const formatDateDisplay = (iso: string): string => {
 interface SelectorItem {
   id: string;
   label: string;
+  /** Optional subtitle (e.g. balance for accounts) */
+  subtitle?: string;
 }
 
 interface SelectorModalProps {
@@ -209,6 +212,8 @@ function SelectorModal({
               renderItem={({ item }) => (
                 <List.Item
                   title={item.label}
+                  description={item.subtitle}
+                  descriptionStyle={styles.selectorItemDescription}
                   titleStyle={
                     selectedId === item.id ? { fontWeight: "600" } : undefined
                   }
@@ -299,10 +304,19 @@ export default function EditTransactionScreen() {
 
   const accountItems: SelectorItem[] = useMemo(
     () =>
-      accounts.map((a) => ({
-        id: a.id,
-        label: `${a.attributes.name} (${a.attributes.currency_code})`,
-      })),
+      accounts.map((a) => {
+        const label = `${a.attributes.name} (${a.attributes.currency_code})`;
+        const isAsset =
+          a.attributes.type?.toLowerCase() === "asset" ||
+          a.attributes.type?.toLowerCase() === "cash";
+        const subtitle = isAsset
+          ? `${a.attributes.currency_symbol ?? ""} ${formatAmount(
+              parseFloat(a.attributes.current_balance || "0"),
+              a.attributes.currency_decimal_places ?? 2
+            )}`
+          : undefined;
+        return { id: a.id, label, subtitle };
+      }),
     [accounts]
   );
 
@@ -590,13 +604,24 @@ export default function EditTransactionScreen() {
               <View style={styles.chipsContainer}>
                 {TX_TYPE_OPTIONS.map((opt) => {
                   const selected = txType === opt.value;
+                  const iconColor = selected
+                    ? theme.colors.onPrimaryContainer
+                    : theme.colors.onSurfaceVariant;
                   return (
                     <Chip
                       key={opt.value}
                       selected={selected}
                       showSelectedOverlay
                       onPress={() => setTxType(opt.value)}
-                      icon={opt.icon}
+                      icon={() => (
+                        <MaterialCommunityIcons
+                          name={
+                            opt.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                          }
+                          size={18}
+                          color={iconColor}
+                        />
+                      )}
                       style={[
                         styles.chip,
                         selected && {
@@ -1263,6 +1288,10 @@ const styles = StyleSheet.create({
   selectorEmpty: {
     padding: 24,
     alignItems: "center",
+  },
+  selectorItemDescription: {
+    fontSize: 12,
+    opacity: 0.7,
   },
   selectorList: {
     maxHeight: 350,
