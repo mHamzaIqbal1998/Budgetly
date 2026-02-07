@@ -12,13 +12,13 @@ import type {
   LiabilityType,
   UserCurrenciesList,
 } from "@/types";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
-  type Href,
   useLocalSearchParams,
   useNavigation,
   useRouter,
+  type Href,
 } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -216,6 +216,20 @@ export default function EditAccountScreen() {
         if (attrs.account_role) {
           setAccountRole(attrs.account_role as AccountRole);
         }
+        if (attrs.credit_card_type) {
+          setCreditCardType(attrs.credit_card_type as CreditCardType);
+        }
+
+        // Liability-specific
+        if (attrs.liability_type) {
+          setLiabilityType(attrs.liability_type as LiabilityType);
+        }
+        if (attrs.interest) {
+          setInterest(attrs.interest);
+        }
+        if (attrs.interest_period) {
+          setInterestPeriod(attrs.interest_period);
+        }
 
         // Set header title
         navigation.setOptions({
@@ -278,37 +292,52 @@ export default function EditAccountScreen() {
         notes: notes.trim() || null,
       };
 
-      // Optional fields
-      if (iban.trim()) body.iban = iban.trim();
-      if (bic.trim()) body.bic = bic.trim();
-      if (accountNumber.trim()) body.account_number = accountNumber.trim();
-      if (openingBalance.trim()) {
-        body.opening_balance = openingBalance.trim();
-        // opening_balance_date is required when opening_balance is present
-        body.opening_balance_date =
-          openingBalanceDate.trim() || new Date().toISOString();
-      }
-      if (virtualBalance.trim()) body.virtual_balance = virtualBalance.trim();
+      // Nullable optional fields: always send value or null so clearing a field updates the API
+      body.iban = iban.trim() || null;
+      body.bic = bic.trim() || null;
+      body.account_number = accountNumber.trim() || null;
+      body.virtual_balance = virtualBalance.trim() || undefined;
       if (currencyCode.trim()) body.currency_code = currencyCode.trim();
+
+      // Opening balance: Firefly III rejects opening_balance/opening_balance_date for liability
+      // accounts via this endpoint — liabilities manage debt through a separate mechanism.
+      // Only send for non-liability types. Always use UTC for dates.
+      const isLiability =
+        accountType === "liability" || accountType === "liabilities";
+      if (!isLiability) {
+        if (openingBalance.trim()) {
+          body.opening_balance = openingBalance.trim();
+          body.opening_balance_date = toApiDateString(
+            parseApiDate(openingBalanceDate) ?? new Date()
+          );
+        } else {
+          body.opening_balance = "0";
+          body.opening_balance_date = null;
+        }
+      }
 
       // Account type-specific fields
       if (accountType === "asset") {
         body.account_role = accountRole;
 
-        // Credit card specific (monthly_payment_date mandatory when ccAsset, ISO date-time per docs)
         if (accountRole === "ccAsset") {
           body.credit_card_type = creditCardType;
           const parsed = parseApiDate(monthlyPaymentDate);
           body.monthly_payment_date = parsed
             ? toApiDateString(parsed)
             : new Date().toISOString();
+        } else {
+          body.credit_card_type = null;
+          body.monthly_payment_date = null;
         }
       }
 
       if (accountType === "liability") {
         body.liability_type = liabilityType;
-        if (interest.trim()) body.interest = interest.trim();
-        if (interestPeriod) body.interest_period = interestPeriod;
+        body.interest = interest.trim() || null;
+        body.interest_period = interestPeriod.trim() || undefined;
+        body.opening_balance = undefined;
+        body.opening_balance_date = undefined;
       }
 
       const response = await apiClient.updateAccount(id, body);

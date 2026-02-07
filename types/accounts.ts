@@ -81,6 +81,16 @@ export interface Account {
     cc_monthly_payment_date?: string;
     virtual_balance?: string;
     notes?: string;
+    /** Mandatory when type is liability. */
+    liability_type?: string;
+    /** 'credit' = somebody owes you; 'debit' = you owe this debt. Only for liabilities. */
+    liability_direction?: "credit" | "debit";
+    /** Interest percentage. Only for liabilities. */
+    interest?: string;
+    /** Interest period (e.g. "monthly", "yearly"). Only for liabilities. */
+    interest_period?: string;
+    /** Credit card type (e.g. "monthlyFull"). Only for ccAsset. */
+    credit_card_type?: string;
     latitude?: number;
     longitude?: number;
     zoom_level?: number;
