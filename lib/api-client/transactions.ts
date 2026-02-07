@@ -3,6 +3,7 @@ import type {
   CreateTransactionData,
   FireflyApiResponse,
   Transaction,
+  TransactionUpdateData,
 } from "@/types";
 import type { AxiosInstance } from "axios";
 
@@ -47,9 +48,9 @@ export async function createTransaction(
 export async function updateTransaction(
   api: AxiosInstance,
   id: string,
-  data: CreateTransactionData
-): Promise<FireflyApiResponse<Transaction>> {
-  const response = await api.put<FireflyApiResponse<Transaction>>(
+  data: TransactionUpdateData
+): Promise<FireflyApiResponse<AccountTransactionGroup>> {
+  const response = await api.put<FireflyApiResponse<AccountTransactionGroup>>(
     `transactions/${id}`,
     data
   );

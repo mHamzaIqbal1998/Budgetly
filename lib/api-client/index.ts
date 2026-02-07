@@ -3,8 +3,10 @@ import type {
   AccountUpdateRequestBody,
   CreateBudgetData,
   CreateTransactionData,
+  TransactionUpdateData,
 } from "@/types";
 import * as accountsModule from "./accounts";
+import * as autocompleteModule from "./autocomplete";
 import * as budgetsModule from "./budgets";
 import { FireflyApiClient } from "./core";
 import * as currenciesModule from "./currencies";
@@ -108,7 +110,7 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return transactionsModule.createTransaction(this.ensureInitialized(), data);
   }
 
-  async updateTransaction(id: string, data: CreateTransactionData) {
+  async updateTransaction(id: string, data: TransactionUpdateData) {
     return transactionsModule.updateTransaction(
       this.ensureInitialized(),
       id,
@@ -206,6 +208,19 @@ class FireflyApiClientImpl extends FireflyApiClient {
   // Currencies
   async getUserCurrencies() {
     return currenciesModule.getUserCurrencies(this.ensureInitialized());
+  }
+
+  // Autocomplete
+  async getAutocompleteCategories() {
+    return autocompleteModule.getAutocompleteCategories(
+      this.ensureInitialized()
+    );
+  }
+
+  async getAutocompleteSubscriptions() {
+    return autocompleteModule.getAutocompleteSubscriptions(
+      this.ensureInitialized()
+    );
   }
 }
 

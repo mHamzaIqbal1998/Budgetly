@@ -134,6 +134,61 @@ export interface AccountTransaction {
   has_attachments: boolean;
 }
 
+/** Body for PUT /v1/transactions/{id} */
+export interface TransactionUpdateData {
+  apply_rules?: boolean;
+  fire_webhooks?: boolean;
+  group_title?: string | null;
+  transactions: TransactionSplitUpdate[];
+}
+
+export interface TransactionSplitUpdate {
+  transaction_journal_id?: string;
+  type?:
+    | "withdrawal"
+    | "deposit"
+    | "transfer"
+    | "reconciliation"
+    | "opening balance";
+  date?: string;
+  amount?: string;
+  description?: string;
+  order?: number | null;
+  currency_id?: string | null;
+  currency_code?: string | null;
+  foreign_amount?: string | null;
+  foreign_currency_id?: string | null;
+  foreign_currency_code?: string | null;
+  source_id?: string | null;
+  source_name?: string | null;
+  destination_id?: string | null;
+  destination_name?: string | null;
+  budget_id?: string | null;
+  category_id?: string | null;
+  category_name?: string | null;
+  bill_id?: string | null;
+  bill_name?: string | null;
+  tags?: string[] | null;
+  notes?: string | null;
+  reconciled?: boolean;
+  internal_reference?: string | null;
+  external_id?: string | null;
+  external_url?: string | null;
+}
+
+/** Autocomplete response item for /v1/autocomplete/categories */
+export interface AutocompleteCategory {
+  id: string;
+  name: string;
+}
+
+/** Autocomplete response item for /v1/autocomplete/subscriptions */
+export interface AutocompleteSubscription {
+  id: string;
+  name: string;
+  active?: boolean;
+}
+
 /** Transaction group resource returned by GET /v1/accounts/{id}/transactions */
 export interface AccountTransactionGroup {
   type: string;

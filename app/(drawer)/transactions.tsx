@@ -6,18 +6,23 @@ import { useStore } from "@/lib/store";
 import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { BlurView } from "expo-blur";
 import { useRouter, type Href } from "expo-router";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   FlatList,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-import { Chip, Searchbar, Text, useTheme } from "react-native-paper";
+import { Card, Chip, Searchbar, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -43,6 +48,7 @@ type FlatTransaction = AccountTransaction & {
 const ITEM_HEIGHT = 82;
 const ITEM_MARGIN = 12;
 const PAGE_SIZE = 50;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -104,6 +110,7 @@ interface TransactionItemProps {
   surfaceVariantColor: string;
   balanceVisible: boolean;
   onPress: () => void;
+  onLongPress: () => void;
 }
 
 const TransactionItem = memo(
@@ -114,6 +121,7 @@ const TransactionItem = memo(
     surfaceVariantColor,
     balanceVisible,
     onPress,
+    onLongPress,
   }: TransactionItemProps) {
     const amount = parseFloat(item.amount);
     const typeLower = item.type?.toLowerCase();
@@ -144,6 +152,8 @@ const TransactionItem = memo(
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={400}
         style={({ pressed }) => pressed && styles.txCardPressed}
       >
         <GlassCard variant="default" style={styles.txCard}>
@@ -294,6 +304,153 @@ const ListHeader = memo(function ListHeader({
 });
 
 // ---------------------------------------------------------------------------
+// Context Menu Card (shown on long press)
+// ---------------------------------------------------------------------------
+
+interface TransactionContextMenuCardProps {
+  item: FlatTransaction;
+  primaryColor: string;
+  errorColor: string;
+  surfaceVariantColor: string;
+  balanceVisible: boolean;
+  onEdit: () => void;
+  onClose: () => void;
+}
+
+function TransactionContextMenuCard({
+  item,
+  primaryColor,
+  errorColor,
+  surfaceVariantColor,
+  balanceVisible,
+  onEdit,
+  onClose,
+}: TransactionContextMenuCardProps) {
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const amount = parseFloat(item.amount);
+  const typeLower = item.type?.toLowerCase();
+  const isIncoming = typeLower === "deposit" || typeLower === "revenue";
+  const isTransfer = typeLower === "transfer";
+  const amountColor = getTransactionTypeColor(
+    item.type,
+    primaryColor,
+    errorColor
+  );
+
+  const iconName = isTransfer
+    ? "swap-horizontal"
+    : isIncoming
+      ? "arrow-down-bold"
+      : "arrow-up-bold";
+
+  return (
+    <Animated.View
+      style={[
+        styles.contextMenuContainer,
+        { transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      {/* Transaction Preview Card */}
+      <View style={styles.contextMenuCard}>
+        <GlassCard variant="elevated" style={styles.contextMenuCardInner}>
+          <Card.Content>
+            <View style={styles.txRow}>
+              <View style={styles.txLeft}>
+                <View
+                  style={[
+                    styles.txIconWrap,
+                    { backgroundColor: surfaceVariantColor },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      iconName as keyof typeof MaterialCommunityIcons.glyphMap
+                    }
+                    size={20}
+                    color={amountColor}
+                  />
+                </View>
+                <View style={styles.txBody}>
+                  <Text
+                    variant="titleSmall"
+                    numberOfLines={1}
+                    style={styles.txDescription}
+                  >
+                    {item.description || "—"}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    numberOfLines={1}
+                    style={styles.txAccountName}
+                  >
+                    {isTransfer
+                      ? `${item.source_name} → ${item.destination_name}`
+                      : isIncoming
+                        ? item.source_name
+                        : item.destination_name}
+                  </Text>
+                </View>
+              </View>
+              <Text
+                variant="titleSmall"
+                style={[styles.txAmount, { color: amountColor }]}
+              >
+                {isTransfer ? "" : isIncoming ? "+" : "-"}
+                {item.currency_symbol}{" "}
+                {balanceVisible
+                  ? formatAmount(amount, item.currency_decimal_places ?? 2)
+                  : "••••••"}
+              </Text>
+            </View>
+          </Card.Content>
+        </GlassCard>
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.contextMenuActions}>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit Transaction
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.cancelButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Zustand selector
 // ---------------------------------------------------------------------------
 
@@ -310,6 +467,9 @@ export default function TransactionsScreen() {
   const balanceVisible = useStore(selectBalanceVisible);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
+  const [contextMenuTransaction, setContextMenuTransaction] =
+    useState<FlatTransaction | null>(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
   // Infinite query: fetches pages of transactions from the API
   const {
@@ -385,6 +545,24 @@ export default function TransactionsScreen() {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const handleLongPress = useCallback((item: FlatTransaction) => {
+    setContextMenuTransaction(item);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuTransaction(null);
+  }, []);
+
+  const handleEditTransaction = useCallback(() => {
+    if (!contextMenuTransaction) return;
+    const groupId = contextMenuTransaction._groupId;
+    setContextMenuVisible(false);
+    setContextMenuTransaction(null);
+    router.push(`/(drawer)/transaction/edit/${groupId}` as Href);
+  }, [contextMenuTransaction, router]);
 
   // -----------------------------------------------------------------------
   // Memoized FlatList sub-components
@@ -470,9 +648,17 @@ export default function TransactionsScreen() {
         onPress={() =>
           router.push(`/(drawer)/transaction/${item._groupId}` as Href)
         }
+        onLongPress={() => handleLongPress(item)}
       />
     ),
-    [primaryColor, errorColor, surfaceVariantColor, balanceVisible, router]
+    [
+      primaryColor,
+      errorColor,
+      surfaceVariantColor,
+      balanceVisible,
+      router,
+      handleLongPress,
+    ]
   );
 
   const keyExtractor = useCallback(
@@ -542,6 +728,40 @@ export default function TransactionsScreen() {
         initialNumToRender={15}
         updateCellsBatchingPeriod={50}
       />
+
+      {/* Context Menu Modal */}
+      <Modal
+        visible={contextMenuVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleContextMenuClose}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleContextMenuClose}>
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={25}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.androidOverlay]} />
+          )}
+        </Pressable>
+        {contextMenuTransaction && (
+          <View style={styles.contextMenuWrapper} pointerEvents="box-none">
+            <TransactionContextMenuCard
+              item={contextMenuTransaction}
+              primaryColor={primaryColor}
+              errorColor={errorColor}
+              surfaceVariantColor={surfaceVariantColor}
+              balanceVisible={balanceVisible}
+              onEdit={handleEditTransaction}
+              onClose={handleContextMenuClose}
+            />
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
@@ -661,5 +881,60 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginLeft: 8,
+  },
+  // Context Menu Styles
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  androidOverlay: {
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  contextMenuWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contextMenuContainer: {
+    width: SCREEN_WIDTH * 0.88,
+    maxWidth: 420,
+  },
+  contextMenuCard: {
+    marginBottom: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  contextMenuCardInner: {
+    borderRadius: 20,
+  },
+  contextMenuActions: {
+    gap: 10,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 8,
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.8,
+  },
+  editButton: {
+    backgroundColor: "rgba(100,180,246,0.85)",
+  },
+  cancelButton: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  editButtonText: {
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cancelButtonText: {
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  contextMenuButtonText: {
+    fontSize: 15,
   },
 });
