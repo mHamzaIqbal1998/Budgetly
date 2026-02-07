@@ -11,6 +11,7 @@ export default function AccountLayout() {
         headerTintColor: theme.colors.onSurface,
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: "600" },
+        contentStyle: { backgroundColor: theme.colors.background },
         animation: "slide_from_left",
       }}
     />

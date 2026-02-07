@@ -8,14 +8,13 @@ import type {
   AccountRole,
   AccountStoreRequestBody,
   CreditCardType,
-  FireflyApiResponse,
   LiabilityDirection,
   LiabilityType,
   ShortAccountType,
   UserCurrenciesList,
 } from "@/types";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -365,14 +364,20 @@ export default function CreateAccountScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={100}
       >
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          style={[
+            styles.scrollView,
+            { backgroundColor: theme.colors.background },
+          ]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { backgroundColor: theme.colors.background },
+          ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Account Type Selector */}
           <GlassCard variant="elevated" style={styles.card}>

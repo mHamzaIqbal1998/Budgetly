@@ -428,14 +428,20 @@ export default function EditAccountScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={100}
       >
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          style={[
+            styles.scrollView,
+            { backgroundColor: theme.colors.background },
+          ]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { backgroundColor: theme.colors.background },
+          ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Basic Information */}
           <GlassCard variant="elevated" style={styles.card}>
