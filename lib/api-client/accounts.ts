@@ -1,6 +1,7 @@
 import type {
   Account,
   AccountOverview,
+  AccountStoreRequestBody,
   AccountTransactionGroup,
   AccountUpdateRequestBody,
   FireflyApiResponse,
@@ -83,6 +84,17 @@ export async function updateAccount(
 ): Promise<FireflyApiResponse<Account>> {
   const response = await api.put<FireflyApiResponse<Account>>(
     `accounts/${id}`,
+    body
+  );
+  return response.data;
+}
+
+export async function createAccount(
+  api: AxiosInstance,
+  body: AccountStoreRequestBody
+): Promise<FireflyApiResponse<Account>> {
+  const response = await api.post<FireflyApiResponse<Account>>(
+    "accounts",
     body
   );
   return response.data;

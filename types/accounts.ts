@@ -54,6 +54,61 @@ export interface AccountUpdateRequestBody {
   zoom_level?: number | null;
 }
 
+/** Liability direction. Only for liabilities. */
+export type LiabilityDirection = "credit" | "debit";
+
+/** Account type for creation. */
+export type ShortAccountType =
+  | "asset"
+  | "expense"
+  | "revenue"
+  | "cash"
+  | "liability"
+  | "liabilities";
+
+/**
+ * Request body for account creation API (POST /v1/accounts).
+ * Aligned with Firefly III AccountStore schema.
+ */
+export interface AccountStoreRequestBody {
+  /** Account name (required). */
+  name: string;
+  /** Account type (required). */
+  type: ShortAccountType;
+  iban?: string | null;
+  bic?: string | null;
+  account_number?: string | null;
+  /** Opening balance amount (e.g. "-1012.12"). */
+  opening_balance?: string;
+  /** ISO 8601 date-time (e.g. "2026-01-01T00:00:00+00:00"). */
+  opening_balance_date?: string | null;
+  virtual_balance?: string;
+  currency_id?: string;
+  currency_code?: string;
+  /** Defaults to true if omitted. */
+  active?: boolean;
+  order?: number;
+  /** Defaults to true if omitted. */
+  include_net_worth?: boolean;
+  /** Mandatory when type is asset. */
+  account_role?: AccountRole | null;
+  /** Mandatory when account_role is ccAsset. */
+  credit_card_type?: CreditCardType | null;
+  /** Mandatory when account_role is ccAsset. ISO 8601 date-time. */
+  monthly_payment_date?: string | null;
+  /** Mandatory when type is liability. */
+  liability_type?: LiabilityType | null;
+  /** 'credit' = somebody owes you; 'debit' = you owe this debt. Only for liabilities. */
+  liability_direction?: LiabilityDirection | null;
+  /** Mandatory when type is liability. Interest percentage. */
+  interest?: string | null;
+  interest_period?: string | null;
+  notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  zoom_level?: number | null;
+}
+
 export interface Account {
   id: string;
   type: string;

@@ -1,4 +1,5 @@
 import type {
+  AccountStoreRequestBody,
   AccountUpdateRequestBody,
   CreateBudgetData,
   CreateTransactionData,
@@ -38,6 +39,10 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async updateAccount(id: string, body: AccountUpdateRequestBody) {
     return accountsModule.updateAccount(this.ensureInitialized(), id, body);
+  }
+
+  async createAccount(body: AccountStoreRequestBody) {
+    return accountsModule.createAccount(this.ensureInitialized(), body);
   }
 
   async deleteAccount(id: string) {

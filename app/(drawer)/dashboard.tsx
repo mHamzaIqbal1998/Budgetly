@@ -25,7 +25,7 @@ import {
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter, type Href } from "expo-router";
 import React, { useLayoutEffect } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -40,6 +40,7 @@ import {
 export default function DashboardScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
+  const router = useRouter();
   const [fabOpen, setFabOpen] = React.useState(false);
   const [customizeModalVisible, setCustomizeModalVisible] =
     React.useState(false);
@@ -355,21 +356,32 @@ export default function DashboardScreen() {
           open={fabOpen}
           visible
           icon={fabOpen ? "close" : "plus"}
+          style={styles.fabGroup}
+          fabStyle={styles.fabMain}
           actions={[
             {
               icon: "cash-plus",
               label: "Add Expense",
+              containerStyle: styles.fabLabelContainer,
               onPress: () => console.log("Add expense"),
             },
             {
               icon: "wallet-plus",
               label: "Create Budget",
+              containerStyle: styles.fabLabelContainer,
               onPress: () => console.log("Create budget"),
             },
             {
               icon: "bank-transfer",
               label: "Transfer",
+              containerStyle: styles.fabLabelContainer,
               onPress: () => console.log("Transfer"),
+            },
+            {
+              icon: "bank-plus",
+              label: "Add Account",
+              containerStyle: styles.fabLabelContainer,
+              onPress: () => router.push("/(drawer)/account/create" as Href),
             },
           ]}
           onStateChange={({ open }) => setFabOpen(open)}
@@ -414,9 +426,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   offlineBanner: {
-    // margin: 16,
     marginBottom: 16,
-    // marginTop: 8,
     backgroundColor: "rgba(255, 152, 0, 0.1)",
+  },
+  fabGroup: {
+    paddingRight: 20,
+    paddingBottom: 20,
+  },
+  fabMain: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  fabLabelContainer: {
+    minWidth: 132,
+    marginRight: 12,
   },
 });
