@@ -37,6 +37,7 @@ import {
   ActivityIndicator,
   Button,
   Card,
+  Chip,
   Divider,
   List,
   Switch,
@@ -838,26 +839,41 @@ export default function EditAccountScreen() {
                 <Text
                   variant="bodySmall"
                   style={[
-                    styles.helperText,
+                    styles.chipSectionLabel,
                     { color: theme.colors.onSurfaceVariant },
                   ]}
                 >
                   Select the role for this asset account
                 </Text>
-                <View style={styles.roleButtonsContainer}>
-                  {ACCOUNT_ROLE_OPTIONS.map((option) => (
-                    <Button
-                      key={option.value}
-                      mode={
-                        accountRole === option.value ? "contained" : "outlined"
-                      }
-                      onPress={() => setAccountRole(option.value)}
-                      style={styles.roleButton}
-                      compact
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
+                <View style={styles.chipsContainer}>
+                  {ACCOUNT_ROLE_OPTIONS.map((option) => {
+                    const selected = accountRole === option.value;
+                    return (
+                      <Chip
+                        key={option.value}
+                        selected={selected}
+                        showSelectedOverlay
+                        onPress={() => setAccountRole(option.value)}
+                        style={[
+                          styles.chip,
+                          selected && {
+                            backgroundColor: theme.colors.primaryContainer,
+                            borderColor: theme.colors.primary,
+                          },
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          {
+                            color: selected
+                              ? theme.colors.onPrimaryContainer
+                              : theme.colors.onSurfaceVariant,
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </Chip>
+                    );
+                  })}
                 </View>
 
                 {/* Credit Card Fields */}
@@ -871,7 +887,7 @@ export default function EditAccountScreen() {
                     <Text
                       variant="bodySmall"
                       style={[
-                        styles.helperText,
+                        styles.chipSectionLabel,
                         { color: theme.colors.onSurfaceVariant },
                       ]}
                     >
@@ -1046,28 +1062,41 @@ export default function EditAccountScreen() {
                 <Text
                   variant="bodySmall"
                   style={[
-                    styles.helperText,
+                    styles.chipSectionLabel,
                     { color: theme.colors.onSurfaceVariant },
                   ]}
                 >
                   Liability Type
                 </Text>
-                <View style={styles.roleButtonsContainer}>
-                  {LIABILITY_TYPE_OPTIONS.map((option) => (
-                    <Button
-                      key={option.value}
-                      mode={
-                        liabilityType === option.value
-                          ? "contained"
-                          : "outlined"
-                      }
-                      onPress={() => setLiabilityType(option.value)}
-                      style={styles.roleButton}
-                      compact
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
+                <View style={styles.chipsContainer}>
+                  {LIABILITY_TYPE_OPTIONS.map((option) => {
+                    const selected = liabilityType === option.value;
+                    return (
+                      <Chip
+                        key={option.value}
+                        selected={selected}
+                        showSelectedOverlay
+                        onPress={() => setLiabilityType(option.value)}
+                        style={[
+                          styles.chip,
+                          selected && {
+                            backgroundColor: theme.colors.primaryContainer,
+                            borderColor: theme.colors.primary,
+                          },
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          {
+                            color: selected
+                              ? theme.colors.onPrimaryContainer
+                              : theme.colors.onSurfaceVariant,
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </Chip>
+                    );
+                  })}
                 </View>
 
                 <Divider style={styles.divider} />
@@ -1086,28 +1115,41 @@ export default function EditAccountScreen() {
                 <Text
                   variant="bodySmall"
                   style={[
-                    styles.helperText,
+                    styles.chipSectionLabel,
                     { color: theme.colors.onSurfaceVariant },
                   ]}
                 >
                   Interest Period
                 </Text>
-                <View style={styles.roleButtonsContainer}>
-                  {INTEREST_PERIOD_OPTIONS.map((option) => (
-                    <Button
-                      key={option.value}
-                      mode={
-                        interestPeriod === option.value
-                          ? "contained"
-                          : "outlined"
-                      }
-                      onPress={() => setInterestPeriod(option.value)}
-                      style={styles.roleButton}
-                      compact
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
+                <View style={styles.chipsContainer}>
+                  {INTEREST_PERIOD_OPTIONS.map((option) => {
+                    const selected = interestPeriod === option.value;
+                    return (
+                      <Chip
+                        key={option.value}
+                        selected={selected}
+                        showSelectedOverlay
+                        onPress={() => setInterestPeriod(option.value)}
+                        style={[
+                          styles.chip,
+                          selected && {
+                            backgroundColor: theme.colors.primaryContainer,
+                            borderColor: theme.colors.primary,
+                          },
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          {
+                            color: selected
+                              ? theme.colors.onPrimaryContainer
+                              : theme.colors.onSurfaceVariant,
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </Chip>
+                    );
+                  })}
                 </View>
               </Card.Content>
             </GlassCard>
@@ -1293,21 +1335,26 @@ const styles = StyleSheet.create({
   cardContentTight: {
     paddingTop: 0,
   },
-  helperText: {
-    marginTop: 0,
-    marginBottom: 4,
+  chipSectionLabel: {
+    marginTop: 4,
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
-  roleButtonsContainer: {
+  chipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 12,
-  },
-  roleButton: {
-    marginBottom: 4,
-  },
-  segmentedButtons: {
+    gap: 10,
     marginBottom: 16,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "transparent",
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    letterSpacing: 0.15,
   },
   divider: {
     marginVertical: 16,
