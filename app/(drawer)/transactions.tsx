@@ -2,6 +2,7 @@
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
+import { queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
 import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -11,6 +12,7 @@ import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -314,6 +316,7 @@ interface TransactionContextMenuCardProps {
   surfaceVariantColor: string;
   balanceVisible: boolean;
   onEdit: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }
 
@@ -324,6 +327,7 @@ function TransactionContextMenuCard({
   surfaceVariantColor,
   balanceVisible,
   onEdit,
+  onDelete,
   onClose,
 }: TransactionContextMenuCardProps) {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -429,6 +433,24 @@ function TransactionContextMenuCard({
           <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
           <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
             Edit Transaction
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Transaction
           </Text>
         </Pressable>
 
@@ -563,6 +585,45 @@ export default function TransactionsScreen() {
     setContextMenuTransaction(null);
     router.push(`/(drawer)/transaction/edit/${groupId}` as Href);
   }, [contextMenuTransaction, router]);
+
+  const handleDeleteTransaction = useCallback(() => {
+    if (!contextMenuTransaction) return;
+    const txDescription =
+      contextMenuTransaction.description || "this transaction";
+    const groupId = contextMenuTransaction._groupId;
+    Alert.alert(
+      "Delete Transaction",
+      `Delete "${txDescription}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuTransaction(null);
+            try {
+              await apiClient.deleteTransaction(groupId);
+              // Remove the detail cache for this transaction
+              queryClient.removeQueries({
+                queryKey: ["transaction", groupId],
+              });
+              // Refetch the transactions list to reflect the deletion
+              refetch();
+              Alert.alert("Success", "Transaction deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete transaction:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete transaction";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuTransaction, refetch]);
 
   // -----------------------------------------------------------------------
   // Memoized FlatList sub-components
@@ -740,27 +801,28 @@ export default function TransactionsScreen() {
         <Pressable style={styles.modalOverlay} onPress={handleContextMenuClose}>
           {Platform.OS === "ios" ? (
             <BlurView
-              intensity={25}
+              intensity={80}
               tint="dark"
               style={StyleSheet.absoluteFill}
             />
           ) : (
-            <View style={[StyleSheet.absoluteFill, styles.androidOverlay]} />
+            <View style={styles.androidOverlay} />
           )}
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            {contextMenuTransaction && (
+              <TransactionContextMenuCard
+                item={contextMenuTransaction}
+                primaryColor={primaryColor}
+                errorColor={errorColor}
+                surfaceVariantColor={surfaceVariantColor}
+                balanceVisible={balanceVisible}
+                onEdit={handleEditTransaction}
+                onDelete={handleDeleteTransaction}
+                onClose={handleContextMenuClose}
+              />
+            )}
+          </Pressable>
         </Pressable>
-        {contextMenuTransaction && (
-          <View style={styles.contextMenuWrapper} pointerEvents="box-none">
-            <TransactionContextMenuCard
-              item={contextMenuTransaction}
-              primaryColor={primaryColor}
-              errorColor={errorColor}
-              surfaceVariantColor={surfaceVariantColor}
-              balanceVisible={balanceVisible}
-              onEdit={handleEditTransaction}
-              onClose={handleContextMenuClose}
-            />
-          </View>
-        )}
       </Modal>
     </View>
   );
@@ -882,29 +944,26 @@ const styles = StyleSheet.create({
   footerText: {
     marginLeft: 8,
   },
-  // Context Menu Styles
+  // Context Menu Styles (matching accounts screen)
   modalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  androidOverlay: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  contextMenuWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
+  androidOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+  },
   contextMenuContainer: {
-    width: SCREEN_WIDTH * 0.88,
-    maxWidth: 420,
+    width: SCREEN_WIDTH - 48,
+    maxWidth: 400,
   },
   contextMenuCard: {
     marginBottom: 16,
-    borderRadius: 20,
-    overflow: "hidden",
   },
   contextMenuCardInner: {
-    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(29, 185, 84, 0.3)",
   },
   contextMenuActions: {
     gap: 10,
@@ -914,27 +973,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    borderRadius: 16,
-    gap: 8,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   contextMenuButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.92,
   },
   editButton: {
-    backgroundColor: "rgba(100,180,246,0.85)",
+    backgroundColor: "#1DB954",
+    borderColor: "#1DB954",
+  },
+  deleteButton: {
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
   },
   cancelButton: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "#525252",
+    borderColor: "#6B6B6B",
+  },
+  contextMenuButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   editButtonText: {
-    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  deleteButtonText: {
     color: "#FFFFFF",
   },
   cancelButtonText: {
-    fontWeight: "600",
     color: "#FFFFFF",
-  },
-  contextMenuButtonText: {
-    fontSize: 15,
   },
 });
