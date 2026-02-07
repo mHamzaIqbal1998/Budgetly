@@ -104,6 +104,14 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="transaction"
+          options={{
+            title: "Transaction Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",

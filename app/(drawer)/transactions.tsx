@@ -6,10 +6,12 @@ import { useStore } from "@/lib/store";
 import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -101,6 +103,7 @@ interface TransactionItemProps {
   errorColor: string;
   surfaceVariantColor: string;
   balanceVisible: boolean;
+  onPress: () => void;
 }
 
 const TransactionItem = memo(
@@ -110,6 +113,7 @@ const TransactionItem = memo(
     errorColor,
     surfaceVariantColor,
     balanceVisible,
+    onPress,
   }: TransactionItemProps) {
     const amount = parseFloat(item.amount);
     const typeLower = item.type?.toLowerCase();
@@ -138,70 +142,75 @@ const TransactionItem = memo(
       .join(" · ");
 
     return (
-      <GlassCard variant="default" style={styles.txCard}>
-        <View style={styles.txCardInner}>
-          <View style={styles.txRow}>
-            <View style={styles.txLeft}>
-              <View
-                style={[
-                  styles.txIconWrap,
-                  { backgroundColor: surfaceVariantColor },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={
-                    iconName as keyof typeof MaterialCommunityIcons.glyphMap
-                  }
-                  size={20}
-                  color={amountColor}
-                />
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => pressed && styles.txCardPressed}
+      >
+        <GlassCard variant="default" style={styles.txCard}>
+          <View style={styles.txCardInner}>
+            <View style={styles.txRow}>
+              <View style={styles.txLeft}>
+                <View
+                  style={[
+                    styles.txIconWrap,
+                    { backgroundColor: surfaceVariantColor },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      iconName as keyof typeof MaterialCommunityIcons.glyphMap
+                    }
+                    size={20}
+                    color={amountColor}
+                  />
+                </View>
+                <View style={styles.txBody}>
+                  <Text
+                    variant="titleSmall"
+                    numberOfLines={1}
+                    style={styles.txDescription}
+                  >
+                    {item.description || "—"}
+                  </Text>
+                  {accountLabel ? (
+                    <Text
+                      variant="bodySmall"
+                      numberOfLines={1}
+                      style={styles.txAccountName}
+                    >
+                      {accountLabel}
+                    </Text>
+                  ) : null}
+                  {subtitle ? (
+                    <Text
+                      variant="labelSmall"
+                      numberOfLines={1}
+                      style={styles.txSubtitle}
+                    >
+                      {subtitle}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-              <View style={styles.txBody}>
+              <View style={styles.txRight}>
                 <Text
                   variant="titleSmall"
-                  numberOfLines={1}
-                  style={styles.txDescription}
+                  style={[styles.txAmount, { color: amountColor }]}
                 >
-                  {item.description || "—"}
+                  {isTransfer ? "" : isIncoming ? "+" : "-"}
+                  {item.currency_symbol}{" "}
+                  {balanceVisible
+                    ? formatAmount(amount, item.currency_decimal_places ?? 2)
+                    : "••••••"}
                 </Text>
-                {accountLabel ? (
-                  <Text
-                    variant="bodySmall"
-                    numberOfLines={1}
-                    style={styles.txAccountName}
-                  >
-                    {accountLabel}
-                  </Text>
-                ) : null}
-                {subtitle ? (
-                  <Text
-                    variant="labelSmall"
-                    numberOfLines={1}
-                    style={styles.txSubtitle}
-                  >
-                    {subtitle}
-                  </Text>
-                ) : null}
+                <Text variant="labelSmall" style={styles.txDate}>
+                  {formatDate(item.date)}
+                </Text>
               </View>
             </View>
-            <View style={styles.txRight}>
-              <Text
-                variant="titleSmall"
-                style={[styles.txAmount, { color: amountColor }]}
-              >
-                {isTransfer ? "" : isIncoming ? "+" : "-"}
-                {item.currency_symbol}{" "}
-                {balanceVisible
-                  ? formatAmount(amount, item.currency_decimal_places ?? 2)
-                  : "••••••"}
-              </Text>
-              <Text variant="labelSmall" style={styles.txDate}>
-                {formatDate(item.date)}
-              </Text>
-            </View>
           </View>
-        </View>
-      </GlassCard>
+        </GlassCard>
+      </Pressable>
     );
   },
   (prevProps, nextProps) => {
@@ -297,6 +306,7 @@ const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
 
 export default function TransactionsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const balanceVisible = useStore(selectBalanceVisible);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
@@ -457,9 +467,12 @@ export default function TransactionsScreen() {
         errorColor={errorColor}
         surfaceVariantColor={surfaceVariantColor}
         balanceVisible={balanceVisible}
+        onPress={() =>
+          router.push(`/(drawer)/transaction/${item._groupId}` as Href)
+        }
       />
     ),
-    [primaryColor, errorColor, surfaceVariantColor, balanceVisible]
+    [primaryColor, errorColor, surfaceVariantColor, balanceVisible, router]
   );
 
   const keyExtractor = useCallback(
@@ -587,6 +600,9 @@ const styles = StyleSheet.create({
     marginBottom: ITEM_MARGIN,
     borderRadius: 16,
     overflow: "hidden",
+  },
+  txCardPressed: {
+    opacity: 0.85,
   },
   txCardInner: {
     paddingVertical: 14,

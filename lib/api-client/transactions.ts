@@ -26,8 +26,8 @@ export async function getTransactions(
 export async function getTransaction(
   api: AxiosInstance,
   id: string
-): Promise<FireflyApiResponse<Transaction>> {
-  const response = await api.get<FireflyApiResponse<Transaction>>(
+): Promise<FireflyApiResponse<AccountTransactionGroup>> {
+  const response = await api.get<FireflyApiResponse<AccountTransactionGroup>>(
     `transactions/${id}`
   );
   return response.data;
