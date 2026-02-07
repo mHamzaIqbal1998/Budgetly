@@ -3,6 +3,7 @@ import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
 import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
+import { queryClient } from "@/lib/query-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { filterAccountsByType } from "@/lib/utils";
@@ -12,6 +13,7 @@ import { BlurView } from "expo-blur";
 import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -191,6 +193,7 @@ interface ContextMenuCardProps {
   primaryColor: string;
   onSurfaceVariantColor: string;
   onEdit: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }
 
@@ -200,6 +203,7 @@ function ContextMenuCard({
   primaryColor,
   onSurfaceVariantColor,
   onEdit,
+  onDelete,
   onClose,
 }: ContextMenuCardProps) {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -306,6 +310,24 @@ function ContextMenuCard({
           <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
           <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
             Edit Account
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Account
           </Text>
         </Pressable>
 
@@ -521,6 +543,52 @@ export default function AccountsScreen() {
     }
   }, [contextMenuAccount, router]);
 
+  const handleDeleteAccount = useCallback(() => {
+    if (!contextMenuAccount) return;
+    const accountName = contextMenuAccount.attributes.name;
+    const accountId = contextMenuAccount.id;
+    Alert.alert(
+      "Delete Account",
+      `Delete "${accountName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuAccount(null);
+            try {
+              await apiClient.deleteAccount(accountId);
+              const { cachedAccounts, setCachedAccounts } = useStore.getState();
+              const accountsArray = Array.isArray(cachedAccounts)
+                ? cachedAccounts
+                : cachedAccounts &&
+                    typeof cachedAccounts === "object" &&
+                    "data" in cachedAccounts
+                  ? (cachedAccounts as { data: Account[] }).data
+                  : [];
+              if (accountsArray.length > 0) {
+                setCachedAccounts(
+                  accountsArray.filter((a) => a.id !== accountId)
+                );
+              }
+              queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+              Alert.alert("Success", "Account deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete account:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete account";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuAccount]);
+
   // Memoized render function using the AccountItem component
   const renderAccountItem = useCallback(
     ({ item: account }: { item: Account }) => (
@@ -599,6 +667,7 @@ export default function AccountsScreen() {
                 primaryColor={primaryColor}
                 onSurfaceVariantColor={onSurfaceVariantColor}
                 onEdit={handleEditAccount}
+                onDelete={handleDeleteAccount}
                 onClose={handleCloseContextMenu}
               />
             )}
@@ -747,6 +816,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#1DB954",
     borderColor: "#1DB954",
   },
+  deleteButton: {
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
+  },
   cancelButton: {
     backgroundColor: "#525252",
     borderColor: "#6B6B6B",
@@ -756,6 +829,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   editButtonText: {
+    color: "#FFFFFF",
+  },
+  deleteButtonText: {
     color: "#FFFFFF",
   },
   cancelButtonText: {

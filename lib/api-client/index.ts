@@ -40,6 +40,10 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return accountsModule.updateAccount(this.ensureInitialized(), id, body);
   }
 
+  async deleteAccount(id: string) {
+    return accountsModule.deleteAccount(this.ensureInitialized(), id);
+  }
+
   async getAccountTransactions(
     accountId: string,
     page: number = 1,

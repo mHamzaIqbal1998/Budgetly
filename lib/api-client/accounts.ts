@@ -88,6 +88,13 @@ export async function updateAccount(
   return response.data;
 }
 
+export async function deleteAccount(
+  api: AxiosInstance,
+  id: string
+): Promise<void> {
+  await api.delete(`accounts/${id}`);
+}
+
 export async function getAccountTransactions(
   api: AxiosInstance,
   accountId: string,
