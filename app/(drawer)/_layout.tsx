@@ -38,13 +38,13 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
-          name="expenses"
+          name="transactions"
           options={{
-            title: "Expenses",
-            drawerLabel: "Expenses",
+            title: "Transactions",
+            drawerLabel: "Transactions",
             drawerIcon: ({ color, size }) => (
               <MaterialCommunityIcons
-                name="cash-multiple"
+                name="swap-horizontal"
                 size={size}
                 color={color}
               />

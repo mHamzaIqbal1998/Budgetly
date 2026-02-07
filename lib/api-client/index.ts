@@ -87,14 +87,16 @@ class FireflyApiClientImpl extends FireflyApiClient {
     page: number = 1,
     start?: string,
     end?: string,
-    type?: string
+    type?: string,
+    limit?: number
   ) {
     return transactionsModule.getTransactions(
       this.ensureInitialized(),
       page,
       start,
       end,
-      type
+      type,
+      limit
     );
   }
 

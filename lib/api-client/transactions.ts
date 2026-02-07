@@ -1,4 +1,5 @@
 import type {
+  AccountTransactionGroup,
   CreateTransactionData,
   FireflyApiResponse,
   Transaction,
@@ -10,12 +11,13 @@ export async function getTransactions(
   page: number = 1,
   start?: string,
   end?: string,
-  type?: string
-): Promise<FireflyApiResponse<Transaction[]>> {
-  const response = await api.get<FireflyApiResponse<Transaction[]>>(
+  type?: string,
+  limit?: number
+): Promise<FireflyApiResponse<AccountTransactionGroup[]>> {
+  const response = await api.get<FireflyApiResponse<AccountTransactionGroup[]>>(
     "transactions",
     {
-      params: { page, start, end, type },
+      params: { page, start, end, type, limit },
     }
   );
   return response.data;
