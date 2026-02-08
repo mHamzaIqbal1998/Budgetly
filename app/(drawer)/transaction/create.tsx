@@ -13,7 +13,12 @@ import type {
 } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useNavigation, useRouter, type Href } from "expo-router";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRouter,
+  type Href,
+} from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -307,6 +312,18 @@ export default function CreateTransactionScreen() {
 
   // Split transactions
   const [splits, setSplits] = useState<SplitState[]>([createEmptySplit()]);
+
+  // Reset form state every time the screen gains focus so that
+  // navigating back after a successful create shows a clean form.
+  useFocusEffect(
+    useCallback(() => {
+      setTxType("withdrawal");
+      setDateStr(toApiDateString(new Date()));
+      setGroupTitle("");
+      setSplits([createEmptySplit()]);
+      setIsSaving(false);
+    }, [])
+  );
 
   // Active selector -- tracks which split index + which field is being edited
   const [activeSelectorSplit, setActiveSelectorSplit] = useState(0);
