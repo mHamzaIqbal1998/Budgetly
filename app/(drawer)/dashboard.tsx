@@ -28,19 +28,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import React, { useLayoutEffect } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Card,
-  FAB,
-  IconButton,
-  Portal,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Card, IconButton, Text, useTheme } from "react-native-paper";
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const [fabOpen, setFabOpen] = React.useState(false);
   const [customizeModalVisible, setCustomizeModalVisible] =
     React.useState(false);
   const [expenseChartDays, setExpenseChartDays] = React.useState<7 | 15 | 30>(
@@ -348,33 +340,6 @@ export default function DashboardScreen() {
         visible={customizeModalVisible}
         onDismiss={() => setCustomizeModalVisible(false)}
       />
-
-      {/* Floating Action Button */}
-      <Portal>
-        <FAB.Group
-          open={fabOpen}
-          visible
-          icon={fabOpen ? "close" : "plus"}
-          actions={[
-            {
-              icon: "cash-plus",
-              label: "Add Expense",
-              onPress: () => console.log("Add expense"),
-            },
-            {
-              icon: "wallet-plus",
-              label: "Create Budget",
-              onPress: () => console.log("Create budget"),
-            },
-            {
-              icon: "bank-transfer",
-              label: "Transfer",
-              onPress: () => console.log("Transfer"),
-            },
-          ]}
-          onStateChange={({ open }) => setFabOpen(open)}
-        />
-      </Portal>
     </View>
   );
 }
@@ -414,9 +379,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   offlineBanner: {
-    // margin: 16,
     marginBottom: 16,
-    // marginTop: 8,
     backgroundColor: "rgba(255, 152, 0, 0.1)",
   },
 });

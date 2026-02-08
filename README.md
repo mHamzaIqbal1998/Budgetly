@@ -1,4 +1,6 @@
-# Budgetly - Firefly III Mobile Companion
+# Budgetly - For Firefly III
+
+## A Firefly iii Mobile Companion
 
 A beautiful, modern React Native app for managing your personal finances with Firefly III.
 
@@ -9,9 +11,10 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 ## 🗺️ Roadmap
 
 - [x] Secure Connect with firefly instance
-- [x] Dashboard
 - [-] Offline Support
-- [ ] Accounts
+- [x] Dashboard
+- [x] Accounts Management
+- [x] Transactions Management
 - [ ] Budgets
 - [ ] Piggy bank
 - [ ] Subscription management
@@ -55,7 +58,7 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/mHamzaIqbal1998/Budgetly.git
 cd budgetly
 ```
 
@@ -89,16 +92,22 @@ The app will validate your credentials and connect to your instance.
 
 ### Dashboard
 
-- Financial overview with summary cards
-- Recent accounts and budgets
-- Quick action buttons for common tasks
+- Financial overview with summary cards/charts
+- Accounts/Subscriptions/Budgets overview cards
+- Quick insights
 
-### Expenses
+### Transactions
 
 - List all transactions
 - Search and filter capabilities
 - Create new expenses, income, or transfers
 - Delete transactions
+
+### Accounts
+
+- View all connected accounts
+- See balances and account types
+- Net worth calculation
 
 ### Budgets
 
@@ -106,11 +115,7 @@ The app will validate your credentials and connect to your instance.
 - See spending vs. limits
 - Create new budgets
 
-### Accounts
-
-- View all connected accounts
-- See balances and account types
-- Net worth calculation
+## In development
 
 ### Piggy Banks
 
@@ -137,62 +142,16 @@ The app will validate your credentials and connect to your instance.
 - All API calls go directly to your Firefly III instance
 - No telemetry or tracking
 
-## 🏗️ Project Structure
-
-```
-budgetly/
-├── app/                      # App screens and navigation
-│   ├── (auth)/              # Authentication screens
-│   │   └── setup.tsx        # First-launch setup
-│   ├── (drawer)/            # Main app screens (drawer navigation)
-│   │   ├── dashboard.tsx
-│   │   ├── expenses.tsx
-│   │   ├── budgets.tsx
-│   │   ├── accounts.tsx
-│   │   ├── piggy-banks.tsx
-│   │   ├── subscriptions.tsx
-│   │   ├── reports.tsx
-│   │   └── settings.tsx
-│   └── _layout.tsx          # Root layout with providers
-├── components/              # Reusable UI components
-├── lib/                     # Core functionality
-│   ├── api-client.ts       # Firefly III API client
-│   ├── store.ts            # Zustand global state
-│   └── query-client.ts     # React Query configuration
-├── types/                   # TypeScript type definitions
-│   └── firefly.ts          # Firefly III API types
-├── constants/              # App constants and themes
-├── hooks/                  # Custom React hooks
-└── assets/                 # Images and static assets
-```
-
 ## 🔌 API Integration
 
 The app uses the Firefly III REST API v1. All endpoints are documented at:
 https://api-docs.firefly-iii.org/
 
-Key API features used:
-
-- `/api/v1/about` - Version and validation
-- `/api/v1/accounts` - Account management
-- `/api/v1/transactions` - Transaction CRUD
-- `/api/v1/budgets` - Budget management
-- `/api/v1/piggy-banks` - Piggy bank data
-- `/api/v1/recurring` - Recurring transactions
-
-## 🧪 Testing
-
-```bash
-# Run tests
-npm test
-
-# Run linter
-npm run lint
-```
-
 ## 📦 Building for Production
 
 ### Android
+
+You need to set eas credentials for build
 
 ```bash
 npm run build:android:local
@@ -204,7 +163,7 @@ This will build the app for Android using the EAS build system locally.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions from the community. To contribute, please fork the repository, create a new branch based on the `dev` branch, and submit your Pull Request to the `dev` branch for review.
 
 ## 📄 License
 

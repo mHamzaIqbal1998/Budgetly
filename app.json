@@ -2,7 +2,7 @@
   "expo": {
     "name": "Budgetly",
     "slug": "budgetly",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "orientation": "portrait",
     "icon": "./assets/android-chrome-512x512.png",
     "scheme": "budgetly",
@@ -52,10 +52,11 @@
         "expo-build-properties",
         {
           "android": {
-            "buildArchs": ["arm64-v8a"]
+            "buildArchs": ["arm64-v8a"] // TODO: Remove this for multi-arch support
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

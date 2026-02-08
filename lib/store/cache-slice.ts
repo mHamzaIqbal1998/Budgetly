@@ -26,6 +26,7 @@ export const createCacheSlice: StateCreator<
     | "lastTransactionsSync"
     | "lastBudgetLimitsSync"
     | "setCachedAccounts"
+    | "updateCachedAccount"
     | "getCachedAccounts"
     | "setCachedTransactions"
     | "getCachedTransactions"
@@ -50,6 +51,23 @@ export const createCacheSlice: StateCreator<
       set({ cachedAccounts: accounts, lastAccountsSync: Date.now() });
     } catch (error) {
       console.error("Failed to cache accounts:", error);
+    }
+  },
+
+  updateCachedAccount: async (account: Account) => {
+    const raw = get().cachedAccounts;
+    const current = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === "object" && "data" in raw
+        ? (raw as { data: Account[] }).data
+        : null;
+    if (!current || !Array.isArray(current)) return;
+    const next = current.map((a) => (a.id === account.id ? account : a));
+    try {
+      await cache.setAccounts(next);
+      set({ cachedAccounts: next, lastAccountsSync: Date.now() });
+    } catch (error) {
+      console.error("Failed to update cached account:", error);
     }
   },
 

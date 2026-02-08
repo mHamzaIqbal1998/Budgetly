@@ -1,7 +1,15 @@
-import type { CreateBudgetData, CreateTransactionData } from "@/types";
+import type {
+  AccountStoreRequestBody,
+  AccountUpdateRequestBody,
+  CreateBudgetData,
+  CreateTransactionData,
+  TransactionUpdateData,
+} from "@/types";
 import * as accountsModule from "./accounts";
+import * as autocompleteModule from "./autocomplete";
 import * as budgetsModule from "./budgets";
 import { FireflyApiClient } from "./core";
+import * as currenciesModule from "./currencies";
 import * as expensesModule from "./expenses";
 import * as piggyBanksModule from "./piggy-banks";
 import * as recurringModule from "./recurring";
@@ -29,6 +37,18 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async getAccount(id: string) {
     return accountsModule.getAccount(this.ensureInitialized(), id);
+  }
+
+  async updateAccount(id: string, body: AccountUpdateRequestBody) {
+    return accountsModule.updateAccount(this.ensureInitialized(), id, body);
+  }
+
+  async createAccount(body: AccountStoreRequestBody) {
+    return accountsModule.createAccount(this.ensureInitialized(), body);
+  }
+
+  async deleteAccount(id: string) {
+    return accountsModule.deleteAccount(this.ensureInitialized(), id);
   }
 
   async getAccountTransactions(
@@ -69,14 +89,16 @@ class FireflyApiClientImpl extends FireflyApiClient {
     page: number = 1,
     start?: string,
     end?: string,
-    type?: string
+    type?: string,
+    limit?: number
   ) {
     return transactionsModule.getTransactions(
       this.ensureInitialized(),
       page,
       start,
       end,
-      type
+      type,
+      limit
     );
   }
 
@@ -88,7 +110,7 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return transactionsModule.createTransaction(this.ensureInitialized(), data);
   }
 
-  async updateTransaction(id: string, data: CreateTransactionData) {
+  async updateTransaction(id: string, data: TransactionUpdateData) {
     return transactionsModule.updateTransaction(
       this.ensureInitialized(),
       id,
@@ -180,6 +202,24 @@ class FireflyApiClientImpl extends FireflyApiClient {
       this.ensureInitialized(),
       start,
       end
+    );
+  }
+
+  // Currencies
+  async getUserCurrencies() {
+    return currenciesModule.getUserCurrencies(this.ensureInitialized());
+  }
+
+  // Autocomplete
+  async getAutocompleteCategories() {
+    return autocompleteModule.getAutocompleteCategories(
+      this.ensureInitialized()
+    );
+  }
+
+  async getAutocompleteSubscriptions() {
+    return autocompleteModule.getAutocompleteSubscriptions(
+      this.ensureInitialized()
     );
   }
 }

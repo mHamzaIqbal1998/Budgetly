@@ -29,6 +29,8 @@ export interface AppState {
   toggleBalanceVisibility: () => void;
 
   setCachedAccounts: (accounts: Account[]) => Promise<void>;
+  /** Replace a single account in cache by id (e.g. after update). */
+  updateCachedAccount: (account: Account) => Promise<void>;
   getCachedAccounts: () => Promise<Account[] | null>;
   setCachedTransactions: (transactions: Transaction[]) => Promise<void>;
   getCachedTransactions: () => Promise<Transaction[] | null>;

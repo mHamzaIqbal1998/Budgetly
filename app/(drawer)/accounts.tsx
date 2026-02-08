@@ -3,15 +3,22 @@ import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
 import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
+import { queryClient } from "@/lib/query-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { filterAccountsByType } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { useRouter, type Href } from "expo-router";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
+  Alert,
+  Animated,
+  Dimensions,
   FlatList,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,6 +28,8 @@ import {
 import { Card, Chip, Searchbar, Text, useTheme } from "react-native-paper";
 
 import type { AccountTypeFilter } from "@/lib/utils";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const ACCOUNT_TYPE_TABS: { key: AccountTypeFilter; label: string }[] = [
   { key: "asset", label: "Assets" },
@@ -70,6 +79,7 @@ interface AccountItemProps {
   primaryColor: string;
   onSurfaceVariantColor: string;
   onPress: () => void;
+  onLongPress: () => void;
 }
 
 const AccountItem = memo(
@@ -79,6 +89,7 @@ const AccountItem = memo(
     primaryColor,
     onSurfaceVariantColor,
     onPress,
+    onLongPress,
   }: AccountItemProps) {
     const balance = parseFloat(account.attributes.current_balance);
     const isPositive = balance >= 0;
@@ -90,6 +101,8 @@ const AccountItem = memo(
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={400}
         style={({ pressed }) => [
           styles.accountCard,
           pressed && styles.accountCardPressed,
@@ -164,12 +177,177 @@ const AccountItem = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.account.id === nextProps.account.id &&
+      prevProps.account.attributes.updated_at ===
+        nextProps.account.attributes.updated_at &&
       prevProps.balanceVisible === nextProps.balanceVisible &&
       prevProps.primaryColor === nextProps.primaryColor &&
       prevProps.onSurfaceVariantColor === nextProps.onSurfaceVariantColor
     );
   }
 );
+
+// Context Menu Card Component (shown in modal)
+interface ContextMenuCardProps {
+  account: Account;
+  balanceVisible: boolean;
+  primaryColor: string;
+  onSurfaceVariantColor: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function ContextMenuCard({
+  account,
+  balanceVisible,
+  primaryColor,
+  onSurfaceVariantColor,
+  onEdit,
+  onDelete,
+  onClose,
+}: ContextMenuCardProps) {
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const balance = parseFloat(account.attributes.current_balance);
+  const isPositive = balance >= 0;
+  const typeColor = getAccountTypeColor(account.attributes.type, primaryColor);
+
+  return (
+    <Animated.View
+      style={[
+        styles.contextMenuContainer,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      {/* Account Card Preview */}
+      <View style={styles.contextMenuCard}>
+        <GlassCard variant="elevated" style={styles.contextMenuCardInner}>
+          <Card.Content>
+            <View style={styles.accountHeader}>
+              <View style={styles.accountLeft}>
+                <MaterialCommunityIcons
+                  name={
+                    getAccountIcon(
+                      account.attributes.type
+                    ) as keyof typeof MaterialCommunityIcons.glyphMap
+                  }
+                  size={40}
+                  color={typeColor}
+                />
+                <View style={styles.accountInfo}>
+                  <Text variant="titleMedium" style={styles.accountName}>
+                    {account.attributes.name}
+                  </Text>
+                  <View style={styles.accountMeta}>
+                    <View style={styles.chipWrapper}>
+                      <Chip
+                        compact
+                        style={styles.chip}
+                        textStyle={styles.chipText}
+                      >
+                        {account.attributes.type}
+                      </Chip>
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.accountRight}>
+                <Text
+                  variant="titleMedium"
+                  style={[
+                    styles.accountBalance,
+                    { color: isPositive ? primaryColor : "#FF5252" },
+                  ]}
+                >
+                  {account.attributes.currency_code}{" "}
+                  {balanceVisible ? formatAmount(balance) : "••••••"}
+                </Text>
+                <View style={styles.accountStatus}>
+                  <MaterialCommunityIcons
+                    name={
+                      account.attributes.active
+                        ? "check-circle"
+                        : "pause-circle"
+                    }
+                    size={16}
+                    color={
+                      account.attributes.active
+                        ? primaryColor
+                        : onSurfaceVariantColor
+                    }
+                  />
+                  <Text variant="bodySmall" style={styles.statusText}>
+                    {account.attributes.active ? "Active" : "Inactive"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </GlassCard>
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.contextMenuActions}>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit Account
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Account
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.cancelButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
 
 // Selectors for store to prevent unnecessary re-renders
 const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
@@ -186,6 +364,12 @@ export default function AccountsScreen() {
   const [selectedAccountType, setSelectedAccountType] =
     useState<AccountTypeFilter>("asset");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Context menu state
+  const [contextMenuAccount, setContextMenuAccount] = useState<Account | null>(
+    null
+  );
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
   const {
     data: accountsData,
@@ -340,6 +524,71 @@ export default function AccountsScreen() {
     theme.colors.onSurfaceVariant,
   ]);
 
+  // Context menu handlers
+  const handleLongPress = useCallback((account: Account) => {
+    setContextMenuAccount(account);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuAccount(null);
+  }, []);
+
+  const handleEditAccount = useCallback(() => {
+    if (contextMenuAccount) {
+      setContextMenuVisible(false);
+      router.push(`/(drawer)/account/edit/${contextMenuAccount.id}` as Href);
+      setContextMenuAccount(null);
+    }
+  }, [contextMenuAccount, router]);
+
+  const handleDeleteAccount = useCallback(() => {
+    if (!contextMenuAccount) return;
+    const accountName = contextMenuAccount.attributes.name;
+    const accountId = contextMenuAccount.id;
+    Alert.alert(
+      "Delete Account",
+      `Delete "${accountName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuAccount(null);
+            try {
+              await apiClient.deleteAccount(accountId);
+              const { cachedAccounts, setCachedAccounts } = useStore.getState();
+              const accountsArray = Array.isArray(cachedAccounts)
+                ? cachedAccounts
+                : cachedAccounts &&
+                    typeof cachedAccounts === "object" &&
+                    "data" in cachedAccounts
+                  ? (cachedAccounts as { data: Account[] }).data
+                  : [];
+              if (accountsArray.length > 0) {
+                setCachedAccounts(
+                  accountsArray.filter((a) => a.id !== accountId)
+                );
+              }
+              queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+              Alert.alert("Success", "Account deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete account:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete account";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuAccount]);
+
   // Memoized render function using the AccountItem component
   const renderAccountItem = useCallback(
     ({ item: account }: { item: Account }) => (
@@ -353,9 +602,16 @@ export default function AccountsScreen() {
             `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
           )
         }
+        onLongPress={() => handleLongPress(account)}
       />
     ),
-    [balanceVisible, primaryColor, onSurfaceVariantColor, router]
+    [
+      balanceVisible,
+      primaryColor,
+      onSurfaceVariantColor,
+      router,
+      handleLongPress,
+    ]
   );
 
   // Stable key extractor
@@ -385,6 +641,39 @@ export default function AccountsScreen() {
           />
         }
       />
+
+      {/* Context Menu Modal with Blur */}
+      <Modal
+        visible={contextMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseContextMenu}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseContextMenu}>
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={80}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <View style={styles.androidBlurOverlay} />
+          )}
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            {contextMenuAccount && (
+              <ContextMenuCard
+                account={contextMenuAccount}
+                balanceVisible={balanceVisible}
+                primaryColor={primaryColor}
+                onSurfaceVariantColor={onSurfaceVariantColor}
+                onEdit={handleEditAccount}
+                onDelete={handleDeleteAccount}
+                onClose={handleCloseContextMenu}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -484,5 +773,68 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 11,
     lineHeight: 16,
+  },
+  // Context menu styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  androidBlurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+  },
+  contextMenuContainer: {
+    width: SCREEN_WIDTH - 48,
+    maxWidth: 400,
+  },
+  contextMenuCard: {
+    marginBottom: 16,
+  },
+  contextMenuCardInner: {
+    borderWidth: 1,
+    borderColor: "rgba(29, 185, 84, 0.3)",
+  },
+  contextMenuActions: {
+    gap: 10,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.92,
+  },
+  editButton: {
+    backgroundColor: "#1DB954",
+    borderColor: "#1DB954",
+  },
+  deleteButton: {
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
+  },
+  cancelButton: {
+    backgroundColor: "#525252",
+    borderColor: "#6B6B6B",
+  },
+  contextMenuButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+  },
+  cancelButtonText: {
+    color: "#FFFFFF",
   },
 });
