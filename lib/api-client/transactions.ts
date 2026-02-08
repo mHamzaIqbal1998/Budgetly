@@ -2,7 +2,6 @@ import type {
   AccountTransactionGroup,
   CreateTransactionData,
   FireflyApiResponse,
-  Transaction,
   TransactionUpdateData,
 } from "@/types";
 import type { AxiosInstance } from "axios";
@@ -37,8 +36,8 @@ export async function getTransaction(
 export async function createTransaction(
   api: AxiosInstance,
   data: CreateTransactionData
-): Promise<FireflyApiResponse<Transaction>> {
-  const response = await api.post<FireflyApiResponse<Transaction>>(
+): Promise<FireflyApiResponse<AccountTransactionGroup>> {
+  const response = await api.post<FireflyApiResponse<AccountTransactionGroup>>(
     "transactions",
     data
   );

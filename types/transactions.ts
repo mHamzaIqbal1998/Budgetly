@@ -39,22 +39,39 @@ export interface CreateTransactionData {
   fire_webhooks?: boolean;
   group_title?: string;
   transactions: {
-    type: "withdrawal" | "deposit" | "transfer";
+    type:
+      | "withdrawal"
+      | "deposit"
+      | "transfer"
+      | "reconciliation"
+      | "opening balance";
     date: string;
     amount: string;
     description: string;
-    source_id?: string;
-    source_name?: string;
-    destination_id?: string;
-    destination_name?: string;
-    currency_id?: string;
-    currency_code?: string;
-    budget_id?: string;
-    budget_name?: string;
-    category_id?: string;
-    category_name?: string;
-    tags?: string[];
-    notes?: string;
+    order?: number | null;
+    currency_id?: string | null;
+    currency_code?: string | null;
+    foreign_amount?: string | null;
+    foreign_currency_id?: string | null;
+    foreign_currency_code?: string | null;
+    source_id?: string | null;
+    source_name?: string | null;
+    destination_id?: string | null;
+    destination_name?: string | null;
+    budget_id?: string | null;
+    budget_name?: string | null;
+    category_id?: string | null;
+    category_name?: string | null;
+    bill_id?: string | null;
+    bill_name?: string | null;
+    piggy_bank_id?: number | null;
+    piggy_bank_name?: string | null;
+    tags?: string[] | null;
+    notes?: string | null;
+    reconciled?: boolean;
+    internal_reference?: string | null;
+    external_id?: string | null;
+    external_url?: string | null;
   }[];
 }
 

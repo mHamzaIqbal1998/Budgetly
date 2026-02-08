@@ -25,23 +25,14 @@ import {
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigation, useRouter, type Href } from "expo-router";
+import { useNavigation } from "expo-router";
 import React, { useLayoutEffect } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Card,
-  FAB,
-  IconButton,
-  Portal,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Card, IconButton, Text, useTheme } from "react-native-paper";
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const router = useRouter();
-  const [fabOpen, setFabOpen] = React.useState(false);
   const [customizeModalVisible, setCustomizeModalVisible] =
     React.useState(false);
   const [expenseChartDays, setExpenseChartDays] = React.useState<7 | 15 | 30>(
@@ -349,44 +340,6 @@ export default function DashboardScreen() {
         visible={customizeModalVisible}
         onDismiss={() => setCustomizeModalVisible(false)}
       />
-
-      {/* Floating Action Button */}
-      <Portal>
-        <FAB.Group
-          open={fabOpen}
-          visible
-          icon={fabOpen ? "close" : "plus"}
-          style={styles.fabGroup}
-          fabStyle={styles.fabMain}
-          actions={[
-            {
-              icon: "cash-plus",
-              label: "Add Expense",
-              containerStyle: styles.fabLabelContainer,
-              onPress: () => console.log("Add expense"),
-            },
-            {
-              icon: "wallet-plus",
-              label: "Create Budget",
-              containerStyle: styles.fabLabelContainer,
-              onPress: () => console.log("Create budget"),
-            },
-            {
-              icon: "bank-transfer",
-              label: "Transfer",
-              containerStyle: styles.fabLabelContainer,
-              onPress: () => console.log("Transfer"),
-            },
-            {
-              icon: "bank-plus",
-              label: "Add Account",
-              containerStyle: styles.fabLabelContainer,
-              onPress: () => router.push("/(drawer)/account/create" as Href),
-            },
-          ]}
-          onStateChange={({ open }) => setFabOpen(open)}
-        />
-      </Portal>
     </View>
   );
 }
@@ -428,17 +381,5 @@ const styles = StyleSheet.create({
   offlineBanner: {
     marginBottom: 16,
     backgroundColor: "rgba(255, 152, 0, 0.1)",
-  },
-  fabGroup: {
-    paddingRight: 20,
-    paddingBottom: 20,
-  },
-  fabMain: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  fabLabelContainer: {
-    minWidth: 132,
-    marginRight: 12,
   },
 });
