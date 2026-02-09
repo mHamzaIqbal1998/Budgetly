@@ -8,27 +8,12 @@ import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
-import {
-  useFocusEffect,
-  useGlobalSearchParams,
-  useNavigation,
-  useRouter,
-  useUnstableGlobalHref,
-  type Href,
-} from "expo-router";
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useRouter, type Href } from "expo-router";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
-  BackHandler,
   Dimensions,
   FlatList,
   Modal,
@@ -501,80 +486,14 @@ const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
 export default function TransactionsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const navigation = useNavigation();
   const balanceVisible = useStore(selectBalanceVisible);
-  const { accountId, accountName } = useGlobalSearchParams<{
-    accountId?: string;
-    accountName?: string;
-  }>();
-  const globalHref = useUnstableGlobalHref();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
   const [contextMenuTransaction, setContextMenuTransaction] =
     useState<FlatTransaction | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
-  // Derive account mode from the actual URL so the header is correct when
-  // reopening Transactions from the drawer (params can stay stale).
-  const isAccountMode = globalHref.includes("accountId=");
-
-  // Sync header with current params whenever the screen is focused, so that
-  // opening Transactions from the drawer (no params) always shows "Transactions"
-  // and not a stale account name from a previous visit.
-  const syncHeaderOptions = useCallback(() => {
-    if (isAccountMode) {
-      const title = accountName
-        ? decodeURIComponent(accountName)
-        : "Account Transactions";
-      navigation.setOptions({
-        title,
-        headerLeft: () => (
-          <Pressable
-            onPress={() => router.replace("/(drawer)/accounts" as Href)}
-            hitSlop={12}
-            style={({ pressed }) => [
-              { padding: 8, marginLeft: 4, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={theme.colors.onSurface}
-            />
-          </Pressable>
-        ),
-      });
-    } else {
-      navigation.setOptions({
-        title: "Transactions",
-        headerLeft: undefined,
-      });
-    }
-  }, [isAccountMode, accountName, navigation, router, theme.colors.onSurface]);
-
-  useEffect(() => {
-    syncHeaderOptions();
-  }, [syncHeaderOptions]);
-
-  useFocusEffect(
-    useCallback(() => {
-      syncHeaderOptions();
-    }, [syncHeaderOptions])
-  );
-
-  // Hardware back button when in account mode
-  useEffect(() => {
-    if (!isAccountMode || Platform.OS !== "android") return;
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      router.replace("/(drawer)/accounts" as Href);
-      return true;
-    });
-    return () => sub.remove();
-  }, [isAccountMode, router]);
-
   // Infinite query: fetches pages of transactions from the API
-  // When accountId is present, use the account-specific endpoint;
-  // otherwise use the global transactions endpoint.
   const {
     data,
     fetchNextPage,
@@ -584,27 +503,15 @@ export default function TransactionsScreen() {
     isRefetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["transactions", typeFilter, accountId ?? "all"],
-    queryFn: ({ pageParam }) => {
-      const typeParam = typeFilter === "all" ? undefined : typeFilter;
-      if (accountId) {
-        return apiClient.getAccountTransactions(
-          accountId,
-          pageParam,
-          undefined,
-          undefined,
-          typeParam,
-          PAGE_SIZE
-        );
-      }
-      return apiClient.getTransactions(
+    queryKey: ["transactions", typeFilter],
+    queryFn: ({ pageParam }) =>
+      apiClient.getTransactions(
         pageParam,
         undefined,
         undefined,
-        typeParam,
+        typeFilter === "all" ? undefined : typeFilter,
         PAGE_SIZE
-      );
-    },
+      ),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const totalPages = lastPage.meta?.pagination?.total_pages ?? 1;

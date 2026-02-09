@@ -56,8 +56,7 @@ class FireflyApiClientImpl extends FireflyApiClient {
     page: number = 1,
     start?: string,
     end?: string,
-    type?: string,
-    limit?: number
+    type?: string
   ) {
     return accountsModule.getAccountTransactions(
       this.ensureInitialized(),
@@ -65,8 +64,7 @@ class FireflyApiClientImpl extends FireflyApiClient {
       page,
       start,
       end,
-      type,
-      limit
+      type
     );
   }
 
