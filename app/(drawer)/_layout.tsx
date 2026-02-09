@@ -1,16 +1,108 @@
 // Drawer Navigation Layout
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { type DrawerContentComponentProps } from "@react-navigation/drawer";
+import { CommonActions, DrawerActions } from "@react-navigation/native";
 import { useRouter, type Href } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { Drawer } from "expo-router/drawer";
+import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { FAB, Portal, useTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+const TRANSACTIONS_ROUTE = "/(drawer)/transactions" as Href;
+
+/** Custom drawer content so "Transactions" always opens with a clean URL (no accountId). */
+function CustomDrawerContent(
+  props: DrawerContentComponentProps & { router: ReturnType<typeof useRouter> }
+) {
+  const { state, navigation, descriptors, router } = props;
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = descriptors[focusedRoute.key]?.options ?? {};
+  const {
+    drawerActiveTintColor = undefined,
+    drawerInactiveTintColor = undefined,
+    drawerActiveBackgroundColor = undefined,
+    drawerInactiveBackgroundColor = undefined,
+    drawerContentStyle,
+    drawerContentContainerStyle,
+  } = focusedOptions;
+
+  const visibleRoutes = state.routes.filter((route) => {
+    const opts = descriptors[route.key]?.options;
+    const style = opts?.drawerItemStyle as { display?: string } | undefined;
+    return style?.display !== "none";
+  });
+
+  return (
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={drawerContentContainerStyle}
+      style={drawerContentStyle}
+    >
+      {visibleRoutes.map((route) => {
+        const focused = state.routes[state.index]?.key === route.key;
+        const {
+          drawerLabel,
+          drawerIcon,
+          title,
+          drawerItemStyle,
+          drawerLabelStyle,
+          drawerAllowFontScaling,
+        } = descriptors[route.key].options;
+        const label =
+          typeof drawerLabel === "function"
+            ? (p: { focused: boolean; color: string }) =>
+                drawerLabel({ focused: p.focused, color: p.color })
+            : ((drawerLabel ?? title ?? route.name) as string);
+
+        const onPress = () => {
+          if (route.name === "transactions") {
+            router.replace(TRANSACTIONS_ROUTE);
+            navigation.dispatch(DrawerActions.closeDrawer());
+            return;
+          }
+          navigation.dispatch({
+            ...(focused
+              ? DrawerActions.closeDrawer()
+              : CommonActions.navigate(route)),
+            target: state.key,
+          });
+        };
+
+        return (
+          <DrawerItem
+            key={route.key}
+            route={route}
+            label={label}
+            icon={drawerIcon}
+            focused={focused}
+            activeTintColor={drawerActiveTintColor}
+            inactiveTintColor={drawerInactiveTintColor}
+            activeBackgroundColor={drawerActiveBackgroundColor}
+            inactiveBackgroundColor={drawerInactiveBackgroundColor}
+            style={drawerItemStyle}
+            labelStyle={drawerLabelStyle}
+            allowFontScaling={drawerAllowFontScaling}
+            onPress={onPress}
+          />
+        );
+      })}
+    </DrawerContentScrollView>
+  );
+}
 
 export default function DrawerLayout() {
   const theme = useTheme();
   const router = useRouter();
   const [fabOpen, setFabOpen] = useState(false);
+
+  const drawerContent = useCallback(
+    (props: DrawerContentComponentProps) => (
+      <CustomDrawerContent {...props} router={router} />
+    ),
+    [router]
+  );
 
   const onAddTransaction = useCallback(() => {
     setFabOpen(false);
@@ -54,6 +146,7 @@ export default function DrawerLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Drawer
+        drawerContent={drawerContent}
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.colors.surface,

@@ -599,7 +599,7 @@ export default function AccountsScreen() {
         onSurfaceVariantColor={onSurfaceVariantColor}
         onPress={() =>
           router.push(
-            `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
+            `/(drawer)/transactions?accountId=${account.id}&accountName=${encodeURIComponent(account.attributes.name)}` as Href
           )
         }
         onLongPress={() => handleLongPress(account)}

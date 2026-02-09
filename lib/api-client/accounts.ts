@@ -113,12 +113,13 @@ export async function getAccountTransactions(
   page: number = 1,
   start?: string,
   end?: string,
-  type?: string
+  type?: string,
+  limit?: number
 ): Promise<FireflyApiResponse<AccountTransactionGroup[]>> {
   const response = await api.get<FireflyApiResponse<AccountTransactionGroup[]>>(
     `accounts/${accountId}/transactions`,
     {
-      params: { page, start, end, type },
+      params: { page, start, end, type, limit },
     }
   );
   return response.data;
