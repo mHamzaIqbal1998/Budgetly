@@ -841,12 +841,13 @@ export default function TransactionsScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.4}
+        onEndReachedThreshold={0.5}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={12}
-        windowSize={7}
-        initialNumToRender={15}
-        updateCellsBatchingPeriod={50}
+        maxToRenderPerBatch={20}
+        windowSize={5}
+        initialNumToRender={10}
+        updateCellsBatchingPeriod={100}
+        disableVirtualization={false}
       />
 
       {/* Context Menu Modal */}
