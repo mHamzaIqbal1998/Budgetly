@@ -638,8 +638,14 @@ export default function TransactionsScreen() {
     const groupId = contextMenuTransaction._groupId;
     setContextMenuVisible(false);
     setContextMenuTransaction(null);
-    router.push(`/(drawer)/transaction/edit/${groupId}` as Href);
-  }, [contextMenuTransaction, router]);
+    if (accountId && accountName) {
+      router.push(
+        `/(drawer)/transaction/edit/${groupId}?accountId=${accountId}&accountName=${accountName}` as Href
+      );
+    } else {
+      router.push(`/(drawer)/transaction/edit/${groupId}` as Href);
+    }
+  }, [contextMenuTransaction, router, accountId, accountName]);
 
   const handleDeleteTransaction = useCallback(() => {
     if (!contextMenuTransaction) return;
