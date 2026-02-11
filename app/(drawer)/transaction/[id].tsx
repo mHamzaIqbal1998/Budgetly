@@ -149,7 +149,11 @@ export default function TransactionDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, accountId, accountName } = useLocalSearchParams<{
+    id: string;
+    accountId?: string;
+    accountName?: string;
+  }>();
   const balanceVisible = useStore(selectBalanceVisible);
 
   // Fetch transaction by ID
@@ -162,10 +166,16 @@ export default function TransactionDetailScreen() {
   const group = data?.data;
   const tx: AccountTransaction | undefined = group?.attributes.transactions[0];
 
-  // Navigation – always replace to transactions list to avoid stacking detail pages
+  // Navigation – go back to account transactions if coming from account, otherwise to main transactions
   const goBack = useCallback(() => {
-    router.replace(TRANSACTIONS_ROUTE);
-  }, [router]);
+    if (accountId && accountName) {
+      router.replace(
+        `/(drawer)/transactions?accountId=${accountId}&accountName=${accountName}` as Href
+      );
+    } else {
+      router.replace(TRANSACTIONS_ROUTE);
+    }
+  }, [router, accountId, accountName]);
 
   useEffect(() => {
     navigation.setOptions({

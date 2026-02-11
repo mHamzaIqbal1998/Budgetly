@@ -3,8 +3,8 @@ import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { GlassCard } from "@/components/glass-card";
 import { useCachedAccountsQuery } from "@/hooks/use-cached-query";
 import { apiClient } from "@/lib/api-client";
-import { queryClient } from "@/lib/query-client";
 import { formatAmount } from "@/lib/format-currency";
+import { queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
 import { filterAccountsByType } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
@@ -599,7 +599,7 @@ export default function AccountsScreen() {
         onSurfaceVariantColor={onSurfaceVariantColor}
         onPress={() =>
           router.push(
-            `/(drawer)/account/${account.id}?name=${encodeURIComponent(account.attributes.name)}` as Href
+            `/(drawer)/transactions?accountId=${account.id}&accountName=${encodeURIComponent(account.attributes.name)}` as Href
           )
         }
         onLongPress={() => handleLongPress(account)}

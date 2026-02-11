@@ -8,8 +8,20 @@ import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
-import { useRouter, type Href } from "expo-router";
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import {
+  useLocalSearchParams,
+  useNavigation,
+  useRouter,
+  type Href,
+} from "expo-router";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -486,12 +498,47 @@ const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
 export default function TransactionsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const navigation = useNavigation();
   const balanceVisible = useStore(selectBalanceVisible);
+  const { accountId, accountName } = useLocalSearchParams<{
+    accountId?: string;
+    accountName?: string;
+  }>();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
   const [contextMenuTransaction, setContextMenuTransaction] =
     useState<FlatTransaction | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
+
+  // Setup navigation header based on whether account info is provided
+  useEffect(() => {
+    if (accountId && accountId !== "" && accountName && accountName !== "") {
+      const title = decodeURIComponent(accountName);
+      navigation.setOptions({
+        title,
+        headerLeft: () => (
+          <Pressable
+            onPress={() => router.replace("/(drawer)/accounts")}
+            hitSlop={12}
+            style={({ pressed }) => [
+              { padding: 8, marginLeft: 4, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={theme.colors.onSurface}
+            />
+          </Pressable>
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        title: "Transactions",
+        headerLeft: undefined,
+      });
+    }
+  }, [navigation, accountId, accountName, router, theme.colors.onSurface]);
 
   // Infinite query: fetches pages of transactions from the API
   const {
@@ -503,15 +550,23 @@ export default function TransactionsScreen() {
     isRefetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["transactions", typeFilter],
+    queryKey: accountId
+      ? ["accountTransactions", accountId, typeFilter]
+      : ["transactions", typeFilter],
     queryFn: ({ pageParam }) =>
-      apiClient.getTransactions(
-        pageParam,
-        undefined,
-        undefined,
-        typeFilter === "all" ? undefined : typeFilter,
-        PAGE_SIZE
-      ),
+      accountId
+        ? apiClient.searchTransactions(
+            `account_id:${accountId}${typeFilter !== "all" ? ` type:${typeFilter}` : ""}`,
+            pageParam,
+            PAGE_SIZE
+          )
+        : apiClient.getTransactions(
+            pageParam,
+            undefined,
+            undefined,
+            typeFilter === "all" ? undefined : typeFilter,
+            PAGE_SIZE
+          ),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const totalPages = lastPage.meta?.pagination?.total_pages ?? 1;
@@ -707,7 +762,9 @@ export default function TransactionsScreen() {
         surfaceVariantColor={surfaceVariantColor}
         balanceVisible={balanceVisible}
         onPress={() =>
-          router.push(`/(drawer)/transaction/${item._groupId}` as Href)
+          router.push(
+            `/(drawer)/transaction/${item._groupId}${accountId ? `?accountId=${accountId}&accountName=${accountName}` : ""}` as Href
+          )
         }
         onLongPress={() => handleLongPress(item)}
       />
@@ -719,6 +776,8 @@ export default function TransactionsScreen() {
       balanceVisible,
       router,
       handleLongPress,
+      accountId,
+      accountName,
     ]
   );
 
