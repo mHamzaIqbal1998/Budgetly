@@ -45,10 +45,15 @@ export class FireflyApiClient {
           );
         case 404:
           return new Error("Resource not found.");
-        case 422:
-          return new Error(
+        case 422: {
+          // For validation errors, preserve the full response data
+          const validationError = new Error(
             data?.message || "Validation error. Please check your input."
           );
+          // Attach the full response data to the error object
+          (validationError as any).response = error.response;
+          return validationError;
+        }
         case 429:
           return new Error(
             "Too many requests. Please wait a moment and try again."

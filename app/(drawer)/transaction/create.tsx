@@ -10,6 +10,7 @@ import type {
   Budget,
   CreateTransactionData,
   PiggyBank,
+  UserCurrenciesList,
 } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -81,6 +82,8 @@ interface SplitState {
   piggyBankName: string;
   notes: string;
   tagsText: string;
+  foreignCurrencyCode: string;
+  foreignAmount: string;
 }
 
 function createEmptySplit(): SplitState {
@@ -101,6 +104,8 @@ function createEmptySplit(): SplitState {
     piggyBankName: "",
     notes: "",
     tagsText: "",
+    foreignCurrencyCode: "",
+    foreignAmount: "",
   };
 }
 
@@ -304,6 +309,9 @@ export default function CreateTransactionScreen() {
     AutocompleteSubscription[]
   >([]);
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
+  const [userCurrencies, setUserCurrencies] = useState<UserCurrenciesList[]>(
+    []
+  );
 
   // Shared form state (applies to all splits)
   const [txType, setTxType] = useState<TxType>("withdrawal");
@@ -334,6 +342,8 @@ export default function CreateTransactionScreen() {
   const [subscriptionModalVisible, setSubscriptionModalVisible] =
     useState(false);
   const [piggyBankModalVisible, setPiggyBankModalVisible] = useState(false);
+  const [foreignCurrencyModalVisible, setForeignCurrencyModalVisible] =
+    useState(false);
 
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -387,6 +397,16 @@ export default function CreateTransactionScreen() {
     [piggyBanks]
   );
 
+  const currencyItems: SelectorItem[] = useMemo(
+    () =>
+      userCurrencies.map((c) => ({
+        id: c.code,
+        label: `${c.name} (${c.code})`,
+        subtitle: c.symbol,
+      })),
+    [userCurrencies]
+  );
+
   // ---------------------------------------------------------------------------
   // Split helpers
   // ---------------------------------------------------------------------------
@@ -422,6 +442,7 @@ export default function CreateTransactionScreen() {
           categoriesList,
           subsList,
           piggyBanksResponse,
+          currenciesList,
         ] = await Promise.all([
           apiClient.getAllAccounts("all").catch(() => null),
           apiClient.getAllBudgets().catch(() => null),
@@ -432,6 +453,7 @@ export default function CreateTransactionScreen() {
             .getAutocompleteSubscriptions()
             .catch(() => [] as AutocompleteSubscription[]),
           apiClient.getPiggyBanks(1).catch(() => null),
+          apiClient.getUserCurrencies().catch(() => [] as UserCurrenciesList[]),
         ]);
 
         const accts = accountsResponse?.data;
@@ -442,6 +464,7 @@ export default function CreateTransactionScreen() {
         setSubscriptions(Array.isArray(subsList) ? subsList : []);
         const pbs = piggyBanksResponse?.data;
         setPiggyBanks(Array.isArray(pbs) ? pbs : []);
+        setUserCurrencies(Array.isArray(currenciesList) ? currenciesList : []);
 
         navigation.setOptions({ title: "Create Transaction" });
       } catch (error) {
@@ -538,6 +561,8 @@ export default function CreateTransactionScreen() {
             : undefined,
           notes: s.notes.trim() || null,
           tags: tags.length > 0 ? tags : null,
+          foreign_currency_code: s.foreignCurrencyCode || undefined,
+          foreign_amount: s.foreignAmount || undefined,
         };
       });
 
@@ -557,11 +582,42 @@ export default function CreateTransactionScreen() {
       Alert.alert("Success", "Transaction created successfully", [
         { text: "OK", onPress: () => router.replace(TRANSACTIONS_ROUTE) },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create transaction:", error);
-      const message =
-        error instanceof Error ? error.message : "Failed to create transaction";
-      Alert.alert("Error", message);
+
+      // Enhanced error handling with field names
+      let errorMessage = "Failed to create transaction";
+
+      if (error?.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages: string[] = [];
+
+        Object.entries(errors).forEach(([field, messages]) => {
+          const fieldName = field
+            .replace(/transactions\.\d+\./, "")
+            .replace(/_/g, " ");
+          const formattedFieldName =
+            fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+          const fieldMessages = Array.isArray(messages) ? messages : [messages];
+          errorMessages.push(
+            `${formattedFieldName}: ${fieldMessages.join(", ")}`
+          );
+        });
+
+        if (errorMessages.length > 0) {
+          errorMessage = errorMessages.join("\n");
+        }
+      } else if (error?.response?.data?.message) {
+        // If there's a message but no detailed errors, show the message
+        errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        // Last resort: try to stringify the error
+        errorMessage = JSON.stringify(error);
+      }
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -875,6 +931,66 @@ export default function CreateTransactionScreen() {
                   mode="outlined"
                   style={styles.input}
                   keyboardType="decimal-pad"
+                />
+
+                {/* Foreign Currency Section */}
+                <Divider style={styles.splitDivider} />
+
+                {/* Foreign Currency */}
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.fieldLabel,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
+                  Foreign Currency
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setActiveSelectorSplit(idx);
+                    setForeignCurrencyModalVisible(true);
+                  }}
+                  style={[
+                    styles.fieldTouchable,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outline,
+                    },
+                  ]}
+                >
+                  <Text
+                    variant="bodyLarge"
+                    style={{
+                      flex: 1,
+                      color: split.foreignCurrencyCode
+                        ? theme.colors.onSurface
+                        : theme.colors.onSurfaceVariant,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {split.foreignCurrencyCode
+                      ? userCurrencies.find(
+                          (c) => c.code === split.foreignCurrencyCode
+                        )?.name || split.foreignCurrencyCode
+                      : "Select foreign currency"}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="chevron-down"
+                    size={24}
+                    color={theme.colors.onSurfaceVariant}
+                  />
+                </Pressable>
+
+                {/* Foreign Amount */}
+                <TextInput
+                  label="Foreign Amount"
+                  value={split.foreignAmount}
+                  onChangeText={(v) => updateSplit(idx, { foreignAmount: v })}
+                  mode="outlined"
+                  style={styles.input}
+                  keyboardType="decimal-pad"
+                  placeholder="Enter foreign amount"
                 />
 
                 <Divider style={styles.splitDivider} />
@@ -1302,6 +1418,22 @@ export default function CreateTransactionScreen() {
           });
         }}
         onClose={() => setPiggyBankModalVisible(false)}
+        surfaceColor={theme.colors.surface}
+        primaryColor={theme.colors.primary}
+        outlineVariantColor={theme.colors.outlineVariant}
+      />
+
+      <SelectorModal
+        visible={foreignCurrencyModalVisible}
+        title="Select Foreign Currency"
+        items={currencyItems}
+        selectedId={splits[activeSelectorSplit]?.foreignCurrencyCode ?? null}
+        onSelect={(selId, label) => {
+          updateSplit(activeSelectorSplit, {
+            foreignCurrencyCode: selId || "",
+          });
+        }}
+        onClose={() => setForeignCurrencyModalVisible(false)}
         surfaceColor={theme.colors.surface}
         primaryColor={theme.colors.primary}
         outlineVariantColor={theme.colors.outlineVariant}
