@@ -250,7 +250,11 @@ export default function EditTransactionScreen() {
   const theme = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, accountId, accountName } = useLocalSearchParams<{
+    id: string;
+    accountId?: string;
+    accountName?: string;
+  }>();
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -297,6 +301,17 @@ export default function EditTransactionScreen() {
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
+
+  // ---------------------------------------------------------------------------
+  // Dynamic route for navigation based on account context
+  // ---------------------------------------------------------------------------
+
+  const backRoute = useMemo(() => {
+    if (accountId && accountName) {
+      return `${TRANSACTIONS_ROUTE}?accountId=${accountId}&accountName=${accountName}` as Href;
+    }
+    return TRANSACTIONS_ROUTE;
+  }, [accountId, accountName]);
 
   // ---------------------------------------------------------------------------
   // Derived selector data
@@ -381,7 +396,7 @@ export default function EditTransactionScreen() {
 
         if (!tx) {
           Alert.alert("Error", "Transaction not found");
-          router.replace(TRANSACTIONS_ROUTE);
+          router.replace(backRoute);
           return;
         }
 
@@ -419,13 +434,13 @@ export default function EditTransactionScreen() {
       } catch (error) {
         console.error("Failed to fetch transaction:", error);
         Alert.alert("Error", "Failed to load transaction details");
-        router.replace(TRANSACTIONS_ROUTE);
+        router.replace(backRoute);
       } finally {
         setIsLoading(false);
       }
     }
     fetchData();
-  }, [id, navigation, router]);
+  }, [id, navigation, router, backRoute]);
 
   // ---------------------------------------------------------------------------
   // Navigation: back button
@@ -435,7 +450,7 @@ export default function EditTransactionScreen() {
     navigation.setOptions({
       headerLeft: () => (
         <Pressable
-          onPress={() => router.replace(TRANSACTIONS_ROUTE)}
+          onPress={() => router.replace(backRoute)}
           hitSlop={16}
           style={({ pressed }) => [
             { padding: 8, marginLeft: 8, opacity: pressed ? 0.7 : 1 },
@@ -449,16 +464,16 @@ export default function EditTransactionScreen() {
         </Pressable>
       ),
     });
-  }, [navigation, router, theme.colors.onSurface]);
+  }, [navigation, router, theme.colors.onSurface, backRoute]);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      router.replace(TRANSACTIONS_ROUTE);
+      router.replace(backRoute);
       return true;
     });
     return () => sub.remove();
-  }, [router]);
+  }, [router, backRoute]);
 
   // ---------------------------------------------------------------------------
   // Save handler
@@ -518,13 +533,23 @@ export default function EditTransactionScreen() {
         }
       );
 
-      // Remove all cached infinite-query pages for the transactions list.
-      // This forces useInfiniteQuery to do a fresh fetch when the list
+      // Remove all cached infinite-query pages for transactions list.
+      // This forces useInfiniteQuery to do a fresh fetch when list
       // screen becomes active again, guaranteeing fresh data is displayed.
       queryClient.removeQueries({ queryKey: ["transactions"] });
 
+      // Also remove account transactions cache if we're coming from account context
+      if (accountId) {
+        queryClient.removeQueries({
+          queryKey: ["accountTransactions", accountId],
+        });
+      }
+
       Alert.alert("Success", "Transaction updated successfully", [
-        { text: "OK", onPress: () => router.replace(TRANSACTIONS_ROUTE) },
+        {
+          text: "OK",
+          onPress: () => router.replace(backRoute),
+        },
       ]);
     } catch (error) {
       console.error("Failed to update transaction:", error);
@@ -550,6 +575,8 @@ export default function EditTransactionScreen() {
     tagsText,
     journalId,
     router,
+    backRoute,
+    accountId,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -1085,7 +1112,7 @@ export default function EditTransactionScreen() {
 
             <Button
               mode="outlined"
-              onPress={() => router.replace(TRANSACTIONS_ROUTE)}
+              onPress={() => router.replace(backRoute)}
               disabled={isSaving}
               style={styles.cancelButton}
             >
