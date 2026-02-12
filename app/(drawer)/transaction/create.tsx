@@ -1,6 +1,7 @@
 // Create Transaction Screen
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import type {
@@ -578,6 +579,9 @@ export default function CreateTransactionScreen() {
 
       // Remove cached transaction list pages so the list refetches fresh
       queryClient.removeQueries({ queryKey: ["transactions"] });
+      cache.remove(CACHE_KEYS.ACCOUNTS);
+      queryClient.removeQueries({ queryKey: ["all-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
 
       Alert.alert("Success", "Transaction created successfully", [
         { text: "OK", onPress: () => router.replace(TRANSACTIONS_ROUTE) },

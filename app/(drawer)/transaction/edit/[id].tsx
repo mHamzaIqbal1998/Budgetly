@@ -1,6 +1,7 @@
 // Edit Transaction Screen
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import type {
@@ -450,7 +451,11 @@ export default function EditTransactionScreen() {
         setNotes(tx.notes || "");
         setTagsText(tx.tags && tx.tags.length > 0 ? tx.tags.join(", ") : "");
         setForeignCurrencyCode(tx.foreign_currency_code || "");
-        setForeignAmount(tx.foreign_amount || "");
+        setForeignAmount(
+          tx.foreign_amount
+            ? String(Math.abs(parseFloat(tx.foreign_amount)))
+            : ""
+        );
 
         navigation.setOptions({
           title: `Edit: ${tx.description || "Transaction"}`,
@@ -563,7 +568,9 @@ export default function EditTransactionScreen() {
       // This forces useInfiniteQuery to do a fresh fetch when list
       // screen becomes active again, guaranteeing fresh data is displayed.
       queryClient.removeQueries({ queryKey: ["transactions"] });
-
+      cache.remove(CACHE_KEYS.ACCOUNTS);
+      queryClient.removeQueries({ queryKey: ["all-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
       // Also remove account transactions cache if we're coming from account context
       if (accountId) {
         queryClient.removeQueries({
