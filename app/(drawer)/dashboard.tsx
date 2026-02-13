@@ -177,12 +177,7 @@ export default function DashboardScreen() {
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
-            refreshing={
-              accountsLoading ||
-              budgetsLoading ||
-              isLoadingBills ||
-              isLoadingExpenses
-            }
+            refreshing={accountsLoading || budgetsLoading || isLoadingBills}
             onRefresh={handleRefresh}
           />
         }

@@ -1,6 +1,7 @@
 // Transactions Screen – lists all transactions with infinite scroll and filters
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
@@ -669,6 +670,10 @@ export default function TransactionsScreen() {
               queryClient.removeQueries({
                 queryKey: ["transaction", groupId],
               });
+              queryClient.removeQueries({ queryKey: ["transactions"] });
+              cache.remove(CACHE_KEYS.ACCOUNTS);
+              queryClient.removeQueries({ queryKey: ["all-accounts"] });
+              queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
               // Refetch the transactions list to reflect the deletion
               refetch();
               Alert.alert("Success", "Transaction deleted successfully");

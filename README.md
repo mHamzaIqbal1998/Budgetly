@@ -11,7 +11,6 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 ## 🗺️ Roadmap
 
 - [x] Secure Connect with firefly instance
-- [-] Offline Support
 - [x] Dashboard
 - [x] Accounts Management
 - [x] Transactions Management
@@ -28,10 +27,33 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 - [ ] Biometric authentication
 - [ ] Theme customization options
 - [ ] Push notifications for recurring transactions
+- [ ] Offline Support (Semi implemented)
 - [ ] Offline transaction creation with sync
 - [ ] And a lot of new features requested by community
 
 ---
+
+## Screenshots
+
+<div align="center">
+
+| Accounts-1                           | Accounts-press-hold                                    | Dashboard-1                            |
+| ------------------------------------ | ------------------------------------------------------ | -------------------------------------- |
+| ![Accounts-1](Public/Accounts-1.jpg) | ![Accounts-press-hold](Public/Accounts-press-hold.jpg) | ![Dashboard-1](Public/Dashboard-1.jpg) |
+
+| Dashboard-2                            | Dashboard-3                            | Dashboard-4                            |
+| -------------------------------------- | -------------------------------------- | -------------------------------------- |
+| ![Dashboard-2](Public/Dashboard-2.jpg) | ![Dashboard-3](Public/Dashboard-3.jpg) | ![Dashboard-4](Public/Dashboard-4.jpg) |
+
+| create-account-1                                 | create-account-2                                 | create-transaction-1                                     |
+| ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- |
+| ![create-account-1](Public/create-account-1.jpg) | ![create-account-2](Public/create-account-2.jpg) | ![create-transaction-1](Public/create-transaction-1.jpg) |
+
+| create-transaction-2                                     | transactions-1                               | transactions-press-hold                                        |
+| -------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| ![create-transaction-2](Public/create-transaction-2.jpg) | ![transactions-1](Public/transactions-1.jpg) | ![transactions-press-hold](Public/transactions-press-hold.jpg) |
+
+</div>
 
 ## 🛠️ Tech Stack
 

@@ -82,6 +82,16 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="accounts"
+          options={{
+            title: "Accounts",
+            drawerLabel: "Accounts",
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="bank" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="transactions"
           listeners={{
             drawerItemPress: (e) => {
@@ -134,16 +144,6 @@ export default function DrawerLayout() {
                 size={size}
                 color={color}
               />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="accounts"
-          options={{
-            title: "Accounts",
-            drawerLabel: "Accounts",
-            drawerIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="bank" size={size} color={color} />
             ),
           }}
         />
