@@ -1,11 +1,11 @@
 // Drawer Navigation Layout
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, type Href } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
-import { Drawer } from "expo-router/drawer";
-import { FAB, Portal, useTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { FAB, Portal, useTheme } from "react-native-paper";
 
 export default function DrawerLayout() {
   const theme = useTheme();
@@ -82,7 +82,25 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="accounts"
+          options={{
+            title: "Accounts",
+            drawerLabel: "Accounts",
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="bank" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="transactions"
+          listeners={{
+            drawerItemPress: (e) => {
+              e.preventDefault();
+              router.push(
+                "/(drawer)/transactions?accountId=&accountName=" as Href
+              );
+            },
+          }}
           options={{
             title: "Transactions",
             drawerLabel: "Transactions",
@@ -126,16 +144,6 @@ export default function DrawerLayout() {
                 size={size}
                 color={color}
               />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="accounts"
-          options={{
-            title: "Accounts",
-            drawerLabel: "Accounts",
-            drawerIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="bank" size={size} color={color} />
             ),
           }}
         />

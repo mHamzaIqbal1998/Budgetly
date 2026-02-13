@@ -1,6 +1,7 @@
 // Edit Transaction Screen
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import type {
@@ -12,6 +13,7 @@ import type {
   Budget,
   FireflyApiResponse,
   TransactionUpdateData,
+  UserCurrenciesList,
 } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -39,6 +41,7 @@ import {
   Button,
   Card,
   Chip,
+  Divider,
   List,
   Searchbar,
   Text,
@@ -250,7 +253,11 @@ export default function EditTransactionScreen() {
   const theme = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, accountId, accountName } = useLocalSearchParams<{
+    id: string;
+    accountId?: string;
+    accountName?: string;
+  }>();
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -263,6 +270,9 @@ export default function EditTransactionScreen() {
   const [subscriptions, setSubscriptions] = useState<
     AutocompleteSubscription[]
   >([]);
+  const [userCurrencies, setUserCurrencies] = useState<UserCurrenciesList[]>(
+    []
+  );
 
   // Original transaction
   const [originalTx, setOriginalTx] = useState<AccountTransaction | null>(null);
@@ -285,6 +295,8 @@ export default function EditTransactionScreen() {
   const [subscriptionName, setSubscriptionName] = useState("");
   const [notes, setNotes] = useState("");
   const [tagsText, setTagsText] = useState("");
+  const [foreignCurrencyCode, setForeignCurrencyCode] = useState("");
+  const [foreignAmount, setForeignAmount] = useState("");
 
   // Selector modals
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
@@ -293,10 +305,23 @@ export default function EditTransactionScreen() {
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [subscriptionModalVisible, setSubscriptionModalVisible] =
     useState(false);
+  const [foreignCurrencyModalVisible, setForeignCurrencyModalVisible] =
+    useState(false);
 
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
+
+  // ---------------------------------------------------------------------------
+  // Dynamic route for navigation based on account context
+  // ---------------------------------------------------------------------------
+
+  const backRoute = useMemo(() => {
+    if (accountId && accountName) {
+      return `${TRANSACTIONS_ROUTE}?accountId=${accountId}&accountName=${accountName}` as Href;
+    }
+    return TRANSACTIONS_ROUTE;
+  }, [accountId, accountName]);
 
   // ---------------------------------------------------------------------------
   // Derived selector data
@@ -338,6 +363,16 @@ export default function EditTransactionScreen() {
     [subscriptions]
   );
 
+  const currencyItems: SelectorItem[] = useMemo(
+    () =>
+      userCurrencies.map((c) => ({
+        id: c.code,
+        label: `${c.name} (${c.code})`,
+        subtitle: c.symbol,
+      })),
+    [userCurrencies]
+  );
+
   // ---------------------------------------------------------------------------
   // Fetch data
   // ---------------------------------------------------------------------------
@@ -353,6 +388,7 @@ export default function EditTransactionScreen() {
           budgetsResponse,
           categoriesList,
           subsList,
+          currenciesList,
         ] = await Promise.all([
           apiClient.getTransaction(id),
           apiClient.getAllAccounts("all").catch(() => null),
@@ -363,6 +399,7 @@ export default function EditTransactionScreen() {
           apiClient
             .getAutocompleteSubscriptions()
             .catch(() => [] as AutocompleteSubscription[]),
+          apiClient.getUserCurrencies().catch(() => [] as UserCurrenciesList[]),
         ]);
 
         // Set reference data — getAllAccounts / getAllBudgets return
@@ -373,6 +410,7 @@ export default function EditTransactionScreen() {
         setBudgets(Array.isArray(bdgts) ? bdgts : []);
         setCategories(Array.isArray(categoriesList) ? categoriesList : []);
         setSubscriptions(Array.isArray(subsList) ? subsList : []);
+        setUserCurrencies(Array.isArray(currenciesList) ? currenciesList : []);
 
         // Parse transaction
         const group = (txResponse as FireflyApiResponse<any>).data;
@@ -381,7 +419,7 @@ export default function EditTransactionScreen() {
 
         if (!tx) {
           Alert.alert("Error", "Transaction not found");
-          router.replace(TRANSACTIONS_ROUTE);
+          router.replace(backRoute);
           return;
         }
 
@@ -412,6 +450,12 @@ export default function EditTransactionScreen() {
         setSubscriptionName(tx.bill_name || tx.subscription_name || "");
         setNotes(tx.notes || "");
         setTagsText(tx.tags && tx.tags.length > 0 ? tx.tags.join(", ") : "");
+        setForeignCurrencyCode(tx.foreign_currency_code || "");
+        setForeignAmount(
+          tx.foreign_amount
+            ? String(Math.abs(parseFloat(tx.foreign_amount)))
+            : ""
+        );
 
         navigation.setOptions({
           title: `Edit: ${tx.description || "Transaction"}`,
@@ -419,13 +463,13 @@ export default function EditTransactionScreen() {
       } catch (error) {
         console.error("Failed to fetch transaction:", error);
         Alert.alert("Error", "Failed to load transaction details");
-        router.replace(TRANSACTIONS_ROUTE);
+        router.replace(backRoute);
       } finally {
         setIsLoading(false);
       }
     }
     fetchData();
-  }, [id, navigation, router]);
+  }, [id, navigation, router, backRoute]);
 
   // ---------------------------------------------------------------------------
   // Navigation: back button
@@ -435,7 +479,7 @@ export default function EditTransactionScreen() {
     navigation.setOptions({
       headerLeft: () => (
         <Pressable
-          onPress={() => router.replace(TRANSACTIONS_ROUTE)}
+          onPress={() => router.replace(backRoute)}
           hitSlop={16}
           style={({ pressed }) => [
             { padding: 8, marginLeft: 8, opacity: pressed ? 0.7 : 1 },
@@ -449,16 +493,16 @@ export default function EditTransactionScreen() {
         </Pressable>
       ),
     });
-  }, [navigation, router, theme.colors.onSurface]);
+  }, [navigation, router, theme.colors.onSurface, backRoute]);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      router.replace(TRANSACTIONS_ROUTE);
+      router.replace(backRoute);
       return true;
     });
     return () => sub.remove();
-  }, [router]);
+  }, [router, backRoute]);
 
   // ---------------------------------------------------------------------------
   // Save handler
@@ -502,6 +546,8 @@ export default function EditTransactionScreen() {
             bill_id: subscriptionId || undefined,
             notes: notes.trim() || null,
             tags: tags.length > 0 ? tags : null,
+            foreign_currency_code: foreignCurrencyCode || undefined,
+            foreign_amount: foreignAmount || undefined,
           },
         ],
       };
@@ -518,19 +564,62 @@ export default function EditTransactionScreen() {
         }
       );
 
-      // Remove all cached infinite-query pages for the transactions list.
-      // This forces useInfiniteQuery to do a fresh fetch when the list
+      // Remove all cached infinite-query pages for transactions list.
+      // This forces useInfiniteQuery to do a fresh fetch when list
       // screen becomes active again, guaranteeing fresh data is displayed.
       queryClient.removeQueries({ queryKey: ["transactions"] });
+      cache.remove(CACHE_KEYS.ACCOUNTS);
+      queryClient.removeQueries({ queryKey: ["all-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+      // Also remove account transactions cache if we're coming from account context
+      if (accountId) {
+        queryClient.removeQueries({
+          queryKey: ["accountTransactions", accountId],
+        });
+      }
 
       Alert.alert("Success", "Transaction updated successfully", [
-        { text: "OK", onPress: () => router.replace(TRANSACTIONS_ROUTE) },
+        {
+          text: "OK",
+          onPress: () => router.replace(backRoute),
+        },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update transaction:", error);
-      const message =
-        error instanceof Error ? error.message : "Failed to update transaction";
-      Alert.alert("Error", message);
+
+      // Enhanced error handling with field names
+      let errorMessage = "Failed to update transaction";
+
+      if (error?.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages: string[] = [];
+
+        Object.entries(errors).forEach(([field, messages]) => {
+          const fieldName = field
+            .replace(/transactions\.\d+\./, "")
+            .replace(/_/g, " ");
+          const formattedFieldName =
+            fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+          const fieldMessages = Array.isArray(messages) ? messages : [messages];
+          errorMessages.push(
+            `${formattedFieldName}: ${fieldMessages.join(", ")}`
+          );
+        });
+
+        if (errorMessages.length > 0) {
+          errorMessage = errorMessages.join("\n");
+        }
+      } else if (error?.response?.data?.message) {
+        // If there's a message but no detailed errors, show the message
+        errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        // Last resort: try to stringify the error
+        errorMessage = JSON.stringify(error);
+      }
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -549,7 +638,11 @@ export default function EditTransactionScreen() {
     notes,
     tagsText,
     journalId,
+    foreignCurrencyCode,
+    foreignAmount,
     router,
+    backRoute,
+    accountId,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -679,6 +772,62 @@ export default function EditTransactionScreen() {
                   <TextInput.Affix text={originalTx?.currency_symbol || "$"} />
                 }
                 error={!amount.trim() || isNaN(parseFloat(amount))}
+              />
+
+              {/* Foreign Currency Section */}
+              <Divider style={styles.splitDivider} />
+
+              {/* Foreign Currency */}
+              <Text
+                variant="bodySmall"
+                style={[
+                  styles.fieldLabel,
+                  { color: theme.colors.onSurfaceVariant },
+                ]}
+              >
+                Foreign Currency
+              </Text>
+              <Pressable
+                onPress={() => setForeignCurrencyModalVisible(true)}
+                style={[
+                  styles.fieldTouchable,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outline,
+                  },
+                ]}
+              >
+                <Text
+                  variant="bodyLarge"
+                  style={{
+                    flex: 1,
+                    color: foreignCurrencyCode
+                      ? theme.colors.onSurface
+                      : theme.colors.onSurfaceVariant,
+                  }}
+                  numberOfLines={1}
+                >
+                  {foreignCurrencyCode
+                    ? userCurrencies.find((c) => c.code === foreignCurrencyCode)
+                        ?.name || foreignCurrencyCode
+                    : "Select foreign currency"}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={24}
+                  color={theme.colors.onSurfaceVariant}
+                />
+              </Pressable>
+
+              {/* Foreign Amount */}
+              <TextInput
+                label="Foreign Amount"
+                value={foreignAmount}
+                onChangeText={setForeignAmount}
+                mode="outlined"
+                style={styles.input}
+                keyboardType="decimal-pad"
+                placeholder="Enter foreign amount"
               />
 
               {/* Date picker field */}
@@ -1085,7 +1234,7 @@ export default function EditTransactionScreen() {
 
             <Button
               mode="outlined"
-              onPress={() => router.replace(TRANSACTIONS_ROUTE)}
+              onPress={() => router.replace(backRoute)}
               disabled={isSaving}
               style={styles.cancelButton}
             >
@@ -1168,6 +1317,20 @@ export default function EditTransactionScreen() {
           setSubscriptionName(label);
         }}
         onClose={() => setSubscriptionModalVisible(false)}
+        surfaceColor={theme.colors.surface}
+        primaryColor={theme.colors.primary}
+        outlineVariantColor={theme.colors.outlineVariant}
+      />
+
+      <SelectorModal
+        visible={foreignCurrencyModalVisible}
+        title="Select Foreign Currency"
+        items={currencyItems}
+        selectedId={foreignCurrencyCode}
+        onSelect={(selId, label) => {
+          setForeignCurrencyCode(selId || "");
+        }}
+        onClose={() => setForeignCurrencyModalVisible(false)}
         surfaceColor={theme.colors.surface}
         primaryColor={theme.colors.primary}
         outlineVariantColor={theme.colors.outlineVariant}
@@ -1321,5 +1484,8 @@ const styles = StyleSheet.create({
   },
   datePickerIOS: {
     alignSelf: "center",
+  },
+  splitDivider: {
+    marginVertical: 8,
   },
 });

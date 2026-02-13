@@ -102,6 +102,19 @@ class FireflyApiClientImpl extends FireflyApiClient {
     );
   }
 
+  async searchTransactions(
+    query: string,
+    page: number = 1,
+    limit: number = 20
+  ) {
+    return transactionsModule.searchTransactions(
+      this.ensureInitialized(),
+      query,
+      page,
+      limit
+    );
+  }
+
   async getTransaction(id: string) {
     return transactionsModule.getTransaction(this.ensureInitialized(), id);
   }

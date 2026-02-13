@@ -23,6 +23,21 @@ export async function getTransactions(
   return response.data;
 }
 
+export async function searchTransactions(
+  api: AxiosInstance,
+  query: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<FireflyApiResponse<AccountTransactionGroup[]>> {
+  // Manually construct the URL to control encoding
+  const encodedQuery = encodeURIComponent(query);
+  const url = `search/transactions?page=${page}&limit=${limit}&query=${encodedQuery}`;
+
+  const response =
+    await api.get<FireflyApiResponse<AccountTransactionGroup[]>>(url);
+  return response.data;
+}
+
 export async function getTransaction(
   api: AxiosInstance,
   id: string
