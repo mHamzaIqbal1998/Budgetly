@@ -117,7 +117,7 @@ export interface CreateBudgetData {
   active?: boolean;
   notes?: string | null;
   fire_webhooks?: boolean;
-  auto_budget_type?: "reset" | "rollover" | "none" | null;
+  auto_budget_type?: "reset" | "rollover" | "adjusted" | "none" | null;
   auto_budget_currency_id?: string | null;
   auto_budget_currency_code?: string | null;
   auto_budget_amount?: string | null;
@@ -137,7 +137,7 @@ export interface UpdateBudgetData {
   order?: number;
   notes?: string | null;
   fire_webhooks?: boolean;
-  auto_budget_type?: "reset" | "rollover" | "none" | null;
+  auto_budget_type?: "reset" | "rollover" | "adjusted" | "none" | null;
   auto_budget_currency_id?: string | null;
   auto_budget_currency_code?: string | null;
   auto_budget_amount?: string | null;

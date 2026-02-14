@@ -42,7 +42,8 @@ const BUDGETS_ROUTE = "/(drawer)/budgets" as Href;
 
 const AUTO_BUDGET_TYPE_LABELS: Record<string, string> = {
   reset: "Set a fixed amount every period",
-  rollover: "Add an amount every period and correct for overspending",
+  rollover: "Add an amount every period",
+  adjusted: "Add an amount every period and correct for overspending",
   none: "No auto-budget",
 };
 
@@ -536,7 +537,9 @@ export default function BudgetDetailScreen() {
               >
                 {attrs!.auto_budget_type === "reset"
                   ? "Auto (Reset)"
-                  : "Auto (Rollover)"}
+                  : attrs!.auto_budget_type === "adjusted"
+                    ? "Auto (Adjusted)"
+                    : "Auto (Rollover)"}
               </Chip>
             )}
           </View>

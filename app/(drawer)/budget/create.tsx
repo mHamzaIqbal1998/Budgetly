@@ -37,11 +37,11 @@ const BUDGETS_ROUTE = "/(drawer)/budgets" as Href;
 // ---------------------------------------------------------------------------
 
 interface AutoBudgetOption {
-  value: "none" | "reset" | "rollover" | "rollover_simple";
+  value: "none" | "reset" | "rollover" | "adjusted";
   label: string;
   description: string;
   /** Actual API value sent */
-  apiValue: "none" | "reset" | "rollover";
+  apiValue: "none" | "reset" | "rollover" | "adjusted";
 }
 
 const AUTO_BUDGET_TYPE_OPTIONS: AutoBudgetOption[] = [
@@ -58,16 +58,16 @@ const AUTO_BUDGET_TYPE_OPTIONS: AutoBudgetOption[] = [
     apiValue: "reset",
   },
   {
-    value: "rollover_simple",
+    value: "rollover",
     label: "Add an amount every period",
     description: "Adds the configured amount to the budget each period",
     apiValue: "rollover",
   },
   {
-    value: "rollover",
+    value: "adjusted",
     label: "Add an amount every period and correct for overspending",
     description: "Carries over unspent or overspent amounts to the next period",
-    apiValue: "rollover",
+    apiValue: "adjusted",
   },
 ];
 
