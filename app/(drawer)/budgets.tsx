@@ -522,17 +522,16 @@ export default function BudgetsScreen() {
             try {
               await apiClient.deleteBudget(budgetId);
               // Invalidate all budget caches
-              queryClient.removeQueries({ queryKey: ["budgets-list"] });
-              queryClient.removeQueries({ queryKey: ["all-budgets"] });
-              queryClient.removeQueries({ queryKey: ["all-budget-limits"] });
-              queryClient.removeQueries({
-                queryKey: ["budget-detail", budgetId],
-              });
-              queryClient.removeQueries({
-                queryKey: ["budget-limits-detail", budgetId],
-              });
-              queryClient.invalidateQueries({ queryKey: ["budgets-list"] });
-              queryClient.invalidateQueries({ queryKey: ["all-budgets"] });
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["budgets-list"] }),
+                queryClient.invalidateQueries({ queryKey: ["all-budgets"] }),
+                queryClient.invalidateQueries({
+                  queryKey: ["budget-detail", budgetId],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["budget-limits-detail", budgetId],
+                }),
+              ]);
               refetchBudgets();
               refetchLimits();
               Alert.alert("Success", "Budget deleted successfully");

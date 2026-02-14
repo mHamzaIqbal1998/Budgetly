@@ -510,13 +510,14 @@ export default function BudgetDetailScreen() {
                     : theme.colors.error + "20",
                 },
               ]}
-              textStyle={{
-                color: attrs!.active
-                  ? theme.colors.primary
-                  : theme.colors.error,
-                fontSize: 12,
-                fontWeight: "600",
-              }}
+              textStyle={[
+                styles.statusChipText,
+                {
+                  color: attrs!.active
+                    ? theme.colors.primary
+                    : theme.colors.error,
+                },
+              ]}
             >
               {attrs!.active ? "Active" : "Inactive"}
             </Chip>
@@ -528,11 +529,10 @@ export default function BudgetDetailScreen() {
                   styles.statusChip,
                   { backgroundColor: SpotifyColors.orange + "20" },
                 ]}
-                textStyle={{
-                  color: SpotifyColors.orange,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
+                textStyle={[
+                  styles.statusChipText,
+                  { color: SpotifyColors.orange },
+                ]}
               >
                 {attrs!.auto_budget_type === "reset"
                   ? "Auto (Reset)"
@@ -767,7 +767,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   statusChip: {
-    height: 28,
+    height: 32,
+  },
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
   },
 
   // Card
@@ -830,11 +835,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   periodChip: {
-    height: 24,
+    height: 32,
     backgroundColor: "rgba(255,255,255,0.08)",
   },
   periodChipText: {
     fontSize: 10,
+    lineHeight: 16,
+    fontWeight: "500",
   },
   limitProgressSection: {
     marginBottom: 10,
@@ -864,13 +871,14 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: SpotifyColors.danger,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 10,
   },
   overBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
+    lineHeight: 14,
   },
   limitAmountsRow: {
     flexDirection: "row",

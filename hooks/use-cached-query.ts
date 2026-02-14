@@ -115,7 +115,7 @@ export function useCachedBudgetLimitsQuery(
   }, [query.isSuccess, query.data, setCachedBudgetLimits]);
 
   const dataToReturn =
-    query.isError && cachedBudgetLimits !== null
+    (query.isPending || query.isError) && cachedBudgetLimits !== null
       ? cachedBudgetLimits
       : query.data;
 
