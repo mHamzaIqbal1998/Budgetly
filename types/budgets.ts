@@ -115,15 +115,38 @@ export interface BudgetLimitsListResponse extends FireflyApiResponse<
 export interface CreateBudgetData {
   name: string;
   active?: boolean;
-  auto_budget_type?: "reset" | "rollover" | "none";
-  auto_budget_currency_id?: string;
-  auto_budget_currency_code?: string;
-  auto_budget_amount?: string;
+  notes?: string | null;
+  fire_webhooks?: boolean;
+  auto_budget_type?: "reset" | "rollover" | "adjusted" | "none" | null;
+  auto_budget_currency_id?: string | null;
+  auto_budget_currency_code?: string | null;
+  auto_budget_amount?: string | null;
   auto_budget_period?:
     | "daily"
     | "weekly"
     | "monthly"
     | "quarterly"
-    | "half_year"
-    | "yearly";
+    | "half-year"
+    | "yearly"
+    | null;
+}
+
+export interface UpdateBudgetData {
+  name: string;
+  active?: boolean;
+  order?: number;
+  notes?: string | null;
+  fire_webhooks?: boolean;
+  auto_budget_type?: "reset" | "rollover" | "adjusted" | "none" | null;
+  auto_budget_currency_id?: string | null;
+  auto_budget_currency_code?: string | null;
+  auto_budget_amount?: string | null;
+  auto_budget_period?:
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "quarterly"
+    | "half-year"
+    | "yearly"
+    | null;
 }

@@ -3,6 +3,7 @@ import type {
   BudgetLimitsListResponse,
   CreateBudgetData,
   FireflyApiResponse,
+  UpdateBudgetData,
 } from "@/types";
 import type { AxiosInstance } from "axios";
 
@@ -73,7 +74,7 @@ export async function createBudget(
 export async function updateBudget(
   api: AxiosInstance,
   id: string,
-  data: Partial<CreateBudgetData>
+  data: UpdateBudgetData
 ): Promise<FireflyApiResponse<Budget>> {
   const response = await api.put<FireflyApiResponse<Budget>>(
     `budgets/${id}`,
@@ -87,6 +88,19 @@ export async function deleteBudget(
   id: string
 ): Promise<void> {
   await api.delete(`budgets/${id}`);
+}
+
+export async function getBudgetLimitsForBudget(
+  api: AxiosInstance,
+  id: string,
+  start: string,
+  end: string
+): Promise<BudgetLimitsListResponse> {
+  const response = await api.get<BudgetLimitsListResponse>(
+    `budgets/${id}/limits`,
+    { params: { start, end } }
+  );
+  return response.data;
 }
 
 export async function getBudgetLimits(

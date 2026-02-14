@@ -1,312 +1,1023 @@
-// Budgets Screen
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { 
-  Card, 
-  Text, 
-  FAB, 
-  Portal, 
-  Modal, 
-  TextInput, 
-  Button, 
-  useTheme,
-  ProgressBar,
-  Switch,
-  IconButton,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { CreateBudgetData } from '@/types/firefly';
-import { GlassCard } from '@/components/glass-card';
+// Budgets Screen – lists all budgets with infinite scroll and progress indicators
+import { GlassCard } from "@/components/glass-card";
+import { SpotifyColors } from "@/constants/spotify-theme";
+import { useCachedBudgetLimitsQuery } from "@/hooks/use-cached-query";
+import { apiClient } from "@/lib/api-client";
+import { formatAmount } from "@/lib/format-currency";
+import { useStore } from "@/lib/store";
+import { getCurrentMonthStartEndDate } from "@/lib/utils";
+import type { Budget, BudgetLimit } from "@/types";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter, type Href } from "expo-router";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
+import { Card, Modal, Portal, Text, useTheme } from "react-native-paper";
+
+// ---------------------------------------------------------------------------
+// Types & Constants
+// ---------------------------------------------------------------------------
+
+/** Enriched budget item for the flat list, combining Budget + optional BudgetLimit info */
+interface FlatBudgetItem {
+  budget: Budget;
+  limit: BudgetLimit | null;
+  _flatKey: string;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getSpentAmount(limit: BudgetLimit | null): {
+  spent: number;
+  symbol: string;
+} {
+  if (!limit) return { spent: 0, symbol: "" };
+  const spentList = limit.attributes.spent;
+  if (!spentList?.length)
+    return { spent: 0, symbol: limit.attributes.currency_symbol ?? "" };
+  const currencyCode =
+    limit.attributes.currency_code ??
+    limit.attributes.primary_currency_code ??
+    spentList[0]?.currency_code;
+  const entry = spentList.find((s) => s.currency_code === currencyCode);
+  if (!entry)
+    return { spent: 0, symbol: limit.attributes.currency_symbol ?? "" };
+  return {
+    spent: Math.abs(parseFloat(entry.sum)),
+    symbol: entry.currency_symbol ?? entry.currency_code,
+  };
+}
+
+function getBudgetTotal(limit: BudgetLimit | null): number {
+  if (!limit?.attributes.amount) return 0;
+  return parseFloat(limit.attributes.amount);
+}
+
+function formatBudgetDateRange(start: string, end: string): string | null {
+  if (!start || !end) return null;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()))
+    return null;
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+  };
+  return `${startDate.toLocaleDateString(undefined, opts)} – ${endDate.toLocaleDateString(undefined, opts)}`;
+}
+
+const PERIOD_LABELS: Record<string, string> = {
+  daily: "Today",
+  weekly: "This week",
+  monthly: "This month",
+  quarterly: "This quarter",
+  half_year: "This half year",
+  yearly: "This year",
+};
+
+function getPeriodLabel(period?: string): string {
+  if (!period) return "This period";
+  return PERIOD_LABELS[period] ?? "This period";
+}
+
+// ---------------------------------------------------------------------------
+// Memoized Budget Card
+// ---------------------------------------------------------------------------
+
+interface BudgetCardProps {
+  item: FlatBudgetItem;
+  primaryColor: string;
+  balanceVisible: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+}
+
+const BudgetCard = memo(
+  function BudgetCard({
+    item,
+    primaryColor,
+    balanceVisible,
+    onPress,
+    onLongPress,
+  }: BudgetCardProps) {
+    const { budget, limit } = item;
+    const totalBudget = getBudgetTotal(limit);
+    const { spent, symbol } = getSpentAmount(limit);
+    const progressRatio = totalBudget > 0 ? spent / totalBudget : 0;
+    const progress = Math.min(progressRatio, 1);
+    const remaining = totalBudget > 0 ? Math.max(totalBudget - spent, 0) : 0;
+
+    const fillColor =
+      progressRatio >= 1
+        ? SpotifyColors.danger
+        : progressRatio > 0.7
+          ? SpotifyColors.orange
+          : SpotifyColors.green;
+
+    const isOverBudget = progressRatio >= 1;
+    const isActive = budget.attributes.active;
+    const periodText = getPeriodLabel(budget.attributes.auto_budget_period);
+    const dateRange = limit
+      ? formatBudgetDateRange(limit.attributes.start, limit.attributes.end)
+      : null;
+
+    const currencySymbol =
+      symbol ||
+      budget.attributes.currency_symbol ||
+      budget.attributes.primary_currency_symbol ||
+      "";
+
+    return (
+      <Pressable onPress={onPress} onLongPress={onLongPress}>
+        <GlassCard variant="elevated" style={styles.budgetCard}>
+          <Card.Content style={styles.cardContent}>
+            {/* Header: Name + Status badge */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
+                <View
+                  style={[
+                    styles.iconWrap,
+                    {
+                      backgroundColor: isActive
+                        ? `${primaryColor}20`
+                        : "rgba(255,255,255,0.08)",
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={isActive ? "wallet" : "wallet-outline"}
+                    size={22}
+                    color={
+                      isActive ? primaryColor : SpotifyColors.textSecondary
+                    }
+                  />
+                </View>
+                <View style={styles.nameContainer}>
+                  <Text
+                    variant="titleMedium"
+                    numberOfLines={1}
+                    style={styles.budgetName}
+                  >
+                    {budget.attributes.name}
+                  </Text>
+                  {dateRange && (
+                    <Text
+                      variant="labelSmall"
+                      numberOfLines={1}
+                      style={styles.periodText}
+                    >
+                      {periodText} · {dateRange}
+                    </Text>
+                  )}
+                  {!dateRange && (
+                    <Text
+                      variant="labelSmall"
+                      numberOfLines={1}
+                      style={styles.periodText}
+                    >
+                      {periodText}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              {isOverBudget && (
+                <View style={styles.overBudgetBadge}>
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={14}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.overBudgetText}>Over</Text>
+                </View>
+              )}
+              {!isOverBudget && !isActive && (
+                <View style={styles.inactiveBadge}>
+                  <Text style={styles.inactiveBadgeText}>Inactive</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Progress Section */}
+            {totalBudget > 0 && (
+              <View style={styles.progressSection}>
+                {/* Progress Bar */}
+                <View style={styles.progressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${progress * 100}%`,
+                        backgroundColor: fillColor,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Percentage Label */}
+                <View style={styles.percentageRow}>
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.percentageText, { color: fillColor }]}
+                  >
+                    {(progressRatio * 100).toFixed(0)}% used
+                  </Text>
+                  <Text variant="labelSmall" style={styles.remainingText}>
+                    {balanceVisible
+                      ? `${currencySymbol} ${formatAmount(remaining)} left`
+                      : "•••••• left"}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Amounts Row */}
+            {(spent > 0 || totalBudget > 0) && (
+              <View style={styles.amountsRow}>
+                <View style={styles.amountBlock}>
+                  <Text variant="labelSmall" style={styles.amountLabel}>
+                    Spent
+                  </Text>
+                  <Text
+                    variant="titleMedium"
+                    style={[
+                      styles.amountValue,
+                      {
+                        color:
+                          spent > 0
+                            ? isOverBudget
+                              ? SpotifyColors.danger
+                              : SpotifyColors.orange
+                            : SpotifyColors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {currencySymbol}{" "}
+                    {balanceVisible ? formatAmount(spent) : "••••••"}
+                  </Text>
+                </View>
+                {totalBudget > 0 && (
+                  <View style={[styles.amountBlock, styles.amountBlockRight]}>
+                    <Text variant="labelSmall" style={styles.amountLabel}>
+                      Budget
+                    </Text>
+                    <Text variant="titleMedium" style={styles.amountValue}>
+                      {currencySymbol}{" "}
+                      {balanceVisible ? formatAmount(totalBudget) : "••••••"}
+                    </Text>
+                  </View>
+                )}
+                {totalBudget === 0 && spent > 0 && (
+                  <View style={[styles.amountBlock, styles.amountBlockRight]}>
+                    <Text variant="labelSmall" style={styles.amountLabel}>
+                      Budget
+                    </Text>
+                    <Text
+                      variant="titleMedium"
+                      style={[
+                        styles.amountValue,
+                        { color: SpotifyColors.textSecondary },
+                      ]}
+                    >
+                      No limit
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* No spent data at all */}
+            {spent === 0 && totalBudget === 0 && (
+              <View style={styles.noDataRow}>
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={16}
+                  color={SpotifyColors.textSecondary}
+                />
+                <Text variant="bodySmall" style={styles.noDataText}>
+                  No budget limit set for this period
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </GlassCard>
+      </Pressable>
+    );
+  },
+  (prev, next) =>
+    prev.item._flatKey === next.item._flatKey &&
+    prev.item.limit?.id === next.item.limit?.id &&
+    prev.primaryColor === next.primaryColor &&
+    prev.balanceVisible === next.balanceVisible
+);
+
+// ---------------------------------------------------------------------------
+// Zustand selector
+// ---------------------------------------------------------------------------
+
+const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
+  state.balanceVisible;
+
+// ---------------------------------------------------------------------------
+// Main Screen
+// ---------------------------------------------------------------------------
 
 export default function BudgetsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  
-  const [modalVisible, setModalVisible] = useState(false);
-  const [name, setName] = useState('');
-  const [active, setActive] = useState(true);
+  const balanceVisible = useStore(selectBalanceVisible);
 
-  // Fetch budgets
-  const { data: budgetsData, isLoading, refetch } = useQuery({
-    queryKey: ['budgets'],
-    queryFn: () => apiClient.getBudgets(),
-  });
+  // Context menu state
+  const [contextMenuBudget, setContextMenuBudget] =
+    useState<FlatBudgetItem | null>(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
-  // Create budget mutation
-  const createMutation = useMutation({
-    mutationFn: (data: CreateBudgetData) => apiClient.createBudget(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      resetForm();
-      setModalVisible(false);
+  // Budget limits (same date range as dashboard – current month)
+  const budgetDateRange = getCurrentMonthStartEndDate();
+
+  const {
+    data: budgetLimitsData,
+    isLoading: limitsLoading,
+    refetch: refetchLimits,
+  } = useCachedBudgetLimitsQuery(
+    ["all-budgets", budgetDateRange.startDateString, budgetDateRange.endDate],
+    () =>
+      apiClient.getAllBudgetLimits(
+        budgetDateRange.startDateString,
+        budgetDateRange.endDate
+      )
+  );
+
+  // Infinite query for paginated budgets list (name, active, period, etc.)
+  const {
+    data: budgetsPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: budgetsLoading,
+    isRefetching,
+    refetch: refetchBudgets,
+  } = useInfiniteQuery({
+    queryKey: ["budgets-list"],
+    queryFn: ({ pageParam }) => apiClient.getBudgets(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const totalPages = lastPage.meta?.pagination?.total_pages ?? 1;
+      const currentPage = allPages.length;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
     },
   });
 
-  // Delete budget mutation
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiClient.deleteBudget(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-    },
-  });
-
-  const resetForm = () => {
-    setName('');
-    setActive(true);
-  };
-
-  const handleSubmit = () => {
-    if (!name) {
-      return;
+  // Build a map of budget_id -> BudgetLimit for O(1) lookup
+  const limitsByBudgetId = useMemo(() => {
+    const map = new Map<string, BudgetLimit>();
+    const limits = budgetLimitsData?.data ?? [];
+    for (const limit of limits) {
+      const budgetId = String(limit.attributes.budget_id);
+      if (budgetId) {
+        // If multiple limits for the same budget, take the latest one
+        const existing = map.get(budgetId);
+        if (!existing) {
+          map.set(budgetId, limit);
+        }
+      }
     }
+    return map;
+  }, [budgetLimitsData?.data]);
 
-    const budgetData: CreateBudgetData = {
-      name,
-      active,
-    };
+  // Flatten all pages of budgets into a single list
+  const allBudgets = useMemo(
+    () => budgetsPages?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [budgetsPages]
+  );
 
-    createMutation.mutate(budgetData);
-  };
+  // Build FlatBudgetItem[] merging budget info + limit data
+  const flatData: FlatBudgetItem[] = useMemo(() => {
+    return allBudgets.map((budget, index) => ({
+      budget,
+      limit: limitsByBudgetId.get(String(budget.id)) ?? null,
+      _flatKey: `budget-${budget.id}-${index}`,
+    }));
+  }, [allBudgets, limitsByBudgetId]);
 
-  const calculateProgress = (spent: any[], limit?: string) => {
-    if (!spent || spent.length === 0 || !limit) return 0;
-    const spentAmount = Math.abs(parseFloat(spent[0].amount));
-    const limitAmount = parseFloat(limit);
-    return limitAmount > 0 ? spentAmount / limitAmount : 0;
-  };
+  // -----------------------------------------------------------------------
+  // Stable callbacks
+  // -----------------------------------------------------------------------
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handleRefresh = useCallback(() => {
+    refetchBudgets();
+    refetchLimits();
+  }, [refetchBudgets, refetchLimits]);
+
+  // Refetch data when screen comes into focus (e.g., after creating a budget)
+  useFocusEffect(
+    useCallback(() => {
+      refetchBudgets();
+      refetchLimits();
+    }, [refetchBudgets, refetchLimits])
+  );
+
+  // -----------------------------------------------------------------------
+  // Context menu handlers
+  // -----------------------------------------------------------------------
+
+  const handlePress = useCallback(
+    (item: FlatBudgetItem) => {
+      router.push(`/(drawer)/budget/${item.budget.id}` as Href);
+    },
+    [router]
+  );
+
+  const handleLongPress = useCallback((item: FlatBudgetItem) => {
+    setContextMenuBudget(item);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+  }, []);
+
+  const handleEditBudget = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetId = contextMenuBudget.budget.id;
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+    router.push(`/(drawer)/budget/edit/${budgetId}` as Href);
+  }, [contextMenuBudget, router]);
+
+  const handleViewDetails = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetId = contextMenuBudget.budget.id;
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+    router.push(`/(drawer)/budget/${budgetId}` as Href);
+  }, [contextMenuBudget, router]);
+
+  const handleDeleteBudget = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetName =
+      contextMenuBudget.budget.attributes.name || "this budget";
+    const budgetId = contextMenuBudget.budget.id;
+    Alert.alert(
+      "Delete Budget",
+      `Delete "${budgetName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuBudget(null);
+            try {
+              await apiClient.deleteBudget(budgetId);
+              // Invalidate all budget caches
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["budgets-list"] }),
+                queryClient.invalidateQueries({ queryKey: ["all-budgets"] }),
+                queryClient.invalidateQueries({
+                  queryKey: ["budget-detail", budgetId],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["budget-limits-detail", budgetId],
+                }),
+              ]);
+              refetchBudgets();
+              refetchLimits();
+              Alert.alert("Success", "Budget deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete budget:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete budget";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuBudget, queryClient, refetchBudgets, refetchLimits]);
+
+  // -----------------------------------------------------------------------
+  // Memoized sub-components
+  // -----------------------------------------------------------------------
+
+  const isLoading = budgetsLoading || limitsLoading;
+
+  const primaryColor = theme.colors.primary;
+
+  const listEmpty = useMemo(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text variant="bodyMedium" style={styles.loadingText}>
+            Loading budgets...
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyIconWrap}>
+          <MaterialCommunityIcons
+            name="wallet-plus"
+            size={64}
+            color={theme.colors.onSurfaceVariant}
+          />
+        </View>
+        <Text variant="headlineSmall" style={styles.emptyTitle}>
+          No budgets yet
+        </Text>
+        <Text variant="bodyMedium" style={styles.emptySubtitle}>
+          Create your first budget to start tracking your spending
+        </Text>
+      </View>
+    );
+  }, [isLoading, theme.colors.primary, theme.colors.onSurfaceVariant]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: FlatBudgetItem }) => (
+      <BudgetCard
+        item={item}
+        primaryColor={primaryColor}
+        balanceVisible={balanceVisible}
+        onPress={() => handlePress(item)}
+        onLongPress={() => handleLongPress(item)}
+      />
+    ),
+    [primaryColor, balanceVisible, handlePress, handleLongPress]
+  );
+
+  const keyExtractor = useCallback((item: FlatBudgetItem) => item._flatKey, []);
+
+  const footer = useMemo(() => {
+    if (!hasNextPage || flatData.length === 0) return null;
+    if (isFetchingNextPage) {
+      return (
+        <View style={styles.footer}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text variant="bodySmall" style={styles.footerText}>
+            Loading more...
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }, [hasNextPage, flatData.length, isFetchingNextPage, theme.colors.primary]);
+
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView 
-        style={styles.scrollView}
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <FlatList
+        data={flatData}
+        extraData={balanceVisible}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListEmptyComponent={listEmpty}
+        ListFooterComponent={footer}
+        contentContainerStyle={[
+          styles.listContent,
+          flatData.length === 0 && !isLoading && styles.listContentEmpty,
+        ]}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isRefetching && !isLoading}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+          />
         }
-      >
-        {isLoading ? (
-          <View style={styles.centerContent}>
-            <Text>Loading budgets...</Text>
-          </View>
-        ) : budgetsData?.data.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons 
-              name="wallet-plus" 
-              size={64} 
-              color={theme.colors.onSurfaceVariant} 
-            />
-            <Text variant="headlineSmall" style={{ marginTop: 16 }}>No budgets yet</Text>
-            <Text variant="bodyMedium" style={{ marginTop: 8, opacity: 0.6, textAlign: 'center' }}>
-              Create your first budget to start tracking your spending
-            </Text>
-          </View>
-        ) : (
-          budgetsData?.data.map((budget) => {
-            const spent = budget.attributes.spent?.[0];
-            const spentAmount = spent ? Math.abs(parseFloat(spent.amount)) : 0;
-            const progress = budget.attributes.auto_budget_amount 
-              ? calculateProgress(budget.attributes.spent || [], budget.attributes.auto_budget_amount)
-              : 0;
-
-            return (
-              <GlassCard key={budget.id} variant="elevated" style={styles.budgetCard}>
-                <Card.Content>
-                  <View style={styles.budgetHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
-                        {budget.attributes.name}
-                      </Text>
-                      {budget.attributes.auto_budget_period && (
-                        <Text variant="bodySmall" style={{ opacity: 0.6, marginTop: 4 }}>
-                          Period: {budget.attributes.auto_budget_period}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.budgetActions}>
-                      <MaterialCommunityIcons
-                        name={budget.attributes.active ? 'check-circle' : 'circle-outline'}
-                        size={24}
-                        color={budget.attributes.active ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                      />
-                      <IconButton
-                        icon="delete"
-                        size={20}
-                        onPress={() => deleteMutation.mutate(budget.id)}
-                      />
-                    </View>
-                  </View>
-
-                  {spent && (
-                    <>
-                      <View style={styles.budgetAmounts}>
-                        <View>
-                          <Text variant="bodySmall" style={{ opacity: 0.6 }}>Spent</Text>
-                          <Text variant="titleMedium" style={{ color: '#FF5252', fontWeight: 'bold' }}>
-                            {spent.currency_symbol}{spentAmount.toFixed(2)}
-                          </Text>
-                        </View>
-                        {budget.attributes.auto_budget_amount && (
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text variant="bodySmall" style={{ opacity: 0.6 }}>Budget</Text>
-                            <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                              {spent.currency_symbol}{budget.attributes.auto_budget_amount}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      {budget.attributes.auto_budget_amount && (
-                        <>
-                          <ProgressBar 
-                            progress={Math.min(progress, 1)} 
-                            color={progress > 0.9 ? '#FF5252' : progress > 0.7 ? '#FFB74D' : theme.colors.primary}
-                            style={styles.progressBar}
-                          />
-                          <Text variant="bodySmall" style={{ textAlign: 'right', marginTop: 4 }}>
-                            {(progress * 100).toFixed(0)}% used
-                          </Text>
-                        </>
-                      )}
-                    </>
-                  )}
-                </Card.Content>
-              </GlassCard>
-            );
-          })
-        )}
-        <View style={{ height: 80 }} />
-      </ScrollView>
-
-      {/* Add Budget FAB */}
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={15}
+        windowSize={5}
+        initialNumToRender={10}
+        updateCellsBatchingPeriod={100}
       />
 
-      {/* Add Budget Modal */}
+      {/* Context Menu Modal */}
       <Portal>
         <Modal
-          visible={modalVisible}
-          onDismiss={() => {
-            setModalVisible(false);
-            resetForm();
-          }}
-          contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+          visible={contextMenuVisible}
+          onDismiss={handleContextMenuClose}
+          contentContainerStyle={[
+            styles.contextMenuModal,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
-            Create Budget
-          </Text>
+          {contextMenuBudget && (
+            <>
+              {/* Budget Preview */}
+              <View style={styles.contextMenuPreview}>
+                <View
+                  style={[
+                    styles.contextMenuIconWrap,
+                    { backgroundColor: theme.colors.primary + "20" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="wallet"
+                    size={28}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.contextMenuInfo}>
+                  <Text
+                    variant="titleMedium"
+                    numberOfLines={1}
+                    style={styles.contextMenuName}
+                  >
+                    {contextMenuBudget.budget.attributes.name}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.contextMenuSubtitle}>
+                    {getPeriodLabel(
+                      contextMenuBudget.budget.attributes.auto_budget_period
+                    )}
+                    {!contextMenuBudget.budget.attributes.active &&
+                      " • Inactive"}
+                  </Text>
+                </View>
+              </View>
 
-          <TextInput
-            label="Budget Name"
-            value={name}
-            onChangeText={setName}
-            mode="outlined"
-            style={styles.input}
-            placeholder="e.g., Groceries, Entertainment"
-          />
+              {/* Action Buttons */}
+              <View style={styles.contextMenuActions}>
+                <Pressable
+                  onPress={handleViewDetails}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.viewButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="eye"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.viewButtonText,
+                    ]}
+                  >
+                    View Details
+                  </Text>
+                </Pressable>
 
-          <View style={styles.switchContainer}>
-            <Text variant="bodyLarge">Active</Text>
-            <Switch value={active} onValueChange={setActive} />
-          </View>
+                <Pressable
+                  onPress={handleEditBudget}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.editButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.editButtonText,
+                    ]}
+                  >
+                    Edit Budget
+                  </Text>
+                </Pressable>
 
-          <View style={styles.modalActions}>
-            <Button 
-              mode="outlined" 
-              onPress={() => {
-                setModalVisible(false);
-                resetForm();
-              }}
-              style={{ flex: 1 }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={handleSubmit}
-              loading={createMutation.isPending}
-              disabled={createMutation.isPending || !name}
-              style={{ flex: 1 }}
-            >
-              Create
-            </Button>
-          </View>
+                <Pressable
+                  onPress={handleDeleteBudget}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.deleteButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.deleteButtonText,
+                    ]}
+                  >
+                    Delete Budget
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleContextMenuClose}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.cancelButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.cancelButtonText,
+                    ]}
+                  >
+                    Cancel
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
         </Modal>
       </Portal>
     </View>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
+  listContent: {
     padding: 16,
+    paddingBottom: 80,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
   },
   centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 80,
+  },
+  loadingText: {
+    marginTop: 12,
+    opacity: 0.7,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingTop: 100,
+    alignItems: "center",
+    paddingTop: 80,
     paddingHorizontal: 32,
   },
+  emptyIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    marginTop: 16,
+    fontWeight: "700",
+  },
+  emptySubtitle: {
+    marginTop: 8,
+    opacity: 0.6,
+    textAlign: "center",
+  },
+  // Budget Card
   budgetCard: {
     marginBottom: 12,
+    borderRadius: 16,
   },
-  budgetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+  cardContent: {
+    paddingVertical: 16,
   },
-  budgetActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-  budgetAmounts: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
   },
-  progressBar: {
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  nameContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  budgetName: {
+    fontWeight: "700",
+  },
+  periodText: {
+    opacity: 0.5,
+    marginTop: 2,
+  },
+  overBudgetBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: SpotifyColors.danger,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginLeft: 8,
+  },
+  overBudgetText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  inactiveBadge: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  inactiveBadgeText: {
+    color: SpotifyColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // Progress
+  progressSection: {
+    marginBottom: 14,
+  },
+  progressTrack: {
     height: 8,
     borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    overflow: "hidden",
   },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
   },
-  modal: {
+  percentageRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  percentageText: {
+    fontWeight: "700",
+  },
+  remainingText: {
+    opacity: 0.5,
+  },
+  // Amounts
+  amountsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  amountBlock: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    borderRadius: 12,
+    padding: 12,
+  },
+  amountBlockRight: {
+    alignItems: "flex-end",
+  },
+  amountLabel: {
+    opacity: 0.5,
+    marginBottom: 4,
+  },
+  amountValue: {
+    fontWeight: "700",
+  },
+  // No data
+  noDataRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  noDataText: {
+    opacity: 0.5,
+  },
+  // Footer
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  footerText: {
+    marginLeft: 8,
+  },
+  // Context Menu
+  contextMenuModal: {
     margin: 20,
     padding: 20,
-    borderRadius: 8,
+    borderRadius: 20,
   },
-  modalTitle: {
-    marginBottom: 16,
-    fontWeight: 'bold',
+  contextMenuPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  input: {
-    marginBottom: 12,
+  contextMenuIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
+  contextMenuInfo: {
+    flex: 1,
+    minWidth: 0,
   },
-  modalActions: {
-    flexDirection: 'row',
+  contextMenuName: {
+    fontWeight: "700",
+  },
+  contextMenuSubtitle: {
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  contextMenuActions: {
+    gap: 8,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     gap: 12,
-    marginTop: 16,
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.7,
+  },
+  contextMenuButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  viewButton: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  viewButtonText: {
+    color: "#FFFFFF",
+  },
+  editButton: {
+    backgroundColor: "rgba(30, 215, 96, 0.15)",
+  },
+  editButtonText: {
+    color: SpotifyColors.green,
+  },
+  deleteButton: {
+    backgroundColor: "rgba(239, 83, 80, 0.15)",
+  },
+  deleteButtonText: {
+    color: SpotifyColors.danger,
+  },
+  cancelButton: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  cancelButtonText: {
+    color: SpotifyColors.textSecondary,
   },
 });
-
