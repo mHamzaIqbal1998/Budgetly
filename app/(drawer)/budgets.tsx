@@ -6,13 +6,10 @@ import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { getCurrentMonthStartEndDate } from "@/lib/utils";
-import type { Budget, BudgetLimit, CreateBudgetData } from "@/types";
+import type { Budget, BudgetLimit } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useFocusEffect } from "@react-navigation/native";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
@@ -25,17 +22,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import {
-  Button,
-  Card,
-  FAB,
-  Modal,
-  Portal,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Card, Modal, Portal, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -330,6 +317,7 @@ const BudgetCard = memo(
   },
   (prev, next) =>
     prev.item._flatKey === next.item._flatKey &&
+    prev.item.limit?.id === next.item.limit?.id &&
     prev.primaryColor === next.primaryColor &&
     prev.balanceVisible === next.balanceVisible
 );
@@ -350,11 +338,6 @@ export default function BudgetsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const balanceVisible = useStore(selectBalanceVisible);
-
-  // Create budget modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [name, setName] = useState("");
-  const [active, setActive] = useState(true);
 
   // Context menu state
   const [contextMenuBudget, setContextMenuBudget] =
@@ -397,34 +380,12 @@ export default function BudgetsScreen() {
     },
   });
 
-  // Create budget mutation
-  const createMutation = useMutation({
-    mutationFn: (data: CreateBudgetData) => apiClient.createBudget(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets-list"] });
-      queryClient.invalidateQueries({ queryKey: ["all-budgets"] });
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
-      resetForm();
-      setModalVisible(false);
-    },
-  });
-
-  const resetForm = () => {
-    setName("");
-    setActive(true);
-  };
-
-  const handleSubmit = () => {
-    if (!name) return;
-    createMutation.mutate({ name, active });
-  };
-
   // Build a map of budget_id -> BudgetLimit for O(1) lookup
   const limitsByBudgetId = useMemo(() => {
     const map = new Map<string, BudgetLimit>();
     const limits = budgetLimitsData?.data ?? [];
     for (const limit of limits) {
-      const budgetId = limit.attributes.budget_id;
+      const budgetId = String(limit.attributes.budget_id);
       if (budgetId) {
         // If multiple limits for the same budget, take the latest one
         const existing = map.get(budgetId);
@@ -446,7 +407,7 @@ export default function BudgetsScreen() {
   const flatData: FlatBudgetItem[] = useMemo(() => {
     return allBudgets.map((budget, index) => ({
       budget,
-      limit: limitsByBudgetId.get(budget.id) ?? null,
+      limit: limitsByBudgetId.get(String(budget.id)) ?? null,
       _flatKey: `budget-${budget.id}-${index}`,
     }));
   }, [allBudgets, limitsByBudgetId]);
@@ -465,6 +426,14 @@ export default function BudgetsScreen() {
     refetchBudgets();
     refetchLimits();
   }, [refetchBudgets, refetchLimits]);
+
+  // Refetch data when screen comes into focus (e.g., after creating a budget)
+  useFocusEffect(
+    useCallback(() => {
+      refetchBudgets();
+      refetchLimits();
+    }, [refetchBudgets, refetchLimits])
+  );
 
   // -----------------------------------------------------------------------
   // Context menu handlers
@@ -651,69 +620,6 @@ export default function BudgetsScreen() {
         initialNumToRender={10}
         updateCellsBatchingPeriod={100}
       />
-
-      {/* Add Budget FAB */}
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color="#FFFFFF"
-        onPress={() => setModalVisible(true)}
-      />
-
-      {/* Create Budget Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => {
-            setModalVisible(false);
-            resetForm();
-          }}
-          contentContainerStyle={[
-            styles.modal,
-            { backgroundColor: theme.colors.surface },
-          ]}
-        >
-          <Text variant="headlineSmall" style={styles.modalTitle}>
-            Create Budget
-          </Text>
-
-          <TextInput
-            label="Budget Name"
-            value={name}
-            onChangeText={setName}
-            mode="outlined"
-            style={styles.input}
-            placeholder="e.g., Groceries, Entertainment"
-          />
-
-          <View style={styles.switchContainer}>
-            <Text variant="bodyLarge">Active</Text>
-            <Switch value={active} onValueChange={setActive} />
-          </View>
-
-          <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
-              onPress={() => {
-                setModalVisible(false);
-                resetForm();
-              }}
-              style={{ flex: 1 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              loading={createMutation.isPending}
-              disabled={createMutation.isPending || !name}
-              style={{ flex: 1 }}
-            >
-              Create
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
 
       {/* Context Menu Modal */}
       <Portal>
@@ -1041,36 +947,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginLeft: 8,
-  },
-  // FAB
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 16,
-  },
-  // Modal
-  modal: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
-  },
-  modalTitle: {
-    marginBottom: 16,
-    fontWeight: "bold",
-  },
-  input: {
-    marginBottom: 12,
-  },
-  switchContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  modalActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
   },
   // Context Menu
   contextMenuModal: {

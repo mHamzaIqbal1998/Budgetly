@@ -19,8 +19,8 @@ export default function DrawerLayout() {
 
   const onCreateBudget = useCallback(() => {
     setFabOpen(false);
-    // Placeholder; same as previous dashboard FAB behavior
-  }, []);
+    router.push("/(drawer)/budget/create" as Href);
+  }, [router]);
 
   const onAddAccount = useCallback(() => {
     setFabOpen(false);
