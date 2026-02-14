@@ -4,6 +4,7 @@ import type {
   CreateBudgetData,
   CreateTransactionData,
   TransactionUpdateData,
+  UpdateBudgetData,
 } from "@/types";
 import * as accountsModule from "./accounts";
 import * as autocompleteModule from "./autocomplete";
@@ -156,12 +157,21 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return budgetsModule.createBudget(this.ensureInitialized(), data);
   }
 
-  async updateBudget(id: string, data: Partial<CreateBudgetData>) {
+  async updateBudget(id: string, data: UpdateBudgetData) {
     return budgetsModule.updateBudget(this.ensureInitialized(), id, data);
   }
 
   async deleteBudget(id: string) {
     return budgetsModule.deleteBudget(this.ensureInitialized(), id);
+  }
+
+  async getBudgetLimitsForBudget(id: string, start: string, end: string) {
+    return budgetsModule.getBudgetLimitsForBudget(
+      this.ensureInitialized(),
+      id,
+      start,
+      end
+    );
   }
 
   async getBudgetLimits(start: string, end: string, page: number = 1) {

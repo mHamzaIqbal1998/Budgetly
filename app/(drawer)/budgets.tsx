@@ -13,11 +13,14 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   View,
@@ -37,8 +40,6 @@ import {
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
-
-const PAGE_SIZE = 50;
 
 /** Enriched budget item for the flat list, combining Budget + optional BudgetLimit info */
 interface FlatBudgetItem {
@@ -112,10 +113,18 @@ interface BudgetCardProps {
   item: FlatBudgetItem;
   primaryColor: string;
   balanceVisible: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
 }
 
 const BudgetCard = memo(
-  function BudgetCard({ item, primaryColor, balanceVisible }: BudgetCardProps) {
+  function BudgetCard({
+    item,
+    primaryColor,
+    balanceVisible,
+    onPress,
+    onLongPress,
+  }: BudgetCardProps) {
     const { budget, limit } = item;
     const totalBudget = getBudgetTotal(limit);
     const { spent, symbol } = getSpentAmount(limit);
@@ -144,175 +153,179 @@ const BudgetCard = memo(
       "";
 
     return (
-      <GlassCard variant="elevated" style={styles.budgetCard}>
-        <Card.Content style={styles.cardContent}>
-          {/* Header: Name + Status badge */}
-          <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <View
-                style={[
-                  styles.iconWrap,
-                  {
-                    backgroundColor: isActive
-                      ? `${primaryColor}20`
-                      : "rgba(255,255,255,0.08)",
-                  },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={isActive ? "wallet" : "wallet-outline"}
-                  size={22}
-                  color={isActive ? primaryColor : SpotifyColors.textSecondary}
-                />
-              </View>
-              <View style={styles.nameContainer}>
-                <Text
-                  variant="titleMedium"
-                  numberOfLines={1}
-                  style={styles.budgetName}
-                >
-                  {budget.attributes.name}
-                </Text>
-                {dateRange && (
-                  <Text
-                    variant="labelSmall"
-                    numberOfLines={1}
-                    style={styles.periodText}
-                  >
-                    {periodText} · {dateRange}
-                  </Text>
-                )}
-                {!dateRange && (
-                  <Text
-                    variant="labelSmall"
-                    numberOfLines={1}
-                    style={styles.periodText}
-                  >
-                    {periodText}
-                  </Text>
-                )}
-              </View>
-            </View>
-            {isOverBudget && (
-              <View style={styles.overBudgetBadge}>
-                <MaterialCommunityIcons
-                  name="alert-circle"
-                  size={14}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.overBudgetText}>Over</Text>
-              </View>
-            )}
-            {!isOverBudget && !isActive && (
-              <View style={styles.inactiveBadge}>
-                <Text style={styles.inactiveBadgeText}>Inactive</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Progress Section */}
-          {totalBudget > 0 && (
-            <View style={styles.progressSection}>
-              {/* Progress Bar */}
-              <View style={styles.progressTrack}>
-                <Animated.View
+      <Pressable onPress={onPress} onLongPress={onLongPress}>
+        <GlassCard variant="elevated" style={styles.budgetCard}>
+          <Card.Content style={styles.cardContent}>
+            {/* Header: Name + Status badge */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
+                <View
                   style={[
-                    styles.progressFill,
+                    styles.iconWrap,
                     {
-                      width: `${progress * 100}%`,
-                      backgroundColor: fillColor,
-                    },
-                  ]}
-                />
-              </View>
-
-              {/* Percentage Label */}
-              <View style={styles.percentageRow}>
-                <Text
-                  variant="labelSmall"
-                  style={[styles.percentageText, { color: fillColor }]}
-                >
-                  {(progressRatio * 100).toFixed(0)}% used
-                </Text>
-                <Text variant="labelSmall" style={styles.remainingText}>
-                  {balanceVisible
-                    ? `${currencySymbol} ${formatAmount(remaining)} left`
-                    : "•••••• left"}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Amounts Row */}
-          {(spent > 0 || totalBudget > 0) && (
-            <View style={styles.amountsRow}>
-              <View style={styles.amountBlock}>
-                <Text variant="labelSmall" style={styles.amountLabel}>
-                  Spent
-                </Text>
-                <Text
-                  variant="titleMedium"
-                  style={[
-                    styles.amountValue,
-                    {
-                      color:
-                        spent > 0
-                          ? isOverBudget
-                            ? SpotifyColors.danger
-                            : SpotifyColors.orange
-                          : SpotifyColors.textSecondary,
+                      backgroundColor: isActive
+                        ? `${primaryColor}20`
+                        : "rgba(255,255,255,0.08)",
                     },
                   ]}
                 >
-                  {currencySymbol}{" "}
-                  {balanceVisible ? formatAmount(spent) : "••••••"}
-                </Text>
+                  <MaterialCommunityIcons
+                    name={isActive ? "wallet" : "wallet-outline"}
+                    size={22}
+                    color={
+                      isActive ? primaryColor : SpotifyColors.textSecondary
+                    }
+                  />
+                </View>
+                <View style={styles.nameContainer}>
+                  <Text
+                    variant="titleMedium"
+                    numberOfLines={1}
+                    style={styles.budgetName}
+                  >
+                    {budget.attributes.name}
+                  </Text>
+                  {dateRange && (
+                    <Text
+                      variant="labelSmall"
+                      numberOfLines={1}
+                      style={styles.periodText}
+                    >
+                      {periodText} · {dateRange}
+                    </Text>
+                  )}
+                  {!dateRange && (
+                    <Text
+                      variant="labelSmall"
+                      numberOfLines={1}
+                      style={styles.periodText}
+                    >
+                      {periodText}
+                    </Text>
+                  )}
+                </View>
               </View>
-              {totalBudget > 0 && (
-                <View style={[styles.amountBlock, styles.amountBlockRight]}>
-                  <Text variant="labelSmall" style={styles.amountLabel}>
-                    Budget
-                  </Text>
-                  <Text variant="titleMedium" style={styles.amountValue}>
-                    {currencySymbol}{" "}
-                    {balanceVisible ? formatAmount(totalBudget) : "••••••"}
-                  </Text>
+              {isOverBudget && (
+                <View style={styles.overBudgetBadge}>
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={14}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.overBudgetText}>Over</Text>
                 </View>
               )}
-              {totalBudget === 0 && spent > 0 && (
-                <View style={[styles.amountBlock, styles.amountBlockRight]}>
+              {!isOverBudget && !isActive && (
+                <View style={styles.inactiveBadge}>
+                  <Text style={styles.inactiveBadgeText}>Inactive</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Progress Section */}
+            {totalBudget > 0 && (
+              <View style={styles.progressSection}>
+                {/* Progress Bar */}
+                <View style={styles.progressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${progress * 100}%`,
+                        backgroundColor: fillColor,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Percentage Label */}
+                <View style={styles.percentageRow}>
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.percentageText, { color: fillColor }]}
+                  >
+                    {(progressRatio * 100).toFixed(0)}% used
+                  </Text>
+                  <Text variant="labelSmall" style={styles.remainingText}>
+                    {balanceVisible
+                      ? `${currencySymbol} ${formatAmount(remaining)} left`
+                      : "•••••• left"}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Amounts Row */}
+            {(spent > 0 || totalBudget > 0) && (
+              <View style={styles.amountsRow}>
+                <View style={styles.amountBlock}>
                   <Text variant="labelSmall" style={styles.amountLabel}>
-                    Budget
+                    Spent
                   </Text>
                   <Text
                     variant="titleMedium"
                     style={[
                       styles.amountValue,
-                      { color: SpotifyColors.textSecondary },
+                      {
+                        color:
+                          spent > 0
+                            ? isOverBudget
+                              ? SpotifyColors.danger
+                              : SpotifyColors.orange
+                            : SpotifyColors.textSecondary,
+                      },
                     ]}
                   >
-                    No limit
+                    {currencySymbol}{" "}
+                    {balanceVisible ? formatAmount(spent) : "••••••"}
                   </Text>
                 </View>
-              )}
-            </View>
-          )}
+                {totalBudget > 0 && (
+                  <View style={[styles.amountBlock, styles.amountBlockRight]}>
+                    <Text variant="labelSmall" style={styles.amountLabel}>
+                      Budget
+                    </Text>
+                    <Text variant="titleMedium" style={styles.amountValue}>
+                      {currencySymbol}{" "}
+                      {balanceVisible ? formatAmount(totalBudget) : "••••••"}
+                    </Text>
+                  </View>
+                )}
+                {totalBudget === 0 && spent > 0 && (
+                  <View style={[styles.amountBlock, styles.amountBlockRight]}>
+                    <Text variant="labelSmall" style={styles.amountLabel}>
+                      Budget
+                    </Text>
+                    <Text
+                      variant="titleMedium"
+                      style={[
+                        styles.amountValue,
+                        { color: SpotifyColors.textSecondary },
+                      ]}
+                    >
+                      No limit
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
 
-          {/* No spent data at all */}
-          {spent === 0 && totalBudget === 0 && (
-            <View style={styles.noDataRow}>
-              <MaterialCommunityIcons
-                name="information-outline"
-                size={16}
-                color={SpotifyColors.textSecondary}
-              />
-              <Text variant="bodySmall" style={styles.noDataText}>
-                No budget limit set for this period
-              </Text>
-            </View>
-          )}
-        </Card.Content>
-      </GlassCard>
+            {/* No spent data at all */}
+            {spent === 0 && totalBudget === 0 && (
+              <View style={styles.noDataRow}>
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={16}
+                  color={SpotifyColors.textSecondary}
+                />
+                <Text variant="bodySmall" style={styles.noDataText}>
+                  No budget limit set for this period
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </GlassCard>
+      </Pressable>
     );
   },
   (prev, next) =>
@@ -334,6 +347,7 @@ const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
 
 export default function BudgetsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const balanceVisible = useStore(selectBalanceVisible);
 
@@ -341,6 +355,11 @@ export default function BudgetsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
   const [active, setActive] = useState(true);
+
+  // Context menu state
+  const [contextMenuBudget, setContextMenuBudget] =
+    useState<FlatBudgetItem | null>(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
   // Budget limits (same date range as dashboard – current month)
   const budgetDateRange = getCurrentMonthStartEndDate();
@@ -448,6 +467,90 @@ export default function BudgetsScreen() {
   }, [refetchBudgets, refetchLimits]);
 
   // -----------------------------------------------------------------------
+  // Context menu handlers
+  // -----------------------------------------------------------------------
+
+  const handlePress = useCallback(
+    (item: FlatBudgetItem) => {
+      router.push(`/(drawer)/budget/${item.budget.id}` as Href);
+    },
+    [router]
+  );
+
+  const handleLongPress = useCallback((item: FlatBudgetItem) => {
+    setContextMenuBudget(item);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+  }, []);
+
+  const handleEditBudget = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetId = contextMenuBudget.budget.id;
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+    router.push(`/(drawer)/budget/edit/${budgetId}` as Href);
+  }, [contextMenuBudget, router]);
+
+  const handleViewDetails = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetId = contextMenuBudget.budget.id;
+    setContextMenuVisible(false);
+    setContextMenuBudget(null);
+    router.push(`/(drawer)/budget/${budgetId}` as Href);
+  }, [contextMenuBudget, router]);
+
+  const handleDeleteBudget = useCallback(() => {
+    if (!contextMenuBudget) return;
+    const budgetName =
+      contextMenuBudget.budget.attributes.name || "this budget";
+    const budgetId = contextMenuBudget.budget.id;
+    Alert.alert(
+      "Delete Budget",
+      `Delete "${budgetName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuBudget(null);
+            try {
+              await apiClient.deleteBudget(budgetId);
+              // Invalidate all budget caches
+              queryClient.removeQueries({ queryKey: ["budgets-list"] });
+              queryClient.removeQueries({ queryKey: ["all-budgets"] });
+              queryClient.removeQueries({ queryKey: ["all-budget-limits"] });
+              queryClient.removeQueries({
+                queryKey: ["budget-detail", budgetId],
+              });
+              queryClient.removeQueries({
+                queryKey: ["budget-limits-detail", budgetId],
+              });
+              queryClient.invalidateQueries({ queryKey: ["budgets-list"] });
+              queryClient.invalidateQueries({ queryKey: ["all-budgets"] });
+              refetchBudgets();
+              refetchLimits();
+              Alert.alert("Success", "Budget deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete budget:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete budget";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuBudget, queryClient, refetchBudgets, refetchLimits]);
+
+  // -----------------------------------------------------------------------
   // Memoized sub-components
   // -----------------------------------------------------------------------
 
@@ -491,9 +594,11 @@ export default function BudgetsScreen() {
         item={item}
         primaryColor={primaryColor}
         balanceVisible={balanceVisible}
+        onPress={() => handlePress(item)}
+        onLongPress={() => handleLongPress(item)}
       />
     ),
-    [primaryColor, balanceVisible]
+    [primaryColor, balanceVisible, handlePress, handleLongPress]
   );
 
   const keyExtractor = useCallback((item: FlatBudgetItem) => item._flatKey, []);
@@ -608,6 +713,149 @@ export default function BudgetsScreen() {
               Create
             </Button>
           </View>
+        </Modal>
+      </Portal>
+
+      {/* Context Menu Modal */}
+      <Portal>
+        <Modal
+          visible={contextMenuVisible}
+          onDismiss={handleContextMenuClose}
+          contentContainerStyle={[
+            styles.contextMenuModal,
+            { backgroundColor: theme.colors.surface },
+          ]}
+        >
+          {contextMenuBudget && (
+            <>
+              {/* Budget Preview */}
+              <View style={styles.contextMenuPreview}>
+                <View
+                  style={[
+                    styles.contextMenuIconWrap,
+                    { backgroundColor: theme.colors.primary + "20" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="wallet"
+                    size={28}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.contextMenuInfo}>
+                  <Text
+                    variant="titleMedium"
+                    numberOfLines={1}
+                    style={styles.contextMenuName}
+                  >
+                    {contextMenuBudget.budget.attributes.name}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.contextMenuSubtitle}>
+                    {getPeriodLabel(
+                      contextMenuBudget.budget.attributes.auto_budget_period
+                    )}
+                    {!contextMenuBudget.budget.attributes.active &&
+                      " • Inactive"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.contextMenuActions}>
+                <Pressable
+                  onPress={handleViewDetails}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.viewButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="eye"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.viewButtonText,
+                    ]}
+                  >
+                    View Details
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleEditBudget}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.editButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.editButtonText,
+                    ]}
+                  >
+                    Edit Budget
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleDeleteBudget}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.deleteButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.deleteButtonText,
+                    ]}
+                  >
+                    Delete Budget
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleContextMenuClose}
+                  style={({ pressed }) => [
+                    styles.contextMenuButton,
+                    styles.cancelButton,
+                    pressed && styles.contextMenuButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text
+                    style={[
+                      styles.contextMenuButtonText,
+                      styles.cancelButtonText,
+                    ]}
+                  >
+                    Cancel
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
         </Modal>
       </Portal>
     </View>
@@ -824,5 +1072,77 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 16,
+  },
+  // Context Menu
+  contextMenuModal: {
+    margin: 20,
+    padding: 20,
+    borderRadius: 20,
+  },
+  contextMenuPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  contextMenuIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  contextMenuInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contextMenuName: {
+    fontWeight: "700",
+  },
+  contextMenuSubtitle: {
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  contextMenuActions: {
+    gap: 8,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.7,
+  },
+  contextMenuButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  viewButton: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  viewButtonText: {
+    color: "#FFFFFF",
+  },
+  editButton: {
+    backgroundColor: "rgba(30, 215, 96, 0.15)",
+  },
+  editButtonText: {
+    color: SpotifyColors.green,
+  },
+  deleteButton: {
+    backgroundColor: "rgba(239, 83, 80, 0.15)",
+  },
+  deleteButtonText: {
+    color: SpotifyColors.danger,
+  },
+  cancelButton: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  cancelButtonText: {
+    color: SpotifyColors.textSecondary,
   },
 });

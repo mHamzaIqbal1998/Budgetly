@@ -127,3 +127,23 @@ export interface CreateBudgetData {
     | "half_year"
     | "yearly";
 }
+
+export interface UpdateBudgetData {
+  name: string;
+  active?: boolean;
+  order?: number;
+  notes?: string | null;
+  fire_webhooks?: boolean;
+  auto_budget_type?: "reset" | "rollover" | "none" | null;
+  auto_budget_currency_id?: string | null;
+  auto_budget_currency_code?: string | null;
+  auto_budget_amount?: string | null;
+  auto_budget_period?:
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "quarterly"
+    | "half-year"
+    | "yearly"
+    | null;
+}
