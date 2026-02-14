@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: "rgba(120, 120, 120, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   inactiveBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(120, 120, 120, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(120, 120, 120, 0.15)",
     overflow: "hidden",
   },
   progressFill: {
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   },
   amountBlock: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: "rgba(120, 120, 120, 0.06)",
     borderRadius: 12,
     padding: 12,
   },

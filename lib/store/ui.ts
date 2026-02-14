@@ -5,11 +5,19 @@ export const createUiSlice: StateCreator<
   AppState,
   [],
   [],
-  Pick<AppState, "balanceVisible" | "toggleBalanceVisibility">
+  Pick<
+    AppState,
+    "balanceVisible" | "toggleBalanceVisibility" | "themeMode" | "setThemeMode"
+  >
 > = (set) => ({
   balanceVisible: true,
+  themeMode: "system",
 
   toggleBalanceVisibility: () => {
     set((state) => ({ balanceVisible: !state.balanceVisible }));
+  },
+
+  setThemeMode: (mode) => {
+    set({ themeMode: mode });
   },
 });

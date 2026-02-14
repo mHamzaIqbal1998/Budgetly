@@ -32,6 +32,7 @@ export const useStore = create<AppState>()(
         pendingTransactions: state.pendingTransactions,
         dashboardVisibleSectionIds: state.dashboardVisibleSectionIds,
         dashboardHiddenSectionIds: state.dashboardHiddenSectionIds,
+        themeMode: state.themeMode,
       }),
     }
   )

@@ -1427,7 +1427,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(120, 120, 120, 0.2)",
     backgroundColor: "transparent",
   },
   chipText: {

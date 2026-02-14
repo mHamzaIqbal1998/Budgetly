@@ -8,7 +8,6 @@ import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { QuickInsightsCard } from "@/components/dashboard/quick-insights-card";
 import { GlassCard } from "@/components/glass-card";
 import { DEFAULT_DASHBOARD_VISIBLE_ORDER } from "@/constants/dashboard-sections";
-import { SpotifyColors } from "@/constants/spotify-theme";
 import {
   useCachedAccountsQuery,
   useCachedBudgetLimitsQuery,
@@ -246,7 +245,7 @@ export default function DashboardScreen() {
                       <MaterialCommunityIcons
                         name="chart-donut"
                         size={32}
-                        color={SpotifyColors.blue}
+                        color={theme.colors.secondary}
                         style={styles.summaryIcon}
                       />
                       <Text variant="bodySmall" style={styles.summaryLabel}>
@@ -256,7 +255,7 @@ export default function DashboardScreen() {
                         variant="headlineMedium"
                         style={[
                           styles.summaryValue,
-                          { color: SpotifyColors.blue },
+                          { color: theme.colors.secondary },
                         ]}
                       >
                         {activeBudgets}
@@ -272,7 +271,7 @@ export default function DashboardScreen() {
                       <MaterialCommunityIcons
                         name="repeat"
                         size={32}
-                        color={SpotifyColors.orange}
+                        color={theme.colors.tertiary}
                         style={styles.summaryIcon}
                       />
                       <Text variant="bodySmall" style={styles.summaryLabel}>
@@ -282,7 +281,7 @@ export default function DashboardScreen() {
                         variant="headlineMedium"
                         style={[
                           styles.summaryValue,
-                          { color: SpotifyColors.orange },
+                          { color: theme.colors.tertiary },
                         ]}
                       >
                         {subscriptionsBillsData?.data.filter(

@@ -1,15 +1,15 @@
-import { useEffect } from "react";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { PaperProvider } from "react-native-paper";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import "react-native-reanimated";
 
+import { PixelDarkTheme, PixelLightTheme } from "@/constants/spotify-theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useStore } from "@/lib/store";
-import { queryClient, persistOptions } from "@/lib/query-client";
 import { apiClient } from "@/lib/api-client";
-import { SpotifyDarkTheme, SpotifyLightTheme } from "@/constants/spotify-theme";
+import { persistOptions, queryClient } from "@/lib/query-client";
+import { useStore } from "@/lib/store";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -59,9 +59,15 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const systemScheme = useColorScheme();
+  const themeMode = useStore((s) => s.themeMode);
+
+  // Resolve effective color scheme
+  const effectiveScheme =
+    themeMode === "system" ? (systemScheme ?? "light") : themeMode;
+
   const paperTheme =
-    colorScheme === "dark" ? SpotifyDarkTheme : SpotifyLightTheme;
+    effectiveScheme === "dark" ? PixelDarkTheme : PixelLightTheme;
 
   return (
     <PersistQueryClientProvider
@@ -70,7 +76,7 @@ export default function RootLayout() {
     >
       <PaperProvider theme={paperTheme}>
         <RootLayoutNav />
-        <StatusBar style="light" hidden={true} />
+        <StatusBar style={effectiveScheme === "dark" ? "light" : "dark"} />
       </PaperProvider>
     </PersistQueryClientProvider>
   );

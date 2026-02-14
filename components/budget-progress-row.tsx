@@ -1,4 +1,4 @@
-import { SpotifyColors } from "@/constants/spotify-theme";
+import { MD3Colors } from "@/constants/spotify-theme";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { BudgetLimit } from "@/types";
@@ -91,10 +91,16 @@ export function BudgetProgressRow({
   const progress = totalBudget > 0 ? Math.min(progressRatio, 1) : 0;
   const fillColor =
     progressRatio >= 1
-      ? SpotifyColors.danger
+      ? theme.dark
+        ? MD3Colors.dangerDark
+        : MD3Colors.danger
       : progressRatio > 0.5
-        ? SpotifyColors.orange
-        : SpotifyColors.green;
+        ? theme.dark
+          ? MD3Colors.warningDark
+          : MD3Colors.warning
+        : theme.dark
+          ? MD3Colors.successDark
+          : MD3Colors.success;
 
   const symbol =
     spentInfo?.symbol ??
@@ -111,7 +117,13 @@ export function BudgetProgressRow({
   );
 
   return (
-    <View style={[styles.wrapper, hideBorder && styles.wrapperNoBorder]}>
+    <View
+      style={[
+        styles.wrapper,
+        hideBorder && styles.wrapperNoBorder,
+        { borderBottomColor: theme.colors.outlineVariant },
+      ]}
+    >
       <View style={styles.headerRow}>
         <View style={styles.nameRow}>
           <MaterialCommunityIcons
@@ -148,7 +160,12 @@ export function BudgetProgressRow({
         )}
       </View>
       {totalBudget > 0 ? (
-        <View style={styles.progressTrack}>
+        <View
+          style={[
+            styles.progressTrack,
+            { backgroundColor: theme.colors.surfaceVariant },
+          ]}
+        >
           <View
             style={[
               styles.progressFill,
@@ -160,17 +177,30 @@ export function BudgetProgressRow({
           />
         </View>
       ) : spent > 0 ? (
-        <View style={styles.progressTrack}>
+        <View
+          style={[
+            styles.progressTrack,
+            { backgroundColor: theme.colors.surfaceVariant },
+          ]}
+        >
           <View
             style={[
               styles.progressFill,
-              { width: "100%", backgroundColor: SpotifyColors.orange },
+              {
+                width: "100%",
+                backgroundColor: theme.dark
+                  ? MD3Colors.warningDark
+                  : MD3Colors.warning,
+              },
             ]}
           />
         </View>
       ) : null}
       {periodText && (
-        <Text variant="labelSmall" style={styles.periodLabel}>
+        <Text
+          variant="labelSmall"
+          style={[styles.periodLabel, { color: theme.colors.onSurfaceVariant }]}
+        >
           {periodText}
           {dateRange ? ` · ${dateRange}` : ""}
         </Text>
@@ -183,7 +213,6 @@ const styles = StyleSheet.create({
   wrapper: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.12)",
     gap: 6,
   },
   wrapperNoBorder: {
@@ -214,7 +243,6 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
     overflow: "hidden",
   },
   progressFill: {
@@ -222,6 +250,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   periodLabel: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
 });

@@ -1,167 +1,233 @@
-// Spotify-inspired Black and Green Theme
+// Material Design 3 – Indigo/Teal "Pixel" Theme
 import type { MD3Theme } from "react-native-paper";
 import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 
-// Spotify color palette
-export const SpotifyColors = {
-  green: "#1DB954", // Spotify Green (primary)
-  darkGreen: "#1AA34A", // Darker green for pressed states
-  blue: "#03abf4", // Financial blue (primary)
-  darkBlue: "#016396", // Darker blue for pressed states
-  orange: "#FF6B3C", // Orange (primary)
-  lightOrange: "#FFA07A", // Lighter orange for pressed states
-  black: "#191414", // Spotify Black (background)
-  darkGray: "#121212", // Darker black
-  gray: "#282828", // Card background
-  lightGray: "#3E3E3E", // Elevated surfaces
-  white: "#FFFFFF", // Text on dark
-  textSecondary: "#B3B3B3", // Secondary text
-  danger: "#D32F2F", // Critical/danger red (e.g. over budget)
+// ─── MD3 Tonal Palette (Indigo seed + Teal secondary) ─────────────────────
+export const MD3Colors = {
+  // Primary tonal range (Indigo)
+  primary: "#3F51B5",
+  primaryLight: "#B0C6FF",
+  primaryContainer: "#DBE1FF",
+  primaryContainerDark: "#00306F",
+  onPrimary: "#FFFFFF",
+  onPrimaryDark: "#002159",
+  onPrimaryContainer: "#001A41",
+  onPrimaryContainerDark: "#DBE1FF",
+
+  // Secondary tonal range (Teal)
+  secondary: "#009688",
+  secondaryLight: "#80CBC4",
+  secondaryContainer: "#CCEEEA",
+  secondaryContainerDark: "#004D46",
+  onSecondary: "#FFFFFF",
+  onSecondaryDark: "#00382F",
+  onSecondaryContainer: "#003D37",
+  onSecondaryContainerDark: "#70F7E7",
+
+  // Tertiary (Amber)
+  tertiary: "#7C5800",
+  tertiaryLight: "#FFB960",
+  tertiaryContainer: "#FFDEA6",
+  tertiaryContainerDark: "#5A3F00",
+
+  // Error / Danger
+  error: "#BA1A1A",
+  errorDark: "#FFB4AB",
+  errorContainer: "#FFDAD6",
+  errorContainerDark: "#93000A",
+
+  // Neutral surfaces
+  surfaceLight: "#FBF8FF",
+  surfaceDark: "#1C1B1F",
+  surfaceVariantLight: "#E4E1EC",
+  surfaceVariantDark: "#49454F",
+
+  // On-surface
+  onSurfaceLight: "#1C1B1F",
+  onSurfaceDark: "#E6E1E5",
+  onSurfaceVariantLight: "#49454F",
+  onSurfaceVariantDark: "#CAC4D0",
+
+  // Outline
+  outlineLight: "#7A757F",
+  outlineDark: "#938F99",
+  outlineVariantLight: "#CAC4D0",
+  outlineVariantDark: "#49454F",
+
+  // Success (kept for budget progress)
+  success: "#2E7D32",
+  successDark: "#81C784",
+  warning: "#E65100",
+  warningDark: "#FFB74D",
+  danger: "#BA1A1A",
+  dangerDark: "#FFB4AB",
+
+  // Inverse
+  inverseSurfaceLight: "#313033",
+  inverseSurfaceDark: "#E6E1E5",
+  inverseOnSurfaceLight: "#F4EFF4",
+  inverseOnSurfaceDark: "#313033",
 };
 
-export const SpotifyDarkTheme: MD3Theme = {
-  ...MD3DarkTheme,
-  dark: true,
-  colors: {
-    ...MD3DarkTheme.colors,
-    // Primary colors
-    primary: SpotifyColors.green,
-    primaryContainer: SpotifyColors.darkGreen,
-    onPrimary: SpotifyColors.black,
-    onPrimaryContainer: SpotifyColors.white,
+// ─── Chart Palette (MD3-derived) ──────────────────────────────────────────
+export const MD3ChartColors = [
+  "#5C6BC0", // Indigo 400
+  "#26A69A", // Teal 400
+  "#FFA726", // Amber 400
+  "#7E57C2", // Deep Purple 400
+  "#78909C", // Blue Grey 400
+] as const;
 
-    // Secondary colors
-    secondary: SpotifyColors.green,
-    secondaryContainer: SpotifyColors.gray,
-    onSecondary: SpotifyColors.black,
-    onSecondaryContainer: SpotifyColors.white,
-
-    // Tertiary colors (for variety)
-    tertiary: "#1DB954",
-    tertiaryContainer: "#2E7D32",
-    onTertiary: SpotifyColors.white,
-    onTertiaryContainer: SpotifyColors.white,
-
-    // Background colors
-    background: SpotifyColors.black,
-    onBackground: SpotifyColors.white,
-
-    // Surface colors
-    surface: SpotifyColors.gray,
-    surfaceVariant: SpotifyColors.lightGray,
-    onSurface: SpotifyColors.white,
-    onSurfaceVariant: SpotifyColors.textSecondary,
-
-    // Surface tints
-    surfaceDisabled: "rgba(255, 255, 255, 0.12)",
-    onSurfaceDisabled: "rgba(255, 255, 255, 0.38)",
-
-    // Elevation surfaces
-    elevation: {
-      level0: SpotifyColors.black,
-      level1: SpotifyColors.darkGray,
-      level2: SpotifyColors.gray,
-      level3: SpotifyColors.lightGray,
-      level4: "#404040",
-      level5: "#4A4A4A",
-    },
-
-    // Outline colors
-    outline: "rgba(255, 255, 255, 0.12)",
-    outlineVariant: "rgba(255, 255, 255, 0.08)",
-
-    // Error colors
-    error: "#CF6679",
-    errorContainer: "#B00020",
-    onError: SpotifyColors.white,
-    onErrorContainer: SpotifyColors.white,
-
-    // Inverse colors
-    inverseSurface: SpotifyColors.white,
-    inverseOnSurface: SpotifyColors.black,
-    inversePrimary: SpotifyColors.darkGreen,
-
-    // Shadow
-    shadow: "#000000",
-    scrim: "#000000",
-
-    // Backdrop
-    backdrop: "rgba(0, 0, 0, 0.4)",
-  },
-};
-
-export const SpotifyLightTheme: MD3Theme = {
+// ─── Light Theme ──────────────────────────────────────────────────────────
+export const PixelLightTheme: MD3Theme = {
   ...MD3LightTheme,
   dark: false,
   colors: {
     ...MD3LightTheme.colors,
-    // Primary colors
-    primary: SpotifyColors.green,
-    primaryContainer: "#E8F5E9",
-    onPrimary: SpotifyColors.white,
-    onPrimaryContainer: SpotifyColors.darkGreen,
+    primary: MD3Colors.primary,
+    primaryContainer: MD3Colors.primaryContainer,
+    onPrimary: MD3Colors.onPrimary,
+    onPrimaryContainer: MD3Colors.onPrimaryContainer,
 
-    // Secondary colors
-    secondary: SpotifyColors.darkGreen,
-    secondaryContainer: "#E8F5E9",
-    onSecondary: SpotifyColors.white,
-    onSecondaryContainer: SpotifyColors.darkGreen,
+    secondary: MD3Colors.secondary,
+    secondaryContainer: MD3Colors.secondaryContainer,
+    onSecondary: MD3Colors.onSecondary,
+    onSecondaryContainer: MD3Colors.onSecondaryContainer,
 
-    // Tertiary colors
-    tertiary: "#1DB954",
-    tertiaryContainer: "#C8E6C9",
-    onTertiary: SpotifyColors.white,
-    onTertiaryContainer: "#2E7D32",
+    tertiary: MD3Colors.tertiary,
+    tertiaryContainer: MD3Colors.tertiaryContainer,
+    onTertiary: "#FFFFFF",
+    onTertiaryContainer: "#261A00",
 
-    // Background colors
-    background: "#FFFFFF",
-    onBackground: SpotifyColors.black,
+    background: MD3Colors.surfaceLight,
+    onBackground: MD3Colors.onSurfaceLight,
 
-    // Surface colors
-    surface: "#FFFFFF",
-    surfaceVariant: "#F5F5F5",
-    onSurface: SpotifyColors.black,
-    onSurfaceVariant: "#424242",
+    surface: MD3Colors.surfaceLight,
+    surfaceVariant: MD3Colors.surfaceVariantLight,
+    onSurface: MD3Colors.onSurfaceLight,
+    onSurfaceVariant: MD3Colors.onSurfaceVariantLight,
 
-    // Surface tints
-    surfaceDisabled: "rgba(0, 0, 0, 0.12)",
-    onSurfaceDisabled: "rgba(0, 0, 0, 0.38)",
+    surfaceDisabled: "rgba(28, 27, 31, 0.12)",
+    onSurfaceDisabled: "rgba(28, 27, 31, 0.38)",
 
-    // Elevation surfaces
     elevation: {
-      level0: "#FFFFFF",
-      level1: "#F5F5F5",
-      level2: "#EEEEEE",
-      level3: "#E0E0E0",
-      level4: "#BDBDBD",
-      level5: "#9E9E9E",
+      level0: MD3Colors.surfaceLight,
+      level1: "#F3EEFF",
+      level2: "#EDE7F9",
+      level3: "#E7E0F4",
+      level4: "#E5DEF3",
+      level5: "#E1D9EF",
     },
 
-    // Outline colors
-    outline: "rgba(0, 0, 0, 0.12)",
-    outlineVariant: "rgba(0, 0, 0, 0.08)",
+    outline: MD3Colors.outlineLight,
+    outlineVariant: MD3Colors.outlineVariantLight,
 
-    // Error colors
-    error: "#B00020",
-    errorContainer: "#FDECEA",
-    onError: SpotifyColors.white,
-    onErrorContainer: "#B00020",
+    error: MD3Colors.error,
+    errorContainer: MD3Colors.errorContainer,
+    onError: "#FFFFFF",
+    onErrorContainer: "#410002",
 
-    // Inverse colors
-    inverseSurface: SpotifyColors.black,
-    inverseOnSurface: SpotifyColors.white,
-    inversePrimary: SpotifyColors.green,
+    inverseSurface: MD3Colors.inverseSurfaceLight,
+    inverseOnSurface: MD3Colors.inverseOnSurfaceLight,
+    inversePrimary: MD3Colors.primaryLight,
 
-    // Shadow
     shadow: "#000000",
     scrim: "#000000",
-
-    // Backdrop
-    backdrop: "rgba(0, 0, 0, 0.4)",
+    backdrop: "rgba(50, 47, 55, 0.4)",
   },
 };
 
-// Helper to get theme based on color scheme
+// ─── Dark Theme ───────────────────────────────────────────────────────────
+export const PixelDarkTheme: MD3Theme = {
+  ...MD3DarkTheme,
+  dark: true,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: MD3Colors.primaryLight,
+    primaryContainer: MD3Colors.primaryContainerDark,
+    onPrimary: MD3Colors.onPrimaryDark,
+    onPrimaryContainer: MD3Colors.onPrimaryContainerDark,
+
+    secondary: MD3Colors.secondaryLight,
+    secondaryContainer: MD3Colors.secondaryContainerDark,
+    onSecondary: MD3Colors.onSecondaryDark,
+    onSecondaryContainer: MD3Colors.onSecondaryContainerDark,
+
+    tertiary: MD3Colors.tertiaryLight,
+    tertiaryContainer: MD3Colors.tertiaryContainerDark,
+    onTertiary: "#3F2E00",
+    onTertiaryContainer: "#FFDEA6",
+
+    background: MD3Colors.surfaceDark,
+    onBackground: MD3Colors.onSurfaceDark,
+
+    surface: MD3Colors.surfaceDark,
+    surfaceVariant: MD3Colors.surfaceVariantDark,
+    onSurface: MD3Colors.onSurfaceDark,
+    onSurfaceVariant: MD3Colors.onSurfaceVariantDark,
+
+    surfaceDisabled: "rgba(230, 225, 229, 0.12)",
+    onSurfaceDisabled: "rgba(230, 225, 229, 0.38)",
+
+    elevation: {
+      level0: MD3Colors.surfaceDark,
+      level1: "#25232A",
+      level2: "#2B2930",
+      level3: "#312F37",
+      level4: "#333139",
+      level5: "#37343D",
+    },
+
+    outline: MD3Colors.outlineDark,
+    outlineVariant: MD3Colors.outlineVariantDark,
+
+    error: MD3Colors.errorDark,
+    errorContainer: MD3Colors.errorContainerDark,
+    onError: "#690005",
+    onErrorContainer: "#FFDAD6",
+
+    inverseSurface: MD3Colors.inverseSurfaceDark,
+    inverseOnSurface: MD3Colors.inverseOnSurfaceDark,
+    inversePrimary: MD3Colors.primary,
+
+    shadow: "#000000",
+    scrim: "#000000",
+    backdrop: "rgba(50, 47, 55, 0.4)",
+  },
+};
+
+// ─── Helper ───────────────────────────────────────────────────────────────
+
+/** Kept for backward-compat – old name `SpotifyColors` maps to MD3 semantic tokens */
+export const SpotifyColors = {
+  green: MD3Colors.success,
+  darkGreen: "#1B5E20",
+  blue: MD3Colors.primary,
+  darkBlue: MD3Colors.primaryContainerDark,
+  orange: MD3Colors.warning,
+  lightOrange: MD3Colors.warningDark,
+  black: MD3Colors.surfaceDark,
+  darkGray: "#121212",
+  gray: "#2B2930",
+  lightGray: "#49454F",
+  white: "#FFFFFF",
+  textSecondary: MD3Colors.onSurfaceVariantDark,
+  danger: MD3Colors.danger,
+};
+
 export const getSpotifyTheme = (isDark: boolean): MD3Theme => {
-  return isDark ? SpotifyDarkTheme : SpotifyLightTheme;
+  return isDark ? PixelDarkTheme : PixelLightTheme;
+};
+
+// New preferred helpers
+export const getPixelTheme = (mode: "light" | "dark"): MD3Theme => {
+  return mode === "dark" ? PixelDarkTheme : PixelLightTheme;
+};
+
+// Helper function to convert hex to rgba (used by components)
+export const hexToRgba = (hex: string, alpha: number): string => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };

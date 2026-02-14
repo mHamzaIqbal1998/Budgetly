@@ -100,7 +100,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   value: {
-    color: "#1DB954",
     fontWeight: "bold",
     letterSpacing: -1,
   },

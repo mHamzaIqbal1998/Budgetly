@@ -1,5 +1,5 @@
 import { GlassCard } from "@/components/glass-card";
-import { SpotifyColors } from "@/constants/spotify-theme";
+import { MD3ChartColors, hexToRgba } from "@/constants/spotify-theme";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { Account, ExpensesByExpenseAccount } from "@/types";
@@ -9,13 +9,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
 import { Pie, PolarChart } from "victory-native";
 
-const CHART_SLICE_COLORS = [
-  SpotifyColors.orange,
-  SpotifyColors.blue,
-  SpotifyColors.green,
-  SpotifyColors.lightOrange,
-  SpotifyColors.textSecondary,
-] as const;
+const CHART_SLICE_COLORS = MD3ChartColors;
 
 const MAX_VISIBLE_ITEMS = 4;
 
@@ -26,19 +20,7 @@ export type ExpenseChartDays = (typeof EXPENSE_CHART_DAY_OPTIONS)[number];
 const MIN_SLICE_ANGLE_DEGREES = 4;
 const MIN_SLICE_FRACTION = MIN_SLICE_ANGLE_DEGREES / 360;
 
-/** Orange card-matching colors for period segmented control (light bg, border, dark orange selected) */
-const PERIOD_SEGMENTED_COLORS = {
-  wrap: {
-    backgroundColor: "rgba(255, 107, 60, 0.12)",
-    borderColor: "rgba(255, 107, 60, 0.28)",
-    borderWidth: 1,
-  },
-  segmentSelected: {
-    backgroundColor: "rgba(255, 107, 60, 0.5)",
-  },
-  labelDefault: { color: "rgba(255, 255, 255, 0.75)" },
-  labelSelected: { color: "#FFFFFF" },
-} as const;
+// Period segmented control colors are now derived from theme in the component via useTheme()
 
 export interface ExpensesByAccountPieCardProps {
   expenses: ExpensesByExpenseAccount[];
@@ -180,7 +162,22 @@ export function ExpensesByAccountPieCard({
   }, [expenses]);
 
   const periodSelector = showPeriodSelector ? (
-    <View style={[styles.periodSegmentedWrap, PERIOD_SEGMENTED_COLORS.wrap]}>
+    <View
+      style={[
+        styles.periodSegmentedWrap,
+        {
+          backgroundColor: hexToRgba(
+            theme.colors.secondary,
+            theme.dark ? 0.15 : 0.08
+          ),
+          borderColor: hexToRgba(
+            theme.colors.secondary,
+            theme.dark ? 0.3 : 0.15
+          ),
+          borderWidth: 1,
+        },
+      ]}
+    >
       {EXPENSE_CHART_DAY_OPTIONS.map((days, index) => {
         const isSelected = selectedDays === days;
         return (
@@ -193,7 +190,9 @@ export function ExpensesByAccountPieCard({
               index === 0 && styles.periodSegmentedItemFirst,
               index === EXPENSE_CHART_DAY_OPTIONS.length - 1 &&
                 styles.periodSegmentedItemLast,
-              isSelected && PERIOD_SEGMENTED_COLORS.segmentSelected,
+              isSelected && {
+                backgroundColor: hexToRgba(theme.colors.secondary, 0.4),
+              },
             ]}
           >
             <Text
@@ -201,8 +200,8 @@ export function ExpensesByAccountPieCard({
               style={[
                 styles.periodSegmentedLabel,
                 isSelected
-                  ? PERIOD_SEGMENTED_COLORS.labelSelected
-                  : PERIOD_SEGMENTED_COLORS.labelDefault,
+                  ? { color: theme.colors.onSecondaryContainer }
+                  : { color: theme.colors.onSurfaceVariant },
               ]}
             >
               {days}d
@@ -429,7 +428,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.12)",
+    borderTopColor: "rgba(120, 120, 120, 0.2)",
   },
   totalLabel: {
     opacity: 0.8,
@@ -437,7 +436,6 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontWeight: "600",
-    color: SpotifyColors.orange,
   },
   totalByCurrencyList: {
     flexDirection: "row",
@@ -449,6 +447,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 107, 60, 0.15)",
   },
 });

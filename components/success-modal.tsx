@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Modal, Portal, Text } from 'react-native-paper';
+import { hexToRgba } from "@/constants/spotify-theme";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { Button, Modal, Portal, Text, useTheme } from "react-native-paper";
 
 interface SuccessModalProps {
   visible: boolean;
@@ -14,11 +15,13 @@ interface SuccessModalProps {
 export function SuccessModal({
   visible,
   onDismiss,
-  title = 'Success!',
+  title = "Success!",
   message,
-  buttonText = 'Continue',
+  buttonText = "Continue",
   onButtonPress,
 }: SuccessModalProps) {
+  const theme = useTheme();
+
   const handleButtonPress = () => {
     if (onButtonPress) {
       onButtonPress();
@@ -32,23 +35,46 @@ export function SuccessModal({
       <Modal
         visible={visible}
         onDismiss={onDismiss}
-        contentContainerStyle={[styles.modal, { backgroundColor: 'rgba(40, 40, 40, 0.98)' }]}
+        contentContainerStyle={[
+          styles.modal,
+          {
+            backgroundColor: theme.dark
+              ? theme.colors.elevation.level3
+              : theme.colors.elevation.level1,
+            borderColor: hexToRgba(theme.colors.primary, 0.3),
+          },
+        ]}
       >
         <View style={styles.modalContent}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.icon}>✓</Text>
+          <View
+            style={[
+              styles.iconContainer,
+              {
+                backgroundColor: hexToRgba(theme.colors.primary, 0.15),
+                borderColor: theme.colors.primary,
+              },
+            ]}
+          >
+            <Text style={[styles.icon, { color: theme.colors.primary }]}>
+              ✓
+            </Text>
           </View>
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text
+            variant="headlineSmall"
+            style={[styles.title, { color: theme.colors.onSurface }]}
+          >
             {title}
           </Text>
-          <Text variant="bodyLarge" style={styles.message}>
+          <Text
+            variant="bodyLarge"
+            style={[styles.message, { color: theme.colors.onSurfaceVariant }]}
+          >
             {message}
           </Text>
           <Button
             mode="contained"
             onPress={handleButtonPress}
             style={styles.button}
-            buttonColor="#1DB954"
           >
             {buttonText}
           </Button>
@@ -61,45 +87,39 @@ export function SuccessModal({
 const styles = StyleSheet.create({
   modal: {
     margin: 20,
-    borderRadius: 16,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(29, 185, 84, 0.3)',
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   modalContent: {
     padding: 32,
-    alignItems: 'center',
+    alignItems: "center",
   },
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(29, 185, 84, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
     borderWidth: 2,
-    borderColor: '#1DB954',
   },
   icon: {
     fontSize: 48,
-    color: '#1DB954',
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   title: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
-    color: '#FFFFFF',
   },
   message: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.8,
     marginBottom: 24,
-    color: '#FFFFFF',
   },
   button: {
-    width: '100%',
+    width: "100%",
     paddingVertical: 4,
+    borderRadius: 28,
   },
 });
-

@@ -1,5 +1,5 @@
 import { GlassCard } from "@/components/glass-card";
-import { SpotifyColors } from "@/constants/spotify-theme";
+import { MD3ChartColors } from "@/constants/spotify-theme";
 import { Account } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
@@ -7,13 +7,7 @@ import { StyleSheet, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
 import { Pie, PolarChart } from "victory-native";
 
-const CHART_SLICE_COLORS = [
-  SpotifyColors.green,
-  SpotifyColors.blue,
-  SpotifyColors.orange,
-  SpotifyColors.lightOrange,
-  SpotifyColors.textSecondary,
-] as const;
+const CHART_SLICE_COLORS = MD3ChartColors;
 
 const MAX_VISIBLE_ACCOUNTS = 4;
 
