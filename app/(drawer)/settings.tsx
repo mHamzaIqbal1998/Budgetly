@@ -1,6 +1,5 @@
 // Settings Screen
 import { GlassCard } from "@/components/glass-card";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -13,6 +12,7 @@ import {
   List,
   Modal,
   Portal,
+  SegmentedButtons,
   Text,
   TextInput,
   useTheme,
@@ -20,8 +20,13 @@ import {
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const colorScheme = useColorScheme();
-  const { credentials, clearCredentials, setCredentials } = useStore();
+  const {
+    credentials,
+    clearCredentials,
+    setCredentials,
+    themeMode,
+    setThemeMode,
+  } = useStore();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [instanceUrl, setInstanceUrl] = useState(
@@ -133,10 +138,38 @@ export default function SettingsScreen() {
           />
           <Card.Content>
             <List.Item
-              title="Theme"
-              description={`Current: ${colorScheme === "dark" ? "Dark" : "Light"} (System)`}
+              title="Theme Mode"
+              description={
+                themeMode === "system"
+                  ? "Following system"
+                  : themeMode === "dark"
+                    ? "Dark"
+                    : "Light"
+              }
               left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
             />
+            <View style={styles.themeSelector}>
+              <SegmentedButtons
+                value={themeMode}
+                onValueChange={(value) =>
+                  setThemeMode(value as "system" | "light" | "dark")
+                }
+                buttons={[
+                  { value: "system", label: "System", icon: "cellphone" },
+                  {
+                    value: "light",
+                    label: "Light",
+                    icon: "white-balance-sunny",
+                  },
+                  {
+                    value: "dark",
+                    label: "Dark",
+                    icon: "moon-waning-crescent",
+                  },
+                ]}
+                style={styles.segmentedButtons}
+              />
+            </View>
           </Card.Content>
         </GlassCard>
 
@@ -194,7 +227,7 @@ export default function SettingsScreen() {
           <Button
             mode="contained"
             onPress={handleSignOut}
-            buttonColor="#FF5252"
+            buttonColor={theme.colors.error}
             icon="logout"
             style={styles.signOutButton}
           >
@@ -297,7 +330,7 @@ const styles = StyleSheet.create({
   modal: {
     margin: 20,
     padding: 20,
-    borderRadius: 8,
+    borderRadius: 28,
   },
   modalTitle: {
     marginBottom: 16,
@@ -310,5 +343,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 8,
+  },
+  themeSelector: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  segmentedButtons: {
+    borderRadius: 16,
   },
 });

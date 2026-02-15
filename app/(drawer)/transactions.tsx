@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   },
   contextMenuCardInner: {
     borderWidth: 1,
-    borderColor: "rgba(29, 185, 84, 0.3)",
+    borderColor: "rgba(63, 81, 181, 0.3)",
   },
   contextMenuActions: {
     gap: 10,
@@ -1048,14 +1048,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(120, 120, 120, 0.15)",
   },
   contextMenuButtonPressed: {
     opacity: 0.92,
   },
   editButton: {
-    backgroundColor: "#1DB954",
-    borderColor: "#1DB954",
+    backgroundColor: "#3F51B5",
+    borderColor: "#3F51B5",
   },
   deleteButton: {
     backgroundColor: "#E53935",

@@ -19,8 +19,8 @@ export default function DrawerLayout() {
 
   const onCreateBudget = useCallback(() => {
     setFabOpen(false);
-    // Placeholder; same as previous dashboard FAB behavior
-  }, []);
+    router.push("/(drawer)/budget/create" as Href);
+  }, [router]);
 
   const onAddAccount = useCallback(() => {
     setFabOpen(false);
@@ -64,7 +64,10 @@ export default function DrawerLayout() {
           },
           drawerActiveTintColor: theme.colors.primary,
           drawerInactiveTintColor: theme.colors.onSurfaceVariant,
-          drawerActiveBackgroundColor: "rgba(29, 185, 84, 0.12)",
+          drawerActiveBackgroundColor: theme.colors.primaryContainer,
+          drawerItemStyle: {
+            borderRadius: 28,
+          },
         }}
       >
         <Drawer.Screen
@@ -164,6 +167,14 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="budget"
+          options={{
+            title: "Budget Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",
@@ -213,9 +224,11 @@ const layoutStyles = StyleSheet.create({
   fabMain: {
     marginHorizontal: 16,
     marginBottom: 16,
+    borderRadius: 28,
   },
   fabLabelContainer: {
     minWidth: 132,
     marginRight: 12,
+    borderRadius: 16,
   },
 });
