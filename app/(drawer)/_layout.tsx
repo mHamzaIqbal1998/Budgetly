@@ -194,6 +194,14 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="piggy-bank"
+          options={{
+            title: "Piggy Bank Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",
