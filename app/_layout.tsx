@@ -76,7 +76,7 @@ export default function RootLayout() {
     >
       <PaperProvider theme={paperTheme}>
         <RootLayoutNav />
-        <StatusBar style={effectiveScheme === "dark" ? "light" : "dark"} />
+        <StatusBar hidden />
       </PaperProvider>
     </PersistQueryClientProvider>
   );
