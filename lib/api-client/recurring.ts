@@ -28,10 +28,32 @@ export async function getRecurringTransaction(
   return response.data;
 }
 
-export async function getSubscriptionsBills(
-  api: AxiosInstance
+export async function getBills(
+  api: AxiosInstance,
+  page: number = 1,
+  limit: number = 50
 ): Promise<FireflyApiResponse<AllBillsResponse[]>> {
-  const response =
-    await api.get<FireflyApiResponse<AllBillsResponse[]>>("bills");
+  const response = await api.get<FireflyApiResponse<AllBillsResponse[]>>(
+    "bills",
+    {
+      params: { page, limit },
+    }
+  );
+  return response.data;
+}
+
+export async function getBill(
+  api: AxiosInstance,
+  id: string,
+  start?: string,
+  end?: string
+): Promise<FireflyApiResponse<AllBillsResponse>> {
+  const params: Record<string, string> = {};
+  if (start) params.start = start;
+  if (end) params.end = end;
+  const response = await api.get<FireflyApiResponse<AllBillsResponse>>(
+    `bills/${id}`,
+    { params }
+  );
   return response.data;
 }

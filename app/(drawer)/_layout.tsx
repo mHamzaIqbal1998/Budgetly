@@ -175,6 +175,14 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="subscription"
+          options={{
+            title: "Subscription Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",

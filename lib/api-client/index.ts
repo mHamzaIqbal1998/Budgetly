@@ -215,8 +215,12 @@ class FireflyApiClientImpl extends FireflyApiClient {
     );
   }
 
-  async getSubscriptionsBills() {
-    return recurringModule.getSubscriptionsBills(this.ensureInitialized());
+  async getBills(page: number = 1, limit: number = 50) {
+    return recurringModule.getBills(this.ensureInitialized(), page, limit);
+  }
+
+  async getBill(id: string, start?: string, end?: string) {
+    return recurringModule.getBill(this.ensureInitialized(), id, start, end);
   }
 
   // Expenses
