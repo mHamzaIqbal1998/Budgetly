@@ -229,7 +229,9 @@ export default function EditSubscriptionScreen() {
       if (!isNaN(skipNum)) {
         body.skip = skipNum;
       }
-      body.notes = notes.trim() || null;
+      if (notes.trim()) {
+        body.notes = notes.trim();
+      }
 
       await apiClient.updateBill(id!, body);
 
