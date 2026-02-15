@@ -16,17 +16,21 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
-import { Card, Modal, Portal, Text, useTheme } from "react-native-paper";
+import { Card, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /** Enriched budget item for the flat list, combining Budget + optional BudgetLimit info */
 interface FlatBudgetItem {
@@ -323,6 +327,110 @@ const BudgetCard = memo(
 );
 
 // ---------------------------------------------------------------------------
+// Context Menu Constants & Component
+// ---------------------------------------------------------------------------
+
+interface BudgetContextMenuCardProps {
+  item: FlatBudgetItem;
+  primaryColor: string;
+  balanceVisible: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function BudgetContextMenuCard({
+  item,
+  primaryColor,
+  balanceVisible,
+  onEdit,
+  onDelete,
+  onClose,
+}: BudgetContextMenuCardProps) {
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.contextMenuContainer,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      {/* Budget Card Preview */}
+      <View style={styles.contextMenuCard}>
+        <BudgetCard
+          item={item}
+          primaryColor={primaryColor}
+          balanceVisible={balanceVisible}
+          onPress={() => {}} // No-op in preview
+          onLongPress={() => {}} // No-op in preview
+        />
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.contextMenuActions}>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit Budget
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Budget
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.cancelButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Zustand selector
 // ---------------------------------------------------------------------------
 
@@ -462,14 +570,6 @@ export default function BudgetsScreen() {
     setContextMenuVisible(false);
     setContextMenuBudget(null);
     router.push(`/(drawer)/budget/edit/${budgetId}` as Href);
-  }, [contextMenuBudget, router]);
-
-  const handleViewDetails = useCallback(() => {
-    if (!contextMenuBudget) return;
-    const budgetId = contextMenuBudget.budget.id;
-    setContextMenuVisible(false);
-    setContextMenuBudget(null);
-    router.push(`/(drawer)/budget/${budgetId}` as Href);
   }, [contextMenuBudget, router]);
 
   const handleDeleteBudget = useCallback(() => {
@@ -621,148 +721,31 @@ export default function BudgetsScreen() {
         updateCellsBatchingPeriod={100}
       />
 
-      {/* Context Menu Modal */}
-      <Portal>
-        <Modal
-          visible={contextMenuVisible}
-          onDismiss={handleContextMenuClose}
-          contentContainerStyle={[
-            styles.contextMenuModal,
-            { backgroundColor: theme.colors.surface },
-          ]}
-        >
-          {contextMenuBudget && (
-            <>
-              {/* Budget Preview */}
-              <View style={styles.contextMenuPreview}>
-                <View
-                  style={[
-                    styles.contextMenuIconWrap,
-                    { backgroundColor: theme.colors.primary + "20" },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="wallet"
-                    size={28}
-                    color={theme.colors.primary}
-                  />
-                </View>
-                <View style={styles.contextMenuInfo}>
-                  <Text
-                    variant="titleMedium"
-                    numberOfLines={1}
-                    style={styles.contextMenuName}
-                  >
-                    {contextMenuBudget.budget.attributes.name}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.contextMenuSubtitle}>
-                    {getPeriodLabel(
-                      contextMenuBudget.budget.attributes.auto_budget_period
-                    )}
-                    {!contextMenuBudget.budget.attributes.active &&
-                      " • Inactive"}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.contextMenuActions}>
-                <Pressable
-                  onPress={handleViewDetails}
-                  style={({ pressed }) => [
-                    styles.contextMenuButton,
-                    styles.viewButton,
-                    pressed && styles.contextMenuButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="eye"
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                  <Text
-                    style={[
-                      styles.contextMenuButtonText,
-                      styles.viewButtonText,
-                    ]}
-                  >
-                    View Details
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={handleEditBudget}
-                  style={({ pressed }) => [
-                    styles.contextMenuButton,
-                    styles.editButton,
-                    pressed && styles.contextMenuButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="pencil"
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                  <Text
-                    style={[
-                      styles.contextMenuButtonText,
-                      styles.editButtonText,
-                    ]}
-                  >
-                    Edit Budget
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={handleDeleteBudget}
-                  style={({ pressed }) => [
-                    styles.contextMenuButton,
-                    styles.deleteButton,
-                    pressed && styles.contextMenuButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="delete-outline"
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                  <Text
-                    style={[
-                      styles.contextMenuButtonText,
-                      styles.deleteButtonText,
-                    ]}
-                  >
-                    Delete Budget
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={handleContextMenuClose}
-                  style={({ pressed }) => [
-                    styles.contextMenuButton,
-                    styles.cancelButton,
-                    pressed && styles.contextMenuButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                  <Text
-                    style={[
-                      styles.contextMenuButtonText,
-                      styles.cancelButtonText,
-                    ]}
-                  >
-                    Cancel
-                  </Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-        </Modal>
-      </Portal>
+      <Modal
+        visible={contextMenuVisible}
+        onDismiss={handleContextMenuClose}
+        transparent
+        animationType="fade"
+        onRequestClose={handleContextMenuClose}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleContextMenuClose}>
+          <Pressable
+            style={styles.modalContentWrapper}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {contextMenuBudget && (
+              <BudgetContextMenuCard
+                item={contextMenuBudget}
+                primaryColor={primaryColor}
+                balanceVisible={balanceVisible}
+                onEdit={handleEditBudget}
+                onDelete={handleDeleteBudget}
+                onClose={handleContextMenuClose}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -800,7 +783,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: "rgba(120, 120, 120, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
@@ -869,7 +852,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   inactiveBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(120, 120, 120, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -887,7 +870,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(120, 120, 120, 0.15)",
     overflow: "hidden",
   },
   progressFill: {
@@ -914,7 +897,7 @@ const styles = StyleSheet.create({
   },
   amountBlock: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: "rgba(120, 120, 120, 0.06)",
     borderRadius: 12,
     padding: 12,
   },
@@ -949,75 +932,70 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   // Context Menu
-  contextMenuModal: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 20,
-  },
-  contextMenuPreview: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  contextMenuIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  // Context Menu
+  contextMenuModalOverlay: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
   },
-  contextMenuInfo: {
+  modalOverlay: {
     flex: 1,
-    minWidth: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    width: "100%",
   },
-  contextMenuName: {
-    fontWeight: "700",
+  modalContentWrapper: {
+    width: "100%",
+    alignItems: "center",
   },
-  contextMenuSubtitle: {
-    opacity: 0.6,
-    marginTop: 2,
+  contextMenuContainer: {
+    width: SCREEN_WIDTH - 48,
+    maxWidth: 400,
+  },
+  contextMenuCard: {
+    marginBottom: 16,
   },
   contextMenuActions: {
-    gap: 8,
+    gap: 10,
   },
   contextMenuButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    gap: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(120, 120, 120, 0.15)",
   },
   contextMenuButtonPressed: {
-    opacity: 0.7,
+    opacity: 0.92,
   },
   contextMenuButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
   },
-  viewButton: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  viewButtonText: {
-    color: "#FFFFFF",
-  },
   editButton: {
-    backgroundColor: "rgba(30, 215, 96, 0.15)",
+    backgroundColor: "#3F51B5",
+    borderColor: "#3F51B5",
   },
   editButtonText: {
-    color: SpotifyColors.green,
+    color: "#FFFFFF",
   },
   deleteButton: {
-    backgroundColor: "rgba(239, 83, 80, 0.15)",
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
   },
   deleteButtonText: {
-    color: SpotifyColors.danger,
+    color: "#FFFFFF",
   },
   cancelButton: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#525252",
+    borderColor: "#6B6B6B",
   },
   cancelButtonText: {
-    color: SpotifyColors.textSecondary,
+    color: "#FFFFFF",
   },
 });

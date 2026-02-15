@@ -11,6 +11,7 @@ export interface AppState {
   isAuthenticated: boolean;
   isLoading: boolean;
   balanceVisible: boolean;
+  themeMode: "system" | "light" | "dark";
 
   cachedAccounts: Account[] | null;
   cachedTransactions: Transaction[] | null;
@@ -27,6 +28,7 @@ export interface AppState {
   loadCredentials: () => Promise<void>;
   clearCredentials: () => Promise<void>;
   toggleBalanceVisibility: () => void;
+  setThemeMode: (mode: "system" | "light" | "dark") => void;
 
   setCachedAccounts: (accounts: Account[]) => Promise<void>;
   /** Replace a single account in cache by id (e.g. after update). */

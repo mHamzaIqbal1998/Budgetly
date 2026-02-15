@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.12)",
+    borderBottomColor: "rgba(120, 120, 120, 0.2)",
     gap: 8,
   },
   accountItemNoBorder: {

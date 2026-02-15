@@ -64,7 +64,10 @@ export default function DrawerLayout() {
           },
           drawerActiveTintColor: theme.colors.primary,
           drawerInactiveTintColor: theme.colors.onSurfaceVariant,
-          drawerActiveBackgroundColor: "rgba(29, 185, 84, 0.12)",
+          drawerActiveBackgroundColor: theme.colors.primaryContainer,
+          drawerItemStyle: {
+            borderRadius: 28,
+          },
         }}
       >
         <Drawer.Screen
@@ -221,9 +224,11 @@ const layoutStyles = StyleSheet.create({
   fabMain: {
     marginHorizontal: 16,
     marginBottom: 16,
+    borderRadius: 28,
   },
   fabLabelContainer: {
     minWidth: 132,
     marginRight: 12,
+    borderRadius: 16,
   },
 });
