@@ -5,12 +5,17 @@ import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import type { AllBillsResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useFocusEffect } from "@react-navigation/native";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -25,6 +30,7 @@ import { Chip, Text, useTheme } from "react-native-paper";
 const PAGE_SIZE = 50;
 const ITEM_HEIGHT = 110;
 const ITEM_MARGIN = 12;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const FREQ_LABELS: Record<string, string> = {
   weekly: "Weekly",
@@ -76,6 +82,7 @@ interface SubscriptionItemProps {
   surfaceVariantColor: string;
   balanceVisible: boolean;
   onPress: () => void;
+  onLongPress: () => void;
 }
 
 const SubscriptionItem = memo(
@@ -86,6 +93,7 @@ const SubscriptionItem = memo(
     surfaceVariantColor,
     balanceVisible,
     onPress,
+    onLongPress,
   }: SubscriptionItemProps) {
     const attrs = item.attributes;
     const isActive = attrs.active;
@@ -104,6 +112,7 @@ const SubscriptionItem = memo(
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
         style={({ pressed }) => pressed && styles.cardPressed}
       >
         <GlassCard variant="default" style={styles.card}>
@@ -198,6 +207,116 @@ const SubscriptionItem = memo(
 );
 
 // ---------------------------------------------------------------------------
+// Context Menu Card
+// ---------------------------------------------------------------------------
+
+interface ContextMenuCardProps {
+  item: FlatBill;
+  primaryColor: string;
+  errorColor: string;
+  surfaceVariantColor: string;
+  balanceVisible: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function SubscriptionContextMenuCard({
+  item,
+  primaryColor,
+  errorColor,
+  surfaceVariantColor,
+  balanceVisible,
+  onEdit,
+  onDelete,
+  onClose,
+}: ContextMenuCardProps) {
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.contextMenuContainer,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      {/* Card Preview */}
+      <View style={styles.contextMenuCard}>
+        <SubscriptionItem
+          item={item}
+          primaryColor={primaryColor}
+          errorColor={errorColor}
+          surfaceVariantColor={surfaceVariantColor}
+          balanceVisible={balanceVisible}
+          onPress={() => {}}
+          onLongPress={() => {}}
+        />
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.contextMenuActions}>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit Subscription
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Subscription
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.cancelButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Zustand selector
 // ---------------------------------------------------------------------------
 
@@ -211,7 +330,12 @@ const selectBalanceVisible = (state: { balanceVisible: boolean }) =>
 export default function SubscriptionsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const balanceVisible = useStore(selectBalanceVisible);
+
+  // Context menu state
+  const [contextMenuBill, setContextMenuBill] = useState<FlatBill | null>(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
   // Infinite query
   const {
@@ -253,6 +377,86 @@ export default function SubscriptionsScreen() {
     refetch();
   }, [refetch]);
 
+  // Refetch on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  // -----------------------------------------------------------------------
+  // Context menu handlers
+  // -----------------------------------------------------------------------
+
+  const handlePress = useCallback(
+    (item: FlatBill) => {
+      router.push(`/(drawer)/subscription/${item.id}` as Href);
+    },
+    [router]
+  );
+
+  const handleLongPress = useCallback((item: FlatBill) => {
+    setContextMenuBill(item);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuBill(null);
+  }, []);
+
+  const handleEditSubscription = useCallback(() => {
+    if (!contextMenuBill) return;
+    const billId = contextMenuBill.id;
+    setContextMenuVisible(false);
+    setContextMenuBill(null);
+    router.push(`/(drawer)/subscription/edit/${billId}` as Href);
+  }, [contextMenuBill, router]);
+
+  const handleDeleteSubscription = useCallback(() => {
+    if (!contextMenuBill) return;
+    const billName = contextMenuBill.attributes.name || "this subscription";
+    const billId = contextMenuBill.id;
+    Alert.alert(
+      "Delete Subscription",
+      `Delete "${billName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuBill(null);
+            try {
+              await apiClient.deleteBill(billId);
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ["subscriptions"],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["subscription", billId],
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["subscriptionsBills"],
+                }),
+              ]);
+              refetch();
+              Alert.alert("Success", "Subscription deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete subscription:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete subscription";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuBill, queryClient, refetch]);
+
   // Colors
   const primaryColor = theme.colors.primary;
   const errorColor = theme.colors.error;
@@ -267,10 +471,18 @@ export default function SubscriptionsScreen() {
         errorColor={errorColor}
         surfaceVariantColor={surfaceVariantColor}
         balanceVisible={balanceVisible}
-        onPress={() => router.push(`/(drawer)/subscription/${item.id}` as Href)}
+        onPress={() => handlePress(item)}
+        onLongPress={() => handleLongPress(item)}
       />
     ),
-    [primaryColor, errorColor, surfaceVariantColor, balanceVisible, router]
+    [
+      primaryColor,
+      errorColor,
+      surfaceVariantColor,
+      balanceVisible,
+      handlePress,
+      handleLongPress,
+    ]
   );
 
   const keyExtractor = useCallback((item: FlatBill) => item._flatKey, []);
@@ -359,6 +571,34 @@ export default function SubscriptionsScreen() {
         initialNumToRender={10}
         updateCellsBatchingPeriod={100}
       />
+
+      <Modal
+        visible={contextMenuVisible}
+        onDismiss={handleContextMenuClose}
+        transparent
+        animationType="fade"
+        onRequestClose={handleContextMenuClose}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleContextMenuClose}>
+          <Pressable
+            style={styles.modalContentWrapper}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {contextMenuBill && (
+              <SubscriptionContextMenuCard
+                item={contextMenuBill}
+                primaryColor={primaryColor}
+                errorColor={errorColor}
+                surfaceVariantColor={surfaceVariantColor}
+                balanceVisible={balanceVisible}
+                onEdit={handleEditSubscription}
+                onDelete={handleDeleteSubscription}
+                onClose={handleContextMenuClose}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -467,5 +707,66 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginLeft: 8,
+  },
+  // Context Menu
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    width: "100%",
+  },
+  modalContentWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+  contextMenuContainer: {
+    width: SCREEN_WIDTH - 48,
+    maxWidth: 400,
+  },
+  contextMenuCard: {
+    marginBottom: 16,
+  },
+  contextMenuActions: {
+    gap: 10,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(120, 120, 120, 0.15)",
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.92,
+  },
+  contextMenuButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  editButton: {
+    backgroundColor: "#3F51B5",
+    borderColor: "#3F51B5",
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+  },
+  deleteButton: {
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+  },
+  cancelButton: {
+    backgroundColor: "#525252",
+    borderColor: "#6B6B6B",
+  },
+  cancelButtonText: {
+    color: "#FFFFFF",
   },
 });

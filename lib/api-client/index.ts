@@ -223,6 +223,18 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return recurringModule.getBill(this.ensureInitialized(), id, start, end);
   }
 
+  async createBill(data: Record<string, unknown>) {
+    return recurringModule.createBill(this.ensureInitialized(), data);
+  }
+
+  async updateBill(id: string, data: Record<string, unknown>) {
+    return recurringModule.updateBill(this.ensureInitialized(), id, data);
+  }
+
+  async deleteBill(id: string) {
+    return recurringModule.deleteBill(this.ensureInitialized(), id);
+  }
+
   // Expenses
   async getExpensesByExpenseAccount(start: string, end: string) {
     return expensesModule.getExpensesByExpenseAccount(

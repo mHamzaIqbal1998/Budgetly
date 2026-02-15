@@ -57,3 +57,33 @@ export async function getBill(
   );
   return response.data;
 }
+
+export async function createBill(
+  api: AxiosInstance,
+  data: Record<string, unknown>
+): Promise<FireflyApiResponse<AllBillsResponse>> {
+  const response = await api.post<FireflyApiResponse<AllBillsResponse>>(
+    "bills",
+    data
+  );
+  return response.data;
+}
+
+export async function updateBill(
+  api: AxiosInstance,
+  id: string,
+  data: Record<string, unknown>
+): Promise<FireflyApiResponse<AllBillsResponse>> {
+  const response = await api.put<FireflyApiResponse<AllBillsResponse>>(
+    `bills/${id}`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteBill(
+  api: AxiosInstance,
+  id: string
+): Promise<void> {
+  await api.delete(`bills/${id}`);
+}
