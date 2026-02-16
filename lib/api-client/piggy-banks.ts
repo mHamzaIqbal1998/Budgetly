@@ -1,4 +1,8 @@
-import type { FireflyApiResponse, PiggyBank } from "@/types";
+import type {
+  FireflyApiResponse,
+  PiggyBank,
+  UpdatePiggyBankData,
+} from "@/types";
 import type { AxiosInstance } from "axios";
 
 export async function getPiggyBanks(
@@ -20,6 +24,18 @@ export async function getPiggyBank(
 ): Promise<FireflyApiResponse<PiggyBank>> {
   const response = await api.get<FireflyApiResponse<PiggyBank>>(
     `piggy-banks/${id}`
+  );
+  return response.data;
+}
+
+export async function updatePiggyBank(
+  api: AxiosInstance,
+  id: string,
+  data: UpdatePiggyBankData
+): Promise<FireflyApiResponse<PiggyBank>> {
+  const response = await api.put<FireflyApiResponse<PiggyBank>>(
+    `piggy-banks/${id}`,
+    data
   );
   return response.data;
 }

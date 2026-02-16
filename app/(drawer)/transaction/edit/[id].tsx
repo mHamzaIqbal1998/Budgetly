@@ -577,6 +577,11 @@ export default function EditTransactionScreen() {
           queryKey: ["accountTransactions", accountId],
         });
       }
+      // Invalidate piggy banks since account balances changed
+      queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.removeQueries({ queryKey: ["all-accounts-piggy-banks"] });
+      queryClient.invalidateQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts-piggy-banks"] });
 
       Alert.alert("Success", "Transaction updated successfully", [
         {

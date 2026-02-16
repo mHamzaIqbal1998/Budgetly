@@ -5,6 +5,7 @@ import type {
   CreateTransactionData,
   TransactionUpdateData,
   UpdateBudgetData,
+  UpdatePiggyBankData,
 } from "@/types";
 import * as accountsModule from "./accounts";
 import * as autocompleteModule from "./autocomplete";
@@ -198,6 +199,10 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async getPiggyBank(id: string) {
     return piggyBanksModule.getPiggyBank(this.ensureInitialized(), id);
+  }
+
+  async updatePiggyBank(id: string, data: UpdatePiggyBankData) {
+    return piggyBanksModule.updatePiggyBank(this.ensureInitialized(), id, data);
   }
 
   // Recurring

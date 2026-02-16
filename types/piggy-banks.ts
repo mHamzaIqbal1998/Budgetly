@@ -45,3 +45,22 @@ export interface PiggyBank {
   type: string;
   attributes: PiggyBankAttributes;
 }
+
+// Update types
+export interface PiggyBankAccountUpdate {
+  account_id?: string | null;
+  name?: string | null;
+  current_amount?: string | null;
+}
+
+export interface UpdatePiggyBankData {
+  name?: string;
+  accounts?: PiggyBankAccountUpdate[];
+  target_amount?: string | null;
+  start_date?: string;
+  target_date?: string | null;
+  order?: number;
+  notes?: string | null;
+  object_group_id?: string | null;
+  object_group_title?: string | null;
+}

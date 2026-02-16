@@ -1,26 +1,32 @@
-// Piggy Banks Screen – lists all piggy banks with infinite scroll and progress indicators
+// Piggy Banks Screen – lists all piggy banks with infinite scroll, progress indicators, and add/remove funds functionality
 import { GlassCard } from "@/components/glass-card";
 import { SpotifyColors } from "@/constants/spotify-theme";
 import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
+import { queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
-import type { PiggyBank } from "@/types";
+import type { Account, PiggyBank, UpdatePiggyBankData } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
-import { Card, Text, useTheme } from "react-native-paper";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -115,7 +121,8 @@ const PiggyBankCard = memo(
 
     // Get linked accounts names
     const accountNames =
-      attrs.accounts.map((a) => a.name).join(", ") || "No account linked";
+      attrs.accounts.map((a: { name: string }) => a.name).join(", ") ||
+      "No account linked";
 
     return (
       <Pressable onPress={onPress} onLongPress={onLongPress}>
@@ -340,6 +347,7 @@ interface PiggyBankContextMenuProps {
   primaryColor: string;
   secondaryColor: string;
   balanceVisible: boolean;
+  onEdit: () => void;
   onViewDetails: () => void;
   onClose: () => void;
 }
@@ -349,6 +357,7 @@ function PiggyBankContextMenu({
   primaryColor,
   secondaryColor,
   balanceVisible,
+  onEdit,
   onViewDetails,
   onClose,
 }: PiggyBankContextMenuProps) {
@@ -385,6 +394,20 @@ function PiggyBankContextMenu({
       {/* Action Buttons */}
       <View style={styles.contextMenuActions}>
         <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={onViewDetails}
           style={({ pressed }) => [
             styles.contextMenuButton,
@@ -417,6 +440,335 @@ function PiggyBankContextMenu({
 }
 
 // ---------------------------------------------------------------------------
+// Add/Remove Amount Modal Component
+// ---------------------------------------------------------------------------
+
+interface AddRemoveModalProps {
+  visible: boolean;
+  piggyBank: PiggyBank | null;
+  accounts: Account[];
+  allPiggyBanks: PiggyBank[];
+  onClose: () => void;
+  onSubmit: (amount: number, isAdding: boolean) => void;
+  isLoading: boolean;
+  balanceVisible: boolean;
+}
+
+function AddRemoveModal({
+  visible,
+  piggyBank,
+  accounts,
+  allPiggyBanks,
+  onClose,
+  onSubmit,
+  isLoading,
+  balanceVisible,
+}: AddRemoveModalProps) {
+  const theme = useTheme();
+  const [amount, setAmount] = useState("");
+  const [isAdding, setIsAdding] = useState(true);
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      setAmount("");
+      setIsAdding(true);
+    }
+  }, [visible]);
+
+  if (!piggyBank) return null;
+
+  const attrs = piggyBank.attributes;
+  const currentAmount = parseFloat(attrs.current_amount) || 0;
+  const targetAmount = parseFloat(attrs.target_amount || "0") || 0;
+  const currencySymbol = attrs.currency_symbol || "$";
+  const decimalPlaces = attrs.currency_decimal_places ?? 2;
+
+  // Get linked account IDs for this piggy bank
+  const linkedAccountIds = attrs.accounts.map(
+    (a: { account_id: string }) => a.account_id
+  );
+
+  // Calculate how much is already allocated to OTHER piggy banks from the same accounts
+  const allocatedToOthers = allPiggyBanks.reduce(
+    (sum: number, pb: PiggyBank) => {
+      // Skip the current piggy bank
+      if (pb.id === piggyBank.id) return sum;
+
+      // Check if this piggy bank shares any linked accounts
+      const otherLinkedIds = pb.attributes.accounts.map(
+        (a: { account_id: string }) => a.account_id
+      );
+      const hasSharedAccount = linkedAccountIds.some((id: string) =>
+        otherLinkedIds.includes(id)
+      );
+
+      if (hasSharedAccount) {
+        // Add the virtual amount from this other piggy bank
+        return sum + (parseFloat(pb.attributes.current_amount) || 0);
+      }
+      return sum;
+    },
+    0
+  );
+
+  // Get the real account balance from linked asset accounts
+  const realAccountBalance = attrs.accounts.reduce(
+    (sum: number, pbAcc: { account_id: string }) => {
+      const realAccount = accounts.find(
+        (acc: Account) => acc.id === pbAcc.account_id
+      );
+      if (realAccount) {
+        return sum + (parseFloat(realAccount.attributes.current_balance) || 0);
+      }
+      return sum;
+    },
+    0
+  );
+
+  // Calculate available balance: real balance minus self amount minus what's allocated to other piggy banks
+  const availableBalance = Math.max(
+    0,
+    realAccountBalance - currentAmount - allocatedToOthers
+  );
+
+  // Calculate max addable amount based on rules:
+  // 1. Can't exceed target amount
+  // 2. Can't exceed available balance
+  // 3. Can't add negative (already at or exceeded target)
+  const remainingToTarget = Math.max(0, targetAmount - currentAmount);
+  const maxAddableAmount = Math.min(remainingToTarget, availableBalance);
+
+  const maxRemovableAmount = currentAmount;
+
+  const handleSubmit = () => {
+    const value = parseFloat(amount);
+    if (isNaN(value) || value <= 0) {
+      Alert.alert(
+        "Invalid Amount",
+        "Please enter a valid amount greater than 0"
+      );
+      return;
+    }
+    onSubmit(value, isAdding);
+  };
+
+  const setMaxAmount = () => {
+    const max = isAdding ? maxAddableAmount : maxRemovableAmount;
+    setAmount(max.toFixed(decimalPlaces));
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      onRequestClose={onClose}
+      transparent
+      animationType="fade"
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.addRemoveOverlay}
+      >
+        <Pressable style={styles.addRemoveBackdrop} onPress={onClose}>
+          <Pressable
+            style={[
+              styles.addRemoveContainer,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View style={styles.addRemoveHeader}>
+              <Text variant="titleLarge" style={styles.addRemoveTitle}>
+                {isAdding ? "Add" : "Remove"} money to piggy bank
+              </Text>
+              <Pressable onPress={onClose} style={styles.closeButton}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.colors.onSurface}
+                />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.addRemoveContent}
+            >
+              {/* Account Info */}
+              <View style={styles.accountInfoContainer}>
+                <Text variant="bodyMedium" style={styles.accountInfoText}>
+                  {attrs.name}
+                </Text>
+                <Text variant="bodySmall" style={styles.maxAmountText}>
+                  (The maximum amount you can {isAdding ? "add" : "remove"} is:{" "}
+                  <Text
+                    style={{ color: SpotifyColors.green, fontWeight: "700" }}
+                  >
+                    {" "}
+                    {balanceVisible
+                      ? `${currencySymbol} ${formatAmount(
+                          isAdding ? maxAddableAmount : maxRemovableAmount,
+                          decimalPlaces
+                        )}`
+                      : "••••••"}
+                  </Text>
+                  )
+                </Text>
+              </View>
+
+              {/* Amount Input */}
+              <View style={styles.amountInputContainer}>
+                <View style={styles.currencySymbol}>
+                  <Text variant="bodyLarge">{currencySymbol}</Text>
+                </View>
+                <TextInput
+                  style={[
+                    styles.amountInput,
+                    {
+                      backgroundColor: theme.colors.background,
+                      color: theme.colors.onSurface,
+                      borderColor: theme.colors.outline,
+                    },
+                  ]}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="0.00"
+                  placeholderTextColor={theme.colors.onSurfaceVariant}
+                />
+                <Pressable onPress={setMaxAmount} style={styles.maxButton}>
+                  <Text
+                    variant="labelSmall"
+                    style={{ color: theme.colors.primary }}
+                  >
+                    MAX
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Add/Remove Toggle */}
+              <View style={styles.toggleContainer}>
+                <Pressable
+                  onPress={() => setIsAdding(true)}
+                  style={[
+                    styles.toggleButton,
+                    isAdding && { backgroundColor: SpotifyColors.green },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={20}
+                    color={isAdding ? "#FFFFFF" : theme.colors.onSurface}
+                  />
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      isAdding && { color: "#FFFFFF" },
+                    ]}
+                  >
+                    Add
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsAdding(false)}
+                  style={[
+                    styles.toggleButton,
+                    !isAdding && { backgroundColor: SpotifyColors.danger },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="minus"
+                    size={20}
+                    color={!isAdding ? "#FFFFFF" : theme.colors.onSurface}
+                  />
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      !isAdding && { color: "#FFFFFF" },
+                    ]}
+                  >
+                    Remove
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Current Status */}
+              <View style={styles.statusContainer}>
+                <View style={styles.statusRow}>
+                  <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                    Currently saved:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: "700" }}>
+                    {balanceVisible
+                      ? `${currencySymbol} ${formatAmount(currentAmount, decimalPlaces)}`
+                      : "••••••"}
+                  </Text>
+                </View>
+                {amount && !isNaN(parseFloat(amount)) && (
+                  <View style={styles.statusRow}>
+                    <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                      After {isAdding ? "adding" : "removing"}:
+                    </Text>
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        fontWeight: "700",
+                        color: isAdding
+                          ? SpotifyColors.green
+                          : SpotifyColors.danger,
+                      }}
+                    >
+                      {balanceVisible
+                        ? `${currencySymbol} ${formatAmount(
+                            isAdding
+                              ? currentAmount + parseFloat(amount || "0")
+                              : currentAmount - parseFloat(amount || "0"),
+                            decimalPlaces
+                          )}`
+                        : "••••••"}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <View style={styles.addRemoveActions}>
+              <Button
+                mode="outlined"
+                onPress={onClose}
+                style={styles.actionButton}
+                textColor={theme.colors.onSurface}
+              >
+                Close
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSubmit}
+                loading={isLoading}
+                disabled={isLoading || !amount || parseFloat(amount) <= 0}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: isAdding
+                      ? SpotifyColors.green
+                      : SpotifyColors.danger,
+                  },
+                ]}
+                textColor="#FFFFFF"
+              >
+                {isAdding ? "Add" : "Remove"}
+              </Button>
+            </View>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Zustand selector
 // ---------------------------------------------------------------------------
 
@@ -437,6 +789,12 @@ export default function PiggyBanksScreen() {
     useState<FlatPiggyBankItem | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
+  // Add/Remove modal state
+  const [addRemoveItem, setAddRemoveItem] = useState<FlatPiggyBankItem | null>(
+    null
+  );
+  const [addRemoveVisible, setAddRemoveVisible] = useState(false);
+
   // Infinite query for paginated piggy banks
   const {
     data,
@@ -456,6 +814,37 @@ export default function PiggyBanksScreen() {
       return currentPage < totalPages ? currentPage + 1 : undefined;
     },
   });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdatePiggyBankData }) =>
+      apiClient.updatePiggyBank(id, data),
+    onSuccess: () => {
+      // Force immediate refetch of piggy banks list
+      queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.removeQueries({ queryKey: ["all-accounts-piggy-banks"] });
+      queryClient.refetchQueries({
+        queryKey: ["piggy-banks-list"],
+        type: "active",
+      });
+      queryClient.refetchQueries({ queryKey: ["all-accounts-piggy-banks"] });
+      setAddRemoveVisible(false);
+      setAddRemoveItem(null);
+      Alert.alert("Success", "Amount updated successfully");
+    },
+    onError: (error: Error) => {
+      Alert.alert("Error", error.message || "Failed to update amount");
+    },
+  });
+
+  // Fetch all accounts for real balance lookup in Add/Remove modal
+  const { data: accountsData } = useQuery({
+    queryKey: ["all-accounts-piggy-banks"],
+    queryFn: () => apiClient.getAllAccounts("all"),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const allAccounts = useMemo(() => accountsData?.data ?? [], [accountsData]);
 
   // Flatten all pages into a single list
   const allPiggyBanks = useMemo(
@@ -485,13 +874,13 @@ export default function PiggyBanksScreen() {
     refetch();
   }, [refetch]);
 
-  const handlePress = useCallback(
-    (item: FlatPiggyBankItem) => {
-      router.push(`/(drawer)/piggy-bank/${item.piggyBank.id}` as Href);
-    },
-    [router]
-  );
+  // Press opens Add/Remove modal
+  const handlePress = useCallback((item: FlatPiggyBankItem) => {
+    setAddRemoveItem(item);
+    setAddRemoveVisible(true);
+  }, []);
 
+  // Long press opens context menu
   const handleLongPress = useCallback((item: FlatPiggyBankItem) => {
     setContextMenuItem(item);
     setContextMenuVisible(true);
@@ -502,6 +891,14 @@ export default function PiggyBanksScreen() {
     setContextMenuItem(null);
   }, []);
 
+  const handleEdit = useCallback(() => {
+    if (!contextMenuItem) return;
+    const id = contextMenuItem.piggyBank.id;
+    setContextMenuVisible(false);
+    setContextMenuItem(null);
+    router.push(`/(drawer)/piggy-bank/edit/${id}` as Href);
+  }, [contextMenuItem, router]);
+
   const handleViewDetails = useCallback(() => {
     if (!contextMenuItem) return;
     const id = contextMenuItem.piggyBank.id;
@@ -509,6 +906,49 @@ export default function PiggyBanksScreen() {
     setContextMenuItem(null);
     router.push(`/(drawer)/piggy-bank/${id}` as Href);
   }, [contextMenuItem, router]);
+
+  const handleAddRemoveClose = useCallback(() => {
+    setAddRemoveVisible(false);
+    setAddRemoveItem(null);
+  }, []);
+
+  const handleAddRemoveSubmit = useCallback(
+    (amount: number, isAdding: boolean) => {
+      if (!addRemoveItem) return;
+
+      const piggyBank = addRemoveItem.piggyBank;
+      const currentAmount =
+        parseFloat(piggyBank.attributes.current_amount) || 0;
+      const newAmount = isAdding
+        ? currentAmount + amount
+        : Math.max(0, currentAmount - amount);
+
+      // Build update data - update the first account's current_amount
+      const accounts = piggyBank.attributes.accounts.map(
+        (
+          acc: { account_id: string; name: string; current_amount: string },
+          idx: number
+        ) => ({
+          account_id: acc.account_id,
+          name: acc.name,
+          current_amount: idx === 0 ? newAmount.toFixed(2) : acc.current_amount,
+        })
+      );
+
+      const updateData: UpdatePiggyBankData = {
+        name: piggyBank.attributes.name,
+        accounts,
+        target_amount: piggyBank.attributes.target_amount,
+        start_date: piggyBank.attributes.start_date,
+        target_date: piggyBank.attributes.target_date,
+        order: piggyBank.attributes.order,
+        notes: piggyBank.attributes.notes,
+      };
+
+      updateMutation.mutate({ id: piggyBank.id, data: updateData });
+    },
+    [addRemoveItem, updateMutation]
+  );
 
   // -----------------------------------------------------------------------
   // Memoized sub-components
@@ -616,6 +1056,7 @@ export default function PiggyBanksScreen() {
         updateCellsBatchingPeriod={100}
       />
 
+      {/* Context Menu Modal */}
       <Modal
         visible={contextMenuVisible}
         onDismiss={handleContextMenuClose}
@@ -634,6 +1075,7 @@ export default function PiggyBanksScreen() {
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
                 balanceVisible={balanceVisible}
+                onEdit={handleEdit}
                 onViewDetails={handleViewDetails}
                 onClose={handleContextMenuClose}
               />
@@ -641,6 +1083,18 @@ export default function PiggyBanksScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Add/Remove Amount Modal */}
+      <AddRemoveModal
+        visible={addRemoveVisible}
+        piggyBank={addRemoveItem?.piggyBank ?? null}
+        accounts={allAccounts}
+        allPiggyBanks={allPiggyBanks}
+        onClose={handleAddRemoveClose}
+        onSubmit={handleAddRemoveSubmit}
+        isLoading={updateMutation.isPending}
+        balanceVisible={balanceVisible}
+      />
     </View>
   );
 }
@@ -886,6 +1340,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  editButton: {
+    backgroundColor: "#FF9800",
+    borderColor: "#FF9800",
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+  },
   viewButton: {
     backgroundColor: "#3F51B5",
     borderColor: "#3F51B5",
@@ -899,5 +1360,126 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: "#FFFFFF",
+  },
+  // Add/Remove Modal
+  addRemoveOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addRemoveBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  addRemoveContainer: {
+    width: "100%",
+    maxWidth: 450,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  addRemoveHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(120, 120, 120, 0.2)",
+  },
+  addRemoveTitle: {
+    fontWeight: "600",
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  addRemoveContent: {
+    padding: 20,
+  },
+  accountInfoContainer: {
+    marginBottom: 16,
+  },
+  accountInfoText: {
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  maxAmountText: {
+    opacity: 0.7,
+  },
+  amountInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  currencySymbol: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderColor: "rgba(120, 120, 120, 0.3)",
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    backgroundColor: "rgba(120, 120, 120, 0.1)",
+  },
+  amountInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "rgba(120, 120, 120, 0.3)",
+    fontSize: 16,
+  },
+  maxButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderColor: "rgba(120, 120, 120, 0.3)",
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    backgroundColor: "rgba(120, 120, 120, 0.1)",
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "rgba(120, 120, 120, 0.1)",
+  },
+  toggleText: {
+    fontWeight: "600",
+  },
+  statusContainer: {
+    gap: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(120, 120, 120, 0.15)",
+  },
+  statusRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  addRemoveActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    padding: 20,
+    paddingTop: 0,
+  },
+  actionButton: {
+    minWidth: 80,
   },
 });
