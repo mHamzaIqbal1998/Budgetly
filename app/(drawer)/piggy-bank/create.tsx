@@ -270,504 +270,515 @@ export default function CreatePiggyBankScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
       >
-        {/* Header */}
-        <GlassCard variant="elevated" style={styles.headerCard}>
-          <Card.Content style={styles.headerContent}>
-            <MaterialCommunityIcons
-              name="piggy-bank"
-              size={48}
-              color={theme.colors.primary}
-            />
-            <Text variant="headlineSmall" style={styles.headerTitle}>
-              Create Piggy Bank
-            </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              Set up a new savings goal
-            </Text>
-          </Card.Content>
-        </GlassCard>
-
-        {/* Form */}
-        <GlassCard variant="elevated" style={styles.formCard}>
-          <Card.Content style={styles.formContent}>
-            {/* Name */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Name *
-              </Text>
-              <TextInput
-                mode="outlined"
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., New Car, Vacation Fund"
-                style={styles.input}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
+        >
+          {/* Header */}
+          <GlassCard variant="elevated" style={styles.headerCard}>
+            <Card.Content style={styles.headerContent}>
+              <MaterialCommunityIcons
+                name="piggy-bank"
+                size={48}
+                color={theme.colors.primary}
               />
-            </View>
-
-            {/* Linked Asset Account */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Linked Asset Account *
+              <Text variant="headlineSmall" style={styles.headerTitle}>
+                Create Piggy Bank
               </Text>
-              <Pressable
-                onPress={() => setAccountModalVisible(true)}
-                style={[
-                  styles.fieldTouchable,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.outline,
-                  },
-                ]}
-              >
-                <Text
-                  variant="bodyLarge"
+              <Text variant="bodyMedium" style={styles.headerSubtitle}>
+                Set up a new savings goal
+              </Text>
+            </Card.Content>
+          </GlassCard>
+
+          {/* Form */}
+          <GlassCard variant="elevated" style={styles.formCard}>
+            <Card.Content style={styles.formContent}>
+              {/* Name */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Name *
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g., New Car, Vacation Fund"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                />
+              </View>
+
+              {/* Linked Asset Account */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Linked Asset Account *
+                </Text>
+                <Pressable
+                  onPress={() => setAccountModalVisible(true)}
                   style={[
-                    styles.fieldTouchableText,
+                    styles.fieldTouchable,
                     {
-                      color: selectedAccountId
-                        ? theme.colors.onSurface
-                        : theme.colors.onSurfaceVariant,
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outline,
                     },
                   ]}
                 >
-                  {selectedAccountLabel}
-                </Text>
-                <MaterialCommunityIcons
-                  name="chevron-down"
-                  size={24}
-                  color={theme.colors.onSurfaceVariant}
-                />
-              </Pressable>
+                  <Text
+                    variant="bodyLarge"
+                    style={[
+                      styles.fieldTouchableText,
+                      {
+                        color: selectedAccountId
+                          ? theme.colors.onSurface
+                          : theme.colors.onSurfaceVariant,
+                      },
+                    ]}
+                  >
+                    {selectedAccountLabel}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="chevron-down"
+                    size={24}
+                    color={theme.colors.onSurfaceVariant}
+                  />
+                </Pressable>
 
-              {/* Account Selector Modal */}
-              <Modal
-                visible={accountModalVisible}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setAccountModalVisible(false)}
-              >
-                <Pressable
-                  style={styles.modalOverlay}
-                  onPress={() => setAccountModalVisible(false)}
+                {/* Account Selector Modal */}
+                <Modal
+                  visible={accountModalVisible}
+                  transparent
+                  animationType="slide"
+                  onRequestClose={() => setAccountModalVisible(false)}
                 >
                   <Pressable
-                    style={[
-                      styles.modalContent,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    onPress={(e) => e.stopPropagation()}
+                    style={styles.modalOverlay}
+                    onPress={() => setAccountModalVisible(false)}
                   >
-                    <View
+                    <Pressable
                       style={[
-                        styles.modalHeader,
+                        styles.modalContent,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      onPress={(e) => e.stopPropagation()}
+                    >
+                      <View
+                        style={[
+                          styles.modalHeader,
+                          {
+                            borderBottomColor: theme.colors.outlineVariant,
+                          },
+                        ]}
+                      >
+                        <Text variant="titleMedium" style={styles.modalTitle}>
+                          Select Asset Account
+                        </Text>
+                        <Button
+                          mode="text"
+                          compact
+                          onPress={() => setAccountModalVisible(false)}
+                        >
+                          Done
+                        </Button>
+                      </View>
+                      {assetAccountItems.length === 0 ? (
+                        <View style={styles.modalEmpty}>
+                          <Text variant="bodyMedium">
+                            No asset accounts available
+                          </Text>
+                        </View>
+                      ) : (
+                        <FlatList
+                          data={assetAccountItems}
+                          keyExtractor={(item) => item.id}
+                          style={styles.modalList}
+                          keyboardShouldPersistTaps="handled"
+                          renderItem={({ item }) => (
+                            <List.Item
+                              title={item.label}
+                              description={item.subtitle}
+                              descriptionStyle={styles.modalItemDescription}
+                              titleStyle={
+                                selectedAccountId === item.id
+                                  ? { fontWeight: "600" }
+                                  : undefined
+                              }
+                              onPress={() => {
+                                setSelectedAccountId(item.id);
+                                setAccountModalVisible(false);
+                              }}
+                              right={
+                                selectedAccountId === item.id
+                                  ? (props) => (
+                                      <List.Icon
+                                        {...props}
+                                        icon="check"
+                                        color={theme.colors.primary}
+                                      />
+                                    )
+                                  : undefined
+                              }
+                            />
+                          )}
+                        />
+                      )}
+                    </Pressable>
+                  </Pressable>
+                </Modal>
+              </View>
+
+              {/* Target Amount */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Target Amount *
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={targetAmount}
+                  onChangeText={setTargetAmount}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                />
+              </View>
+
+              {/* Current Amount */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Current Amount (optional)
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={currentAmount}
+                  onChangeText={setCurrentAmount}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                />
+              </View>
+
+              {/* Start Date */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Start Date *
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    const initial = parseApiDate(startDate) ?? new Date();
+                    setStartDatePickerValue(initial);
+                    setStartDatePickerOpen(true);
+                  }}
+                  style={[
+                    styles.fieldTouchable,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outline,
+                    },
+                  ]}
+                >
+                  <View style={styles.fieldContent}>
+                    <MaterialCommunityIcons
+                      name="calendar"
+                      size={20}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                    <Text
+                      variant="bodyLarge"
+                      style={[
+                        styles.fieldTouchableText,
                         {
-                          borderBottomColor: theme.colors.outlineVariant,
+                          color: startDate
+                            ? theme.colors.onSurface
+                            : theme.colors.onSurfaceVariant,
                         },
                       ]}
                     >
-                      <Text variant="titleMedium" style={styles.modalTitle}>
-                        Select Asset Account
-                      </Text>
-                      <Button
-                        mode="text"
-                        compact
-                        onPress={() => setAccountModalVisible(false)}
-                      >
-                        Done
-                      </Button>
-                    </View>
-                    {assetAccountItems.length === 0 ? (
-                      <View style={styles.modalEmpty}>
-                        <Text variant="bodyMedium">
-                          No asset accounts available
-                        </Text>
-                      </View>
-                    ) : (
-                      <FlatList
-                        data={assetAccountItems}
-                        keyExtractor={(item) => item.id}
-                        style={styles.modalList}
-                        keyboardShouldPersistTaps="handled"
-                        renderItem={({ item }) => (
-                          <List.Item
-                            title={item.label}
-                            description={item.subtitle}
-                            descriptionStyle={styles.modalItemDescription}
-                            titleStyle={
-                              selectedAccountId === item.id
-                                ? { fontWeight: "600" }
-                                : undefined
-                            }
-                            onPress={() => {
-                              setSelectedAccountId(item.id);
-                              setAccountModalVisible(false);
-                            }}
-                            right={
-                              selectedAccountId === item.id
-                                ? (props) => (
-                                    <List.Icon
-                                      {...props}
-                                      icon="check"
-                                      color={theme.colors.primary}
-                                    />
-                                  )
-                                : undefined
-                            }
-                          />
-                        )}
-                      />
-                    )}
-                  </Pressable>
+                      {startDate
+                        ? formatDateDisplay(startDate)
+                        : "Select start date"}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-down"
+                    size={24}
+                    color={theme.colors.onSurfaceVariant}
+                  />
                 </Pressable>
-              </Modal>
-            </View>
 
-            {/* Target Amount */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Target Amount *
-              </Text>
-              <TextInput
-                mode="outlined"
-                value={targetAmount}
-                onChangeText={setTargetAmount}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                style={styles.input}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
-              />
-            </View>
-
-            {/* Current Amount */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Current Amount (optional)
-              </Text>
-              <TextInput
-                mode="outlined"
-                value={currentAmount}
-                onChangeText={setCurrentAmount}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                style={styles.input}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
-              />
-            </View>
-
-            {/* Start Date */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Start Date *
-              </Text>
-              <Pressable
-                onPress={() => {
-                  const initial = parseApiDate(startDate) ?? new Date();
-                  setStartDatePickerValue(initial);
-                  setStartDatePickerOpen(true);
-                }}
-                style={[
-                  styles.fieldTouchable,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.outline,
-                  },
-                ]}
-              >
-                <View style={styles.fieldContent}>
-                  <MaterialCommunityIcons
-                    name="calendar"
-                    size={20}
-                    color={theme.colors.onSurfaceVariant}
+                {/* Android native date picker */}
+                {startDatePickerOpen && Platform.OS === "android" && (
+                  <DateTimePicker
+                    value={startDatePickerValue}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setStartDatePickerOpen(false);
+                      if (event.type === "set" && selectedDate) {
+                        setStartDate(toApiDateString(selectedDate));
+                      }
+                    }}
                   />
-                  <Text
-                    variant="bodyLarge"
-                    style={[
-                      styles.fieldTouchableText,
-                      {
-                        color: startDate
-                          ? theme.colors.onSurface
-                          : theme.colors.onSurfaceVariant,
-                      },
-                    ]}
+                )}
+                {/* iOS modal date picker */}
+                {startDatePickerOpen && Platform.OS === "ios" && (
+                  <Modal
+                    visible
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setStartDatePickerOpen(false)}
                   >
-                    {startDate
-                      ? formatDateDisplay(startDate)
-                      : "Select start date"}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-down"
-                  size={24}
-                  color={theme.colors.onSurfaceVariant}
-                />
-              </Pressable>
-
-              {/* Android native date picker */}
-              {startDatePickerOpen && Platform.OS === "android" && (
-                <DateTimePicker
-                  value={startDatePickerValue}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setStartDatePickerOpen(false);
-                    if (event.type === "set" && selectedDate) {
-                      setStartDate(toApiDateString(selectedDate));
-                    }
-                  }}
-                />
-              )}
-              {/* iOS modal date picker */}
-              {startDatePickerOpen && Platform.OS === "ios" && (
-                <Modal
-                  visible
-                  transparent
-                  animationType="slide"
-                  onRequestClose={() => setStartDatePickerOpen(false)}
-                >
-                  <Pressable
-                    style={styles.datePickerOverlay}
-                    onPress={() => setStartDatePickerOpen(false)}
-                  >
-                    <View
-                      style={[
-                        styles.datePickerContent,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      onStartShouldSetResponder={() => true}
+                    <Pressable
+                      style={styles.datePickerOverlay}
+                      onPress={() => setStartDatePickerOpen(false)}
                     >
                       <View
                         style={[
-                          styles.datePickerHeader,
-                          {
-                            borderBottomColor: theme.colors.outlineVariant,
-                          },
+                          styles.datePickerContent,
+                          { backgroundColor: theme.colors.surface },
                         ]}
+                        onStartShouldSetResponder={() => true}
                       >
-                        <Button
-                          mode="text"
-                          compact
-                          onPress={() => setStartDatePickerOpen(false)}
+                        <View
+                          style={[
+                            styles.datePickerHeader,
+                            {
+                              borderBottomColor: theme.colors.outlineVariant,
+                            },
+                          ]}
                         >
-                          Cancel
-                        </Button>
-                        <Text
-                          variant="titleMedium"
-                          style={styles.datePickerTitle}
-                        >
-                          Start Date
-                        </Text>
-                        <Button
-                          mode="text"
-                          compact
-                          onPress={() => {
-                            setStartDate(toApiDateString(startDatePickerValue));
-                            setStartDatePickerOpen(false);
+                          <Button
+                            mode="text"
+                            compact
+                            onPress={() => setStartDatePickerOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Text
+                            variant="titleMedium"
+                            style={styles.datePickerTitle}
+                          >
+                            Start Date
+                          </Text>
+                          <Button
+                            mode="text"
+                            compact
+                            onPress={() => {
+                              setStartDate(
+                                toApiDateString(startDatePickerValue)
+                              );
+                              setStartDatePickerOpen(false);
+                            }}
+                          >
+                            Done
+                          </Button>
+                        </View>
+                        <DateTimePicker
+                          value={startDatePickerValue}
+                          mode="date"
+                          display="spinner"
+                          onChange={(_, selectedDate) => {
+                            if (selectedDate)
+                              setStartDatePickerValue(selectedDate);
                           }}
-                        >
-                          Done
-                        </Button>
+                          style={styles.datePickerIOS}
+                        />
                       </View>
-                      <DateTimePicker
-                        value={startDatePickerValue}
-                        mode="date"
-                        display="spinner"
-                        onChange={(_, selectedDate) => {
-                          if (selectedDate)
-                            setStartDatePickerValue(selectedDate);
-                        }}
-                        style={styles.datePickerIOS}
-                      />
-                    </View>
-                  </Pressable>
-                </Modal>
-              )}
-            </View>
+                    </Pressable>
+                  </Modal>
+                )}
+              </View>
 
-            {/* Target Date */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Target Date (optional)
-              </Text>
-              <Pressable
-                onPress={() => {
-                  const initial = parseApiDate(targetDate) ?? new Date();
-                  setTargetDatePickerValue(initial);
-                  setTargetDatePickerOpen(true);
-                }}
-                style={[
-                  styles.fieldTouchable,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.outline,
-                  },
-                ]}
-              >
-                <View style={styles.fieldContent}>
+              {/* Target Date */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Target Date (optional)
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    const initial = parseApiDate(targetDate) ?? new Date();
+                    setTargetDatePickerValue(initial);
+                    setTargetDatePickerOpen(true);
+                  }}
+                  style={[
+                    styles.fieldTouchable,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outline,
+                    },
+                  ]}
+                >
+                  <View style={styles.fieldContent}>
+                    <MaterialCommunityIcons
+                      name="calendar"
+                      size={20}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                    <Text
+                      variant="bodyLarge"
+                      style={[
+                        styles.fieldTouchableText,
+                        {
+                          color: targetDate
+                            ? theme.colors.onSurface
+                            : theme.colors.onSurfaceVariant,
+                        },
+                      ]}
+                    >
+                      {targetDate
+                        ? formatDateDisplay(targetDate)
+                        : "Select target date"}
+                    </Text>
+                  </View>
                   <MaterialCommunityIcons
-                    name="calendar"
-                    size={20}
+                    name="chevron-down"
+                    size={24}
                     color={theme.colors.onSurfaceVariant}
                   />
-                  <Text
-                    variant="bodyLarge"
-                    style={[
-                      styles.fieldTouchableText,
-                      {
-                        color: targetDate
-                          ? theme.colors.onSurface
-                          : theme.colors.onSurfaceVariant,
-                      },
-                    ]}
-                  >
-                    {targetDate
-                      ? formatDateDisplay(targetDate)
-                      : "Select target date"}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-down"
-                  size={24}
-                  color={theme.colors.onSurfaceVariant}
-                />
-              </Pressable>
+                </Pressable>
 
-              {/* Android native date picker */}
-              {targetDatePickerOpen && Platform.OS === "android" && (
-                <DateTimePicker
-                  value={targetDatePickerValue}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setTargetDatePickerOpen(false);
-                    if (event.type === "set" && selectedDate) {
-                      setTargetDate(toApiDateString(selectedDate));
-                    }
-                  }}
-                />
-              )}
-              {/* iOS modal date picker */}
-              {targetDatePickerOpen && Platform.OS === "ios" && (
-                <Modal
-                  visible
-                  transparent
-                  animationType="slide"
-                  onRequestClose={() => setTargetDatePickerOpen(false)}
-                >
-                  <Pressable
-                    style={styles.datePickerOverlay}
-                    onPress={() => setTargetDatePickerOpen(false)}
+                {/* Android native date picker */}
+                {targetDatePickerOpen && Platform.OS === "android" && (
+                  <DateTimePicker
+                    value={targetDatePickerValue}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setTargetDatePickerOpen(false);
+                      if (event.type === "set" && selectedDate) {
+                        setTargetDate(toApiDateString(selectedDate));
+                      }
+                    }}
+                  />
+                )}
+                {/* iOS modal date picker */}
+                {targetDatePickerOpen && Platform.OS === "ios" && (
+                  <Modal
+                    visible
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setTargetDatePickerOpen(false)}
                   >
-                    <View
-                      style={[
-                        styles.datePickerContent,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      onStartShouldSetResponder={() => true}
+                    <Pressable
+                      style={styles.datePickerOverlay}
+                      onPress={() => setTargetDatePickerOpen(false)}
                     >
                       <View
                         style={[
-                          styles.datePickerHeader,
-                          {
-                            borderBottomColor: theme.colors.outlineVariant,
-                          },
+                          styles.datePickerContent,
+                          { backgroundColor: theme.colors.surface },
                         ]}
+                        onStartShouldSetResponder={() => true}
                       >
-                        <Button
-                          mode="text"
-                          compact
-                          onPress={() => setTargetDatePickerOpen(false)}
+                        <View
+                          style={[
+                            styles.datePickerHeader,
+                            {
+                              borderBottomColor: theme.colors.outlineVariant,
+                            },
+                          ]}
                         >
-                          Cancel
-                        </Button>
-                        <Text
-                          variant="titleMedium"
-                          style={styles.datePickerTitle}
-                        >
-                          Target Date
-                        </Text>
-                        <Button
-                          mode="text"
-                          compact
-                          onPress={() => {
-                            setTargetDate(
-                              toApiDateString(targetDatePickerValue)
-                            );
-                            setTargetDatePickerOpen(false);
+                          <Button
+                            mode="text"
+                            compact
+                            onPress={() => setTargetDatePickerOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Text
+                            variant="titleMedium"
+                            style={styles.datePickerTitle}
+                          >
+                            Target Date
+                          </Text>
+                          <Button
+                            mode="text"
+                            compact
+                            onPress={() => {
+                              setTargetDate(
+                                toApiDateString(targetDatePickerValue)
+                              );
+                              setTargetDatePickerOpen(false);
+                            }}
+                          >
+                            Done
+                          </Button>
+                        </View>
+                        <DateTimePicker
+                          value={targetDatePickerValue}
+                          mode="date"
+                          display="spinner"
+                          onChange={(_, selectedDate) => {
+                            if (selectedDate)
+                              setTargetDatePickerValue(selectedDate);
                           }}
-                        >
-                          Done
-                        </Button>
+                          style={styles.datePickerIOS}
+                        />
                       </View>
-                      <DateTimePicker
-                        value={targetDatePickerValue}
-                        mode="date"
-                        display="spinner"
-                        onChange={(_, selectedDate) => {
-                          if (selectedDate)
-                            setTargetDatePickerValue(selectedDate);
-                        }}
-                        style={styles.datePickerIOS}
-                      />
-                    </View>
-                  </Pressable>
-                </Modal>
-              )}
-            </View>
+                    </Pressable>
+                  </Modal>
+                )}
+              </View>
 
-            {/* Notes */}
-            <View style={styles.inputGroup}>
-              <Text variant="labelLarge" style={styles.label}>
-                Notes (optional)
-              </Text>
-              <TextInput
-                mode="outlined"
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Additional notes"
-                multiline
-                numberOfLines={3}
-                style={[styles.input, styles.textArea]}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
-              />
-            </View>
-          </Card.Content>
-        </GlassCard>
+              {/* Notes */}
+              <View style={styles.inputGroup}>
+                <Text variant="labelLarge" style={styles.label}>
+                  Notes (optional)
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Additional notes"
+                  multiline
+                  numberOfLines={3}
+                  style={[styles.input, styles.textArea]}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                />
+              </View>
+            </Card.Content>
+          </GlassCard>
 
-        {/* Save Button */}
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          loading={isSaving}
-          disabled={isSaving || !name.trim() || !selectedAccountId}
-          style={styles.saveButton}
-          contentStyle={styles.saveButtonContent}
-          labelStyle={styles.saveButtonLabel}
-          icon="content-save"
-        >
-          {isSaving ? "Creating..." : "Create Piggy Bank"}
-        </Button>
+          {/* Save Button */}
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            loading={isSaving}
+            disabled={isSaving || !name.trim() || !selectedAccountId}
+            style={styles.saveButton}
+            contentStyle={styles.saveButtonContent}
+            labelStyle={styles.saveButtonLabel}
+            icon="content-save"
+          >
+            {isSaving ? "Creating..." : "Create Piggy Bank"}
+          </Button>
 
-        <View style={{ height: 48 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={{ height: 48 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   centerContent: {
@@ -782,7 +793,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   headerCard: {
     marginBottom: 16,
