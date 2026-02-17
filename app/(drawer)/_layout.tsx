@@ -218,7 +218,7 @@ export default function DrawerLayout() {
             headerShown: false,
           }}
         />
-        <Drawer.Screen
+        {/* <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",
@@ -231,7 +231,7 @@ export default function DrawerLayout() {
               />
             ),
           }}
-        />
+        /> */}
         <Drawer.Screen
           name="settings"
           options={{
