@@ -1,4 +1,5 @@
 import type {
+  CreatePiggyBankData,
   FireflyApiResponse,
   PiggyBank,
   UpdatePiggyBankData,
@@ -38,4 +39,22 @@ export async function updatePiggyBank(
     data
   );
   return response.data;
+}
+
+export async function createPiggyBank(
+  api: AxiosInstance,
+  data: CreatePiggyBankData
+): Promise<FireflyApiResponse<PiggyBank>> {
+  const response = await api.post<FireflyApiResponse<PiggyBank>>(
+    "piggy-banks",
+    data
+  );
+  return response.data;
+}
+
+export async function deletePiggyBank(
+  api: AxiosInstance,
+  id: string
+): Promise<void> {
+  await api.delete(`piggy-banks/${id}`);
 }

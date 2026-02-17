@@ -32,6 +32,11 @@ export default function DrawerLayout() {
     router.push("/(drawer)/subscription/create" as Href);
   }, [router]);
 
+  const onCreatePiggyBank = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/piggy-bank/create" as Href);
+  }, [router]);
+
   const fabActions = useMemo(
     () => [
       {
@@ -53,13 +58,25 @@ export default function DrawerLayout() {
         onPress: onAddAccount,
       },
       {
+        icon: "piggy-bank" as const,
+        label: "Create Piggy Bank",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onCreatePiggyBank,
+      },
+      {
         icon: "repeat-variant" as const,
         label: "Add Subscription",
         containerStyle: layoutStyles.fabLabelContainer,
         onPress: onAddSubscription,
       },
     ],
-    [onAddTransaction, onCreateBudget, onAddAccount, onAddSubscription]
+    [
+      onAddTransaction,
+      onCreateBudget,
+      onAddAccount,
+      onCreatePiggyBank,
+      onAddSubscription,
+    ]
   );
 
   return (

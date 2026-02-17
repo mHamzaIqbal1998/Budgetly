@@ -349,6 +349,7 @@ interface PiggyBankContextMenuProps {
   balanceVisible: boolean;
   onEdit: () => void;
   onAddRemove: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }
 
@@ -359,6 +360,7 @@ function PiggyBankContextMenu({
   balanceVisible,
   onEdit,
   onAddRemove,
+  onDelete,
   onClose,
 }: PiggyBankContextMenuProps) {
   const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
@@ -422,6 +424,24 @@ function PiggyBankContextMenu({
           />
           <Text style={[styles.contextMenuButtonText, { color: "#FFFFFF" }]}>
             Add/Remove
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            { backgroundColor: SpotifyColors.danger },
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, { color: "#FFFFFF" }]}>
+            Delete
           </Text>
         </Pressable>
 
@@ -914,6 +934,55 @@ export default function PiggyBanksScreen() {
     setAddRemoveVisible(true);
   }, [contextMenuItem]);
 
+  const handleDelete = useCallback(() => {
+    if (!contextMenuItem) return;
+    const piggyBankName =
+      contextMenuItem.piggyBank.attributes.name || "this piggy bank";
+    const piggyBankId = contextMenuItem.piggyBank.id;
+    Alert.alert(
+      "Delete Piggy Bank",
+      `Delete "${piggyBankName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuItem(null);
+            try {
+              await apiClient.deletePiggyBank(piggyBankId);
+              // Invalidate all piggy bank caches (same as update action)
+              queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+              queryClient.removeQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
+              queryClient.removeQueries({
+                queryKey: ["piggy-bank-detail", piggyBankId],
+              });
+              queryClient.refetchQueries({
+                queryKey: ["piggy-banks-list"],
+                type: "active",
+              });
+              queryClient.refetchQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
+              refetch();
+              Alert.alert("Success", "Piggy bank deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete piggy bank:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete piggy bank";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuItem, refetch]);
+
   const handleAddRemoveClose = useCallback(() => {
     setAddRemoveVisible(false);
     setAddRemoveItem(null);
@@ -1084,6 +1153,7 @@ export default function PiggyBanksScreen() {
                 balanceVisible={balanceVisible}
                 onEdit={handleEdit}
                 onAddRemove={handleAddRemoveFromContext}
+                onDelete={handleDelete}
                 onClose={handleContextMenuClose}
               />
             )}

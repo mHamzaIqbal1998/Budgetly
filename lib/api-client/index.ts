@@ -2,6 +2,7 @@ import type {
   AccountStoreRequestBody,
   AccountUpdateRequestBody,
   CreateBudgetData,
+  CreatePiggyBankData,
   CreateTransactionData,
   TransactionUpdateData,
   UpdateBudgetData,
@@ -203,6 +204,14 @@ class FireflyApiClientImpl extends FireflyApiClient {
 
   async updatePiggyBank(id: string, data: UpdatePiggyBankData) {
     return piggyBanksModule.updatePiggyBank(this.ensureInitialized(), id, data);
+  }
+
+  async createPiggyBank(data: CreatePiggyBankData) {
+    return piggyBanksModule.createPiggyBank(this.ensureInitialized(), data);
+  }
+
+  async deletePiggyBank(id: string) {
+    return piggyBanksModule.deletePiggyBank(this.ensureInitialized(), id);
   }
 
   // Recurring

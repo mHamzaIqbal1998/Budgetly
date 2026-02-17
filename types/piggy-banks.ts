@@ -63,4 +63,28 @@ export interface UpdatePiggyBankData {
   notes?: string | null;
   object_group_id?: string | null;
   object_group_title?: string | null;
+  transaction_currency_id?: string | null;
+  transaction_currency_code?: string | null;
+}
+
+// Create types (similar to update but for POST request)
+export interface PiggyBankAccountStore {
+  id?: string | null;
+  name?: string | null;
+  current_amount?: string | null;
+}
+
+export interface CreatePiggyBankData {
+  name: string;
+  accounts?: PiggyBankAccountStore[];
+  transaction_currency_id: string;
+  transaction_currency_code: string;
+  target_amount: string | null;
+  current_amount?: string | null;
+  start_date: string;
+  target_date?: string | null;
+  order?: number;
+  notes?: string | null;
+  object_group_id?: string | null;
+  object_group_title?: string | null;
 }
