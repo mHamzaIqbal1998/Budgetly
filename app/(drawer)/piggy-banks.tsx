@@ -348,7 +348,7 @@ interface PiggyBankContextMenuProps {
   secondaryColor: string;
   balanceVisible: boolean;
   onEdit: () => void;
-  onViewDetails: () => void;
+  onAddRemove: () => void;
   onClose: () => void;
 }
 
@@ -358,7 +358,7 @@ function PiggyBankContextMenu({
   secondaryColor,
   balanceVisible,
   onEdit,
-  onViewDetails,
+  onAddRemove,
   onClose,
 }: PiggyBankContextMenuProps) {
   const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
@@ -397,27 +397,31 @@ function PiggyBankContextMenu({
           onPress={onEdit}
           style={({ pressed }) => [
             styles.contextMenuButton,
-            styles.editButton,
+            { backgroundColor: "#3F51B5" },
             pressed && styles.contextMenuButtonPressed,
           ]}
         >
           <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
-          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+          <Text style={[styles.contextMenuButtonText, { color: "#FFFFFF" }]}>
             Edit
           </Text>
         </Pressable>
 
         <Pressable
-          onPress={onViewDetails}
+          onPress={onAddRemove}
           style={({ pressed }) => [
             styles.contextMenuButton,
-            styles.viewButton,
+            { backgroundColor: "#26A69A" },
             pressed && styles.contextMenuButtonPressed,
           ]}
         >
-          <MaterialCommunityIcons name="eye" size={20} color="#FFFFFF" />
-          <Text style={[styles.contextMenuButtonText, styles.viewButtonText]}>
-            View Details
+          <MaterialCommunityIcons
+            name="swap-vertical"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, { color: "#FFFFFF" }]}>
+            Add/Remove
           </Text>
         </Pressable>
 
@@ -425,12 +429,12 @@ function PiggyBankContextMenu({
           onPress={onClose}
           style={({ pressed }) => [
             styles.contextMenuButton,
-            styles.cancelButton,
+            { backgroundColor: "#525252" },
             pressed && styles.contextMenuButtonPressed,
           ]}
         >
           <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
-          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+          <Text style={[styles.contextMenuButtonText, { color: "#FFFFFF" }]}>
             Cancel
           </Text>
         </Pressable>
@@ -874,11 +878,14 @@ export default function PiggyBanksScreen() {
     refetch();
   }, [refetch]);
 
-  // Press opens Add/Remove modal
-  const handlePress = useCallback((item: FlatPiggyBankItem) => {
-    setAddRemoveItem(item);
-    setAddRemoveVisible(true);
-  }, []);
+  // Press opens detail page
+  const handlePress = useCallback(
+    (item: FlatPiggyBankItem) => {
+      const id = item.piggyBank.id;
+      router.push(`/(drawer)/piggy-bank/${id}` as Href);
+    },
+    [router]
+  );
 
   // Long press opens context menu
   const handleLongPress = useCallback((item: FlatPiggyBankItem) => {
@@ -899,13 +906,13 @@ export default function PiggyBanksScreen() {
     router.push(`/(drawer)/piggy-bank/edit/${id}` as Href);
   }, [contextMenuItem, router]);
 
-  const handleViewDetails = useCallback(() => {
+  const handleAddRemoveFromContext = useCallback(() => {
     if (!contextMenuItem) return;
-    const id = contextMenuItem.piggyBank.id;
     setContextMenuVisible(false);
     setContextMenuItem(null);
-    router.push(`/(drawer)/piggy-bank/${id}` as Href);
-  }, [contextMenuItem, router]);
+    setAddRemoveItem(contextMenuItem);
+    setAddRemoveVisible(true);
+  }, [contextMenuItem]);
 
   const handleAddRemoveClose = useCallback(() => {
     setAddRemoveVisible(false);
@@ -1076,7 +1083,7 @@ export default function PiggyBanksScreen() {
                 secondaryColor={secondaryColor}
                 balanceVisible={balanceVisible}
                 onEdit={handleEdit}
-                onViewDetails={handleViewDetails}
+                onAddRemove={handleAddRemoveFromContext}
                 onClose={handleContextMenuClose}
               />
             )}
@@ -1339,27 +1346,6 @@ const styles = StyleSheet.create({
   contextMenuButtonText: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  editButton: {
-    backgroundColor: "#FF9800",
-    borderColor: "#FF9800",
-  },
-  editButtonText: {
-    color: "#FFFFFF",
-  },
-  viewButton: {
-    backgroundColor: "#3F51B5",
-    borderColor: "#3F51B5",
-  },
-  viewButtonText: {
-    color: "#FFFFFF",
-  },
-  cancelButton: {
-    backgroundColor: "#525252",
-    borderColor: "#6B6B6B",
-  },
-  cancelButtonText: {
-    color: "#FFFFFF",
   },
   // Add/Remove Modal
   addRemoveOverlay: {
