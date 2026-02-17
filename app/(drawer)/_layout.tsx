@@ -27,6 +27,11 @@ export default function DrawerLayout() {
     router.push("/(drawer)/account/create" as Href);
   }, [router]);
 
+  const onAddSubscription = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/subscription/create" as Href);
+  }, [router]);
+
   const fabActions = useMemo(
     () => [
       {
@@ -47,8 +52,14 @@ export default function DrawerLayout() {
         containerStyle: layoutStyles.fabLabelContainer,
         onPress: onAddAccount,
       },
+      {
+        icon: "repeat-variant" as const,
+        label: "Add Subscription",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onAddSubscription,
+      },
     ],
-    [onAddTransaction, onCreateBudget, onAddAccount]
+    [onAddTransaction, onCreateBudget, onAddAccount, onAddSubscription]
   );
 
   return (
@@ -170,6 +181,14 @@ export default function DrawerLayout() {
           name="budget"
           options={{
             title: "Budget Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
+          name="subscription"
+          options={{
+            title: "Subscription Detail",
             drawerItemStyle: { display: "none" },
             headerShown: false,
           }}

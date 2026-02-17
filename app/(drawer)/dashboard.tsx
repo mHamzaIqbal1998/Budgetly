@@ -111,7 +111,7 @@ export default function DashboardScreen() {
     refetch: refetchSubscriptionsBills,
   } = useQuery({
     queryKey: ["subscriptionsBills"],
-    queryFn: () => apiClient.getSubscriptionsBills(),
+    queryFn: () => apiClient.getBills(),
   });
 
   const {
