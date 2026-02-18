@@ -674,6 +674,15 @@ export default function TransactionsScreen() {
               cache.remove(CACHE_KEYS.ACCOUNTS);
               queryClient.removeQueries({ queryKey: ["all-accounts"] });
               queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+              // Invalidate piggy banks since account balances changed
+              queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+              queryClient.removeQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
+              queryClient.invalidateQueries({ queryKey: ["piggy-banks-list"] });
+              queryClient.invalidateQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
               // Refetch the transactions list to reflect the deletion
               refetch();
               Alert.alert("Success", "Transaction deleted successfully");
