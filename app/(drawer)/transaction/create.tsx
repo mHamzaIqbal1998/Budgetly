@@ -1314,15 +1314,6 @@ export default function CreateTransactionScreen() {
             >
               Create Transaction
             </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.replace(TRANSACTIONS_ROUTE)}
-              disabled={isSaving}
-              style={styles.cancelButton}
-            >
-              Cancel
-            </Button>
           </View>
 
           <View style={{ height: 40 }} />
@@ -1532,9 +1523,6 @@ const styles = StyleSheet.create({
   },
   saveButtonContent: {
     paddingVertical: 8,
-  },
-  cancelButton: {
-    borderRadius: 12,
   },
   // Selector Modal styles
   selectorOverlay: {
