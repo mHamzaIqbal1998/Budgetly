@@ -677,18 +677,20 @@ function AddRemoveModal({
                   onPress={() => setIsAdding(true)}
                   style={[
                     styles.toggleButton,
-                    isAdding && { backgroundColor: SpotifyColors.green },
+                    isAdding && { backgroundColor: theme.colors.primary },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name="plus"
                     size={20}
-                    color={isAdding ? "#FFFFFF" : theme.colors.onSurface}
+                    color={
+                      isAdding ? theme.colors.onPrimary : theme.colors.onSurface
+                    }
                   />
                   <Text
                     style={[
                       styles.toggleText,
-                      isAdding && { color: "#FFFFFF" },
+                      isAdding && { color: theme.colors.onPrimary },
                     ]}
                   >
                     Add
@@ -698,18 +700,22 @@ function AddRemoveModal({
                   onPress={() => setIsAdding(false)}
                   style={[
                     styles.toggleButton,
-                    !isAdding && { backgroundColor: SpotifyColors.danger },
+                    !isAdding && { backgroundColor: theme.colors.error },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name="minus"
                     size={20}
-                    color={!isAdding ? "#FFFFFF" : theme.colors.onSurface}
+                    color={
+                      !isAdding
+                        ? theme.colors.onPrimary
+                        : theme.colors.onSurface
+                    }
                   />
                   <Text
                     style={[
                       styles.toggleText,
-                      !isAdding && { color: "#FFFFFF" },
+                      !isAdding && { color: theme.colors.onPrimary },
                     ]}
                   >
                     Remove
@@ -772,15 +778,13 @@ function AddRemoveModal({
                 onPress={handleSubmit}
                 loading={isLoading}
                 disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: isAdding
-                      ? SpotifyColors.green
-                      : SpotifyColors.danger,
-                  },
-                ]}
-                textColor="#FFFFFF"
+                buttonColor={
+                  isAdding ? theme.colors.primary : theme.colors.error
+                }
+                textColor={
+                  isAdding ? theme.colors.onPrimary : theme.colors.onError
+                }
+                style={styles.actionButton}
               >
                 {isAdding ? "Add" : "Remove"}
               </Button>
@@ -1536,6 +1540,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   actionButton: {
-    minWidth: 80,
+    minWidth: 100,
   },
 });

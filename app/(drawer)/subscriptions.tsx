@@ -1,5 +1,5 @@
-// Subscriptions Screen – lists all subscriptions (bills) with infinite scroll
 import { GlassCard } from "@/components/glass-card";
+import { SpotifyColors } from "@/constants/spotify-theme";
 import { apiClient } from "@/lib/api-client";
 import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
@@ -21,15 +21,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Chip, Text, useTheme } from "react-native-paper";
+import { Card, Chip, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
 
 const PAGE_SIZE = 50;
-const ITEM_HEIGHT = 110;
-const ITEM_MARGIN = 12;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const FREQ_LABELS: Record<string, string> = {
@@ -104,10 +102,7 @@ const SubscriptionItem = memo(
     const freqLabel = FREQ_LABELS[attrs.repeat_freq] || attrs.repeat_freq;
     const freqIcon = FREQ_ICONS[attrs.repeat_freq] || "calendar-repeat";
 
-    const amountDisplay =
-      amountMin === amountMax
-        ? `${currencySymbol} ${balanceVisible ? formatAmount(amountMin, decimals) : "••••••"}`
-        : `${currencySymbol} ${balanceVisible ? formatAmount(amountMin, decimals) : "••••••"} – ${balanceVisible ? formatAmount(amountMax, decimals) : "••••••"}`;
+    const avgAmount = (amountMin + amountMax) / 2;
 
     return (
       <Pressable
@@ -115,36 +110,41 @@ const SubscriptionItem = memo(
         onLongPress={onLongPress}
         style={({ pressed }) => pressed && styles.cardPressed}
       >
-        <GlassCard variant="default" style={styles.card}>
-          <View style={styles.cardInner}>
-            <View style={styles.cardRow}>
-              <View style={styles.cardLeft}>
+        <GlassCard variant="elevated" style={styles.subscriptionCard}>
+          <Card.Content style={styles.cardContent}>
+            {/* Header: Icon + Name + Chips */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
                 <View
                   style={[
                     styles.iconWrap,
-                    { backgroundColor: surfaceVariantColor },
+                    {
+                      backgroundColor: isActive
+                        ? `${primaryColor}20`
+                        : "rgba(120,120,120,0.08)",
+                    },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name="repeat"
-                    size={22}
-                    color={isActive ? primaryColor : errorColor}
+                    size={24}
+                    color={
+                      isActive ? primaryColor : SpotifyColors.textSecondary
+                    }
                   />
                 </View>
-                <View style={styles.cardBody}>
+                <View style={styles.nameContainer}>
                   <Text
-                    variant="titleSmall"
+                    variant="titleMedium"
                     numberOfLines={1}
-                    style={styles.cardName}
+                    style={styles.subscriptionName}
                   >
                     {attrs.name}
                   </Text>
                   <View style={styles.chipsRow}>
                     <Chip
                       compact
-                      icon={
-                        freqIcon as keyof typeof MaterialCommunityIcons.glyphMap
-                      }
+                      icon={freqIcon as any}
                       style={styles.chip}
                       textStyle={styles.chipText}
                     >
@@ -166,34 +166,83 @@ const SubscriptionItem = memo(
                   </View>
                 </View>
               </View>
-              <View style={styles.cardRight}>
-                <Text
-                  variant="titleSmall"
-                  style={[styles.amountText, { color: errorColor }]}
-                  numberOfLines={1}
-                >
-                  {amountDisplay}
+            </View>
+
+            {/* Info Row: Next Expected */}
+            {(attrs.next_expected_match || attrs.next_expected_match_diff) && (
+              <View style={styles.dateRow}>
+                <View style={styles.dateItem}>
+                  <MaterialCommunityIcons
+                    name="calendar-clock"
+                    size={14}
+                    color={SpotifyColors.textSecondary}
+                  />
+                  <Text variant="labelSmall" style={styles.dateText}>
+                    Next:{" "}
+                    {attrs.next_expected_match_diff ||
+                      formatDate(attrs.next_expected_match)}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Amounts Row */}
+            <View style={styles.amountsRow}>
+              <View style={styles.amountBlock}>
+                <Text variant="labelSmall" style={styles.amountLabel}>
+                  Min
                 </Text>
-                {attrs.next_expected_match_diff ? (
-                  <Text
-                    variant="labelSmall"
-                    numberOfLines={1}
-                    style={styles.nextDueText}
-                  >
-                    {attrs.next_expected_match_diff}
-                  </Text>
-                ) : attrs.next_expected_match ? (
-                  <Text
-                    variant="labelSmall"
-                    numberOfLines={1}
-                    style={styles.nextDueText}
-                  >
-                    {formatDate(attrs.next_expected_match)}
-                  </Text>
-                ) : null}
+                <Text variant="titleMedium" style={styles.amountValue}>
+                  {balanceVisible
+                    ? `${currencySymbol} ${formatAmount(amountMin, decimals)}`
+                    : "••••••"}
+                </Text>
+              </View>
+
+              <View style={[styles.amountBlock, styles.amountBlockCenter]}>
+                <Text variant="labelSmall" style={styles.amountLabel}>
+                  Avg
+                </Text>
+                <Text
+                  variant="titleMedium"
+                  style={[styles.amountValue, { color: primaryColor }]}
+                >
+                  {balanceVisible
+                    ? `${currencySymbol} ${formatAmount(avgAmount, decimals)}`
+                    : "••••••"}
+                </Text>
+              </View>
+
+              <View style={[styles.amountBlock, styles.amountBlockRight]}>
+                <Text variant="labelSmall" style={styles.amountLabel}>
+                  Max
+                </Text>
+                <Text variant="titleMedium" style={styles.amountValue}>
+                  {balanceVisible
+                    ? `${currencySymbol} ${formatAmount(amountMax, decimals)}`
+                    : "••••••"}
+                </Text>
               </View>
             </View>
-          </View>
+
+            {/* Notes if any */}
+            {attrs.notes && (
+              <View style={styles.notesRow}>
+                <MaterialCommunityIcons
+                  name="note-text-outline"
+                  size={14}
+                  color={SpotifyColors.textSecondary}
+                />
+                <Text
+                  variant="bodySmall"
+                  numberOfLines={2}
+                  style={styles.notesText}
+                >
+                  {attrs.notes}
+                </Text>
+              </View>
+            )}
+          </Card.Content>
         </GlassCard>
       </Pressable>
     );
@@ -487,15 +536,6 @@ export default function SubscriptionsScreen() {
 
   const keyExtractor = useCallback((item: FlatBill) => item._flatKey, []);
 
-  const getItemLayout = useCallback(
-    (_data: ArrayLike<FlatBill> | null | undefined, index: number) => ({
-      length: ITEM_HEIGHT + ITEM_MARGIN,
-      offset: (ITEM_HEIGHT + ITEM_MARGIN) * index,
-      index,
-    }),
-    []
-  );
-
   // Empty / loading states
   const listEmpty = useMemo(() => {
     if (isLoading) {
@@ -549,7 +589,6 @@ export default function SubscriptionsScreen() {
         extraData={balanceVisible}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        getItemLayout={getItemLayout}
         ListEmptyComponent={listEmpty}
         ListFooterComponent={footer}
         contentContainerStyle={[
@@ -639,65 +678,111 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
   },
-  card: {
-    marginBottom: ITEM_MARGIN,
-    borderRadius: 16,
-    overflow: "hidden",
+  // Redesigned Card
+  subscriptionCard: {
+    marginBottom: 16,
+    borderRadius: 20,
   },
   cardPressed: {
     opacity: 0.85,
   },
-  cardInner: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  cardContent: {
+    padding: 16,
   },
-  cardRow: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  cardLeft: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
     minWidth: 0,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  cardBody: {
+  nameContainer: {
     flex: 1,
     minWidth: 0,
   },
-  cardName: {
-    fontWeight: "600",
+  subscriptionName: {
+    fontWeight: "700",
+    fontSize: 16,
   },
   chipsRow: {
     flexDirection: "row",
     marginTop: 6,
-    gap: 6,
+    gap: 8,
   },
   chip: {
-    height: 32,
+    height: 28,
+    backgroundColor: "rgba(120, 120, 120, 0.08)",
   },
   chipText: {
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: "500",
   },
-  cardRight: {
+  dateRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 16,
+  },
+  dateItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  dateText: {
+    color: SpotifyColors.textSecondary,
+    fontSize: 12,
+  },
+  amountsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
+  },
+  amountBlock: {
+    flex: 1,
+  },
+  amountBlockCenter: {
+    alignItems: "center",
+  },
+  amountBlockRight: {
     alignItems: "flex-end",
-    marginLeft: 12,
   },
-  amountText: {
-    fontWeight: "700",
-  },
-  nextDueText: {
-    marginTop: 4,
+  amountLabel: {
+    fontSize: 11,
     opacity: 0.6,
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  amountValue: {
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  notesRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    paddingTop: 12,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
+  },
+  notesText: {
+    flex: 1,
+    color: SpotifyColors.textSecondary,
+    lineHeight: 18,
   },
   footer: {
     flexDirection: "row",
