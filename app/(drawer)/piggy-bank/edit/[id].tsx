@@ -315,7 +315,10 @@ export default function EditPiggyBankScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g., New Car, Vacation Fund"
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: theme.colors.surface },
+                ]}
                 outlineColor={theme.colors.outline}
                 activeOutlineColor={theme.colors.primary}
               />
@@ -450,7 +453,10 @@ export default function EditPiggyBankScreen() {
                 onChangeText={setTargetAmount}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: theme.colors.surface },
+                ]}
                 outlineColor={theme.colors.outline}
                 activeOutlineColor={theme.colors.primary}
                 left={
@@ -733,7 +739,11 @@ export default function EditPiggyBankScreen() {
                 placeholder="Additional notes (optional)"
                 multiline
                 numberOfLines={3}
-                style={[styles.input, styles.textArea]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { backgroundColor: theme.colors.surface },
+                ]}
                 outlineColor={theme.colors.outline}
                 activeOutlineColor={theme.colors.primary}
               />
@@ -827,9 +837,7 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "600",
   },
-  input: {
-    backgroundColor: "transparent",
-  },
+  input: {},
   textArea: {
     minHeight: 80,
     paddingTop: 12,
