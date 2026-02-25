@@ -12,20 +12,20 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 
 - [x] Secure Connect with firefly instance
 - [x] Dashboard
-- [x] Accounts Management
-- [x] Transactions Management
-- [ ] Budgets
-- [ ] Piggy bank
-- [ ] Subscription management
+- [x] Accounts management
+- [x] Transactions management
+- [x] Budgets management
+- [x] Piggy banks management
+- [x] Subscription management
+- [x] Multiple currency support
+- [x] Dark/Light Theme
 - [ ] Tag management
 - [ ] Recurring transaction improvements
 - [ ] Advanced filtering and search
 - [ ] Advanced charts and analytics
 - [ ] Budget categories and tags
 - [ ] Export functionality
-- [ ] Multiple currency support
 - [ ] Biometric authentication
-- [ ] Theme customization options
 - [ ] Push notifications for recurring transactions
 - [ ] Offline Support (Semi implemented)
 - [ ] Offline transaction creation with sync
