@@ -35,6 +35,16 @@ export const getPreviousMonthStartEndDate = () => {
   };
 };
 
+export const getTwoMonthsAgoStartEndDate = () => {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() - 1, 0);
+  return {
+    startDateString: toLocalDateString(startDate),
+    endDate: toLocalDateString(lastDay),
+  };
+};
+
 export {
   createBudgetByIdMap,
   getBudgetInfoFromMap,

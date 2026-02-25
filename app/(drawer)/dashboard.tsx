@@ -22,6 +22,7 @@ import {
   getCurrentMonthStartEndDate,
   getPreviousMonthStartEndDate,
   getStartEndDate,
+  getTwoMonthsAgoStartEndDate,
 } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -76,6 +77,10 @@ export default function DashboardScreen() {
   );
   const previousMonthRange = React.useMemo(
     () => getPreviousMonthStartEndDate(),
+    []
+  );
+  const twoMonthsAgoRange = React.useMemo(
+    () => getTwoMonthsAgoStartEndDate(),
     []
   );
 
@@ -213,11 +218,47 @@ export default function DashboardScreen() {
       ),
   });
 
+  const {
+    data: twoMonthsAgoIncome,
+    isLoading: isLoadingTwoMonthsAgoIncome,
+    refetch: refetchTwoMonthsAgoIncome,
+  } = useQuery({
+    queryKey: [
+      "insightIncomeTotal",
+      twoMonthsAgoRange.startDateString,
+      twoMonthsAgoRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightIncomeTotal(
+        twoMonthsAgoRange.startDateString,
+        twoMonthsAgoRange.endDate
+      ),
+  });
+
+  const {
+    data: twoMonthsAgoExpense,
+    isLoading: isLoadingTwoMonthsAgoExpense,
+    refetch: refetchTwoMonthsAgoExpense,
+  } = useQuery({
+    queryKey: [
+      "insightExpenseTotal",
+      twoMonthsAgoRange.startDateString,
+      twoMonthsAgoRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightExpenseTotal(
+        twoMonthsAgoRange.startDateString,
+        twoMonthsAgoRange.endDate
+      ),
+  });
+
   const isLoadingInsight =
     isLoadingCurIncome ||
     isLoadingCurExpense ||
     isLoadingPrevIncome ||
-    isLoadingPrevExpense;
+    isLoadingPrevExpense ||
+    isLoadingTwoMonthsAgoIncome ||
+    isLoadingTwoMonthsAgoExpense;
 
   // Calculate total balance by currency (asset accounts only)
   const balancesByCurrency = React.useMemo(() => {
@@ -256,6 +297,8 @@ export default function DashboardScreen() {
     refetchCurExpense();
     refetchPrevIncome();
     refetchPrevExpense();
+    refetchTwoMonthsAgoIncome();
+    refetchTwoMonthsAgoExpense();
   };
 
   return (
@@ -421,6 +464,8 @@ export default function DashboardScreen() {
                   currentMonthExpense={currentMonthExpense}
                   previousMonthIncome={previousMonthIncome}
                   previousMonthExpense={previousMonthExpense}
+                  twoMonthsAgoIncome={twoMonthsAgoIncome}
+                  twoMonthsAgoExpense={twoMonthsAgoExpense}
                   isLoading={isLoadingInsight}
                 />
               );

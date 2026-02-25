@@ -50,6 +50,8 @@ export interface IncomeVsExpensesBarCardProps {
   currentMonthExpense: InsightTotalEntry[] | undefined;
   previousMonthIncome: InsightTotalEntry[] | undefined;
   previousMonthExpense: InsightTotalEntry[] | undefined;
+  twoMonthsAgoIncome: InsightTotalEntry[] | undefined;
+  twoMonthsAgoExpense: InsightTotalEntry[] | undefined;
   isLoading: boolean;
 }
 
@@ -58,16 +60,20 @@ function buildChartData(
   currentIncome: InsightTotalEntry[] | undefined,
   currentExpense: InsightTotalEntry[] | undefined,
   previousIncome: InsightTotalEntry[] | undefined,
-  previousExpense: InsightTotalEntry[] | undefined
+  previousExpense: InsightTotalEntry[] | undefined,
+  twoMonthsAgoIncome: InsightTotalEntry[] | undefined,
+  twoMonthsAgoExpense: InsightTotalEntry[] | undefined
 ): Map<string, MonthData[]> {
   const today = new Date();
   const currentMonthIdx = today.getMonth();
-  const prevMonthIdx = currentMonthIdx === 0 ? 11 : currentMonthIdx - 1;
+  const prevMonthIdx = (currentMonthIdx - 1 + 12) % 12;
+  const twoMonthsAgoIdx = (currentMonthIdx - 2 + 12) % 12;
 
   const currentMonthLabel = MONTH_NAMES[currentMonthIdx];
   const prevMonthLabel = MONTH_NAMES[prevMonthIdx];
+  const twoMonthsAgoLabel = MONTH_NAMES[twoMonthsAgoIdx];
 
-  // Collect all currency codes across all four responses
+  // Collect all currency codes across all responses
   const currencyCodes = new Set<string>();
 
   const addCodes = (entries?: InsightTotalEntry[]) => {
@@ -77,6 +83,8 @@ function buildChartData(
   addCodes(currentExpense);
   addCodes(previousIncome);
   addCodes(previousExpense);
+  addCodes(twoMonthsAgoIncome);
+  addCodes(twoMonthsAgoExpense);
 
   // If no currencies found, add a default
   if (currencyCodes.size === 0) currencyCodes.add("USD");
@@ -94,15 +102,32 @@ function buildChartData(
   };
 
   for (const code of currencyCodes) {
+    const twoAgoIncome = sumByCurrency(twoMonthsAgoIncome, code);
+    const twoAgoExpense = sumByCurrency(twoMonthsAgoExpense, code);
     const prevIncome = sumByCurrency(previousIncome, code);
     const prevExpense = sumByCurrency(previousExpense, code);
     const curIncome = sumByCurrency(currentIncome, code);
     const curExpense = sumByCurrency(currentExpense, code);
 
     // Only include currency if there is any data at all
-    if (prevIncome + prevExpense + curIncome + curExpense === 0) continue;
+    if (
+      twoAgoIncome +
+        twoAgoExpense +
+        prevIncome +
+        prevExpense +
+        curIncome +
+        curExpense ===
+      0
+    )
+      continue;
 
     result.set(code, [
+      {
+        monthLabel: twoMonthsAgoLabel,
+        income: twoAgoIncome,
+        expense: twoAgoExpense,
+        currencyCode: code,
+      },
       {
         monthLabel: prevMonthLabel,
         income: prevIncome,
@@ -127,6 +152,8 @@ export function IncomeVsExpensesBarCard({
   currentMonthExpense,
   previousMonthIncome,
   previousMonthExpense,
+  twoMonthsAgoIncome,
+  twoMonthsAgoExpense,
   isLoading,
 }: IncomeVsExpensesBarCardProps) {
   const theme = useTheme();
@@ -143,13 +170,17 @@ export function IncomeVsExpensesBarCard({
         currentMonthIncome,
         currentMonthExpense,
         previousMonthIncome,
-        previousMonthExpense
+        previousMonthExpense,
+        twoMonthsAgoIncome,
+        twoMonthsAgoExpense
       ),
     [
       currentMonthIncome,
       currentMonthExpense,
       previousMonthIncome,
       previousMonthExpense,
+      twoMonthsAgoIncome,
+      twoMonthsAgoExpense,
     ]
   );
 
@@ -189,7 +220,9 @@ export function IncomeVsExpensesBarCard({
     (!currentMonthIncome &&
       !currentMonthExpense &&
       !previousMonthIncome &&
-      !previousMonthExpense)
+      !previousMonthExpense &&
+      !twoMonthsAgoIncome &&
+      !twoMonthsAgoExpense)
   ) {
     return (
       <GlassCard variant="primary" style={styles.card} mode="outlined">
