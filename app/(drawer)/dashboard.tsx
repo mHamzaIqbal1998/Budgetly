@@ -366,6 +366,19 @@ export default function DashboardScreen() {
                   onDaysChange={setExpenseChartDays}
                 />
               );
+            case "incomeVsExpenses":
+              return (
+                <IncomeVsExpensesBarCard
+                  key={sectionId}
+                  currentMonthIncome={currentMonthIncome}
+                  currentMonthExpense={currentMonthExpense}
+                  previousMonthIncome={previousMonthIncome}
+                  previousMonthExpense={previousMonthExpense}
+                  twoMonthsAgoIncome={twoMonthsAgoIncome}
+                  twoMonthsAgoExpense={twoMonthsAgoExpense}
+                  isLoading={isLoadingInsight}
+                />
+              );
             case "summaryCards":
               return (
                 <View key={sectionId} style={styles.summaryRow}>
@@ -454,19 +467,6 @@ export default function DashboardScreen() {
                       (bill) => bill.attributes.active
                     ).length ?? 0
                   }
-                />
-              );
-            case "incomeVsExpenses":
-              return (
-                <IncomeVsExpensesBarCard
-                  key={sectionId}
-                  currentMonthIncome={currentMonthIncome}
-                  currentMonthExpense={currentMonthExpense}
-                  previousMonthIncome={previousMonthIncome}
-                  previousMonthExpense={previousMonthExpense}
-                  twoMonthsAgoIncome={twoMonthsAgoIncome}
-                  twoMonthsAgoExpense={twoMonthsAgoExpense}
-                  isLoading={isLoadingInsight}
                 />
               );
             default:
