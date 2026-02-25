@@ -2,9 +2,11 @@ import type {
   AccountStoreRequestBody,
   AccountUpdateRequestBody,
   CreateBudgetData,
+  CreatePiggyBankData,
   CreateTransactionData,
   TransactionUpdateData,
   UpdateBudgetData,
+  UpdatePiggyBankData,
 } from "@/types";
 import * as accountsModule from "./accounts";
 import * as autocompleteModule from "./autocomplete";
@@ -200,6 +202,18 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return piggyBanksModule.getPiggyBank(this.ensureInitialized(), id);
   }
 
+  async updatePiggyBank(id: string, data: UpdatePiggyBankData) {
+    return piggyBanksModule.updatePiggyBank(this.ensureInitialized(), id, data);
+  }
+
+  async createPiggyBank(data: CreatePiggyBankData) {
+    return piggyBanksModule.createPiggyBank(this.ensureInitialized(), data);
+  }
+
+  async deletePiggyBank(id: string) {
+    return piggyBanksModule.deletePiggyBank(this.ensureInitialized(), id);
+  }
+
   // Recurring
   async getRecurringTransactions(page: number = 1) {
     return recurringModule.getRecurringTransactions(
@@ -215,8 +229,24 @@ class FireflyApiClientImpl extends FireflyApiClient {
     );
   }
 
-  async getSubscriptionsBills() {
-    return recurringModule.getSubscriptionsBills(this.ensureInitialized());
+  async getBills(page: number = 1, limit: number = 50) {
+    return recurringModule.getBills(this.ensureInitialized(), page, limit);
+  }
+
+  async getBill(id: string, start?: string, end?: string) {
+    return recurringModule.getBill(this.ensureInitialized(), id, start, end);
+  }
+
+  async createBill(data: Record<string, unknown>) {
+    return recurringModule.createBill(this.ensureInitialized(), data);
+  }
+
+  async updateBill(id: string, data: Record<string, unknown>) {
+    return recurringModule.updateBill(this.ensureInitialized(), id, data);
+  }
+
+  async deleteBill(id: string) {
+    return recurringModule.deleteBill(this.ensureInitialized(), id);
   }
 
   // Expenses

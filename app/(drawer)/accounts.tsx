@@ -574,6 +574,15 @@ export default function AccountsScreen() {
                 );
               }
               queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+              // Invalidate piggy banks since account was deleted
+              queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+              queryClient.removeQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
+              queryClient.invalidateQueries({ queryKey: ["piggy-banks-list"] });
+              queryClient.invalidateQueries({
+                queryKey: ["all-accounts-piggy-banks"],
+              });
               Alert.alert("Success", "Account deleted successfully");
             } catch (error) {
               console.error("Failed to delete account:", error);

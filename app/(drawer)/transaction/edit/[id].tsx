@@ -577,6 +577,11 @@ export default function EditTransactionScreen() {
           queryKey: ["accountTransactions", accountId],
         });
       }
+      // Invalidate piggy banks since account balances changed
+      queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.removeQueries({ queryKey: ["all-accounts-piggy-banks"] });
+      queryClient.invalidateQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts-piggy-banks"] });
 
       Alert.alert("Success", "Transaction updated successfully", [
         {
@@ -1231,15 +1236,6 @@ export default function EditTransactionScreen() {
             >
               Save Changes
             </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.replace(backRoute)}
-              disabled={isSaving}
-              style={styles.cancelButton}
-            >
-              Cancel
-            </Button>
           </View>
 
           <View style={{ height: 40 }} />
@@ -1413,9 +1409,6 @@ const styles = StyleSheet.create({
   },
   saveButtonContent: {
     paddingVertical: 8,
-  },
-  cancelButton: {
-    borderRadius: 12,
   },
   // Selector Modal styles
   selectorOverlay: {

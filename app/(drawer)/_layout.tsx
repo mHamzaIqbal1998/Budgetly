@@ -27,6 +27,16 @@ export default function DrawerLayout() {
     router.push("/(drawer)/account/create" as Href);
   }, [router]);
 
+  const onAddSubscription = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/subscription/create" as Href);
+  }, [router]);
+
+  const onCreatePiggyBank = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/piggy-bank/create" as Href);
+  }, [router]);
+
   const fabActions = useMemo(
     () => [
       {
@@ -47,8 +57,26 @@ export default function DrawerLayout() {
         containerStyle: layoutStyles.fabLabelContainer,
         onPress: onAddAccount,
       },
+      {
+        icon: "piggy-bank" as const,
+        label: "Create Piggy Bank",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onCreatePiggyBank,
+      },
+      {
+        icon: "repeat-variant" as const,
+        label: "Add Subscription",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onAddSubscription,
+      },
     ],
-    [onAddTransaction, onCreateBudget, onAddAccount]
+    [
+      onAddTransaction,
+      onCreateBudget,
+      onAddAccount,
+      onCreatePiggyBank,
+      onAddSubscription,
+    ]
   );
 
   return (
@@ -175,6 +203,22 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="subscription"
+          options={{
+            title: "Subscription Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
+          name="piggy-bank"
+          options={{
+            title: "Piggy Bank Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        {/* <Drawer.Screen
           name="reports"
           options={{
             title: "Reports & Insights",
@@ -187,7 +231,7 @@ export default function DrawerLayout() {
               />
             ),
           }}
-        />
+        /> */}
         <Drawer.Screen
           name="settings"
           options={{

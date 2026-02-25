@@ -582,6 +582,11 @@ export default function CreateTransactionScreen() {
       cache.remove(CACHE_KEYS.ACCOUNTS);
       queryClient.removeQueries({ queryKey: ["all-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["all-accounts"] });
+      // Invalidate piggy banks since account balances changed
+      queryClient.removeQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.removeQueries({ queryKey: ["all-accounts-piggy-banks"] });
+      queryClient.invalidateQueries({ queryKey: ["piggy-banks-list"] });
+      queryClient.invalidateQueries({ queryKey: ["all-accounts-piggy-banks"] });
 
       Alert.alert("Success", "Transaction created successfully", [
         { text: "OK", onPress: () => router.replace(TRANSACTIONS_ROUTE) },
@@ -1309,15 +1314,6 @@ export default function CreateTransactionScreen() {
             >
               Create Transaction
             </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.replace(TRANSACTIONS_ROUTE)}
-              disabled={isSaving}
-              style={styles.cancelButton}
-            >
-              Cancel
-            </Button>
           </View>
 
           <View style={{ height: 40 }} />
@@ -1527,9 +1523,6 @@ const styles = StyleSheet.create({
   },
   saveButtonContent: {
     paddingVertical: 8,
-  },
-  cancelButton: {
-    borderRadius: 12,
   },
   // Selector Modal styles
   selectorOverlay: {

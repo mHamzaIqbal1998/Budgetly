@@ -1276,15 +1276,6 @@ export default function CreateAccountScreen() {
             >
               Create Account
             </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.replace(ACCOUNTS_ROUTE)}
-              disabled={isSaving}
-              style={styles.cancelButton}
-            >
-              Cancel
-            </Button>
           </View>
 
           <View style={{ height: 40 }} />
@@ -1451,8 +1442,5 @@ const styles = StyleSheet.create({
   },
   saveButtonContent: {
     paddingVertical: 8,
-  },
-  cancelButton: {
-    borderRadius: 12,
   },
 });
