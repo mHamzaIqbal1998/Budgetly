@@ -1,0 +1,32 @@
+build:
+  name: Build Unsigned IPA for Budgetly
+  steps:
+    - eas/checkout
+    - eas/install_node_modules
+    - run:
+        name: Generate Native iOS folder
+        command: npx expo prebuild -p ios --clean
+    - run:
+        name: Install CocoaPods
+        # Using npx pod-install safely handles New Architecture (Fabric/TurboModules) automatically
+        command: npx pod-install ios
+    - run:
+        name: Build Unsigned App
+        command: |
+          # Dynamically get your app's Xcode workspace name (Budgetly)
+          APP_NAME=$(ls ios | grep "\.xcworkspace$" | sed 's/\.xcworkspace//')
+          cd ios
+
+          # Compile the app for physical iPhones while forcing code signing off
+          xcodebuild -workspace "$APP_NAME.xcworkspace" -scheme "$APP_NAME" -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build SYMROOT="$(PWD)/build"
+    - run:
+        name: Package into IPA
+        command: |
+          mkdir -p Payload
+          mv ios/build/Release-iphoneos/*.app Payload/
+          zip -qr budgetly-unsigned.ipa Payload
+    - eas/upload_artifact:
+        name: Upload Unsigned IPA
+        inputs:
+          type: application-archive
+          path: budgetly-unsigned.ipa
