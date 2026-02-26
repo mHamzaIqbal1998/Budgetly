@@ -4,6 +4,12 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "local-sideload": {
+      "ios": {
+        "simulator": true,
+        "config": "sideload-build.yml"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -26,4 +32,3 @@
     "production": {}
   }
 }
-
