@@ -479,6 +479,7 @@ export default function AccountsScreen() {
           iconColor={theme.colors.onSurfaceVariant}
           placeholderTextColor={theme.colors.onSurfaceVariant}
           inputStyle={{ color: theme.colors.onSurface }}
+          right={() => null}
         />
       </>
     ),
@@ -710,6 +711,12 @@ const styles = StyleSheet.create({
   searchBar: {
     marginBottom: 16,
     elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
   },
   centerContent: {
     flex: 1,

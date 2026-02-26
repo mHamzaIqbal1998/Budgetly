@@ -174,6 +174,7 @@ function SelectorModal({
               onChangeText={setSearch}
               style={styles.selectorSearch}
               inputStyle={styles.selectorSearchInput}
+              right={() => null}
             />
           )}
 

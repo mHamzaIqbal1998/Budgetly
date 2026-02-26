@@ -313,6 +313,7 @@ const ListHeader = memo(function ListHeader({
         iconColor={onSurfaceVariantColor}
         placeholderTextColor={onSurfaceVariantColor}
         inputStyle={{ color: onSurfaceColor }}
+        right={() => null}
       />
     </>
   );
@@ -957,6 +958,12 @@ const styles = StyleSheet.create({
   searchBar: {
     marginBottom: 16,
     elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
   },
   txCard: {
     marginBottom: ITEM_MARGIN,
