@@ -6,3 +6,10 @@ export interface ExpensesByExpenseAccount {
   currency_id: string;
   currency_code: string;
 }
+
+export interface InsightTotalEntry {
+  difference: string;
+  difference_float: number;
+  currency_id: string;
+  currency_code: string;
+}

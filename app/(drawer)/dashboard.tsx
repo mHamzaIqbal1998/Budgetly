@@ -1,5 +1,6 @@
 // Dashboard Screen
 import { ExpensesByAccountPieCard } from "@/components/charts/expenses-by-account-pie-card";
+import { IncomeVsExpensesBarCard } from "@/components/charts/income-vs-expenses-bar-card";
 import { TopAccountsPieCard } from "@/components/charts/top-accounts-pie-card";
 import { AccountsOverviewCard } from "@/components/dashboard/accounts-overview-card";
 import { BudgetStatusCard } from "@/components/dashboard/budget-status-card";
@@ -19,7 +20,9 @@ import { useStore } from "@/lib/store";
 import {
   filterAccountsByType,
   getCurrentMonthStartEndDate,
+  getPreviousMonthStartEndDate,
   getStartEndDate,
+  getTwoMonthsAgoStartEndDate,
 } from "@/lib/utils";
 import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -67,6 +70,19 @@ export default function DashboardScreen() {
   );
   // Current month (1st to today) for budgets so monthly reset aligns
   const budgetDateRange = getCurrentMonthStartEndDate();
+  // Current & previous month ranges for income vs expenses chart
+  const currentMonthRange = React.useMemo(
+    () => getCurrentMonthStartEndDate(),
+    []
+  );
+  const previousMonthRange = React.useMemo(
+    () => getPreviousMonthStartEndDate(),
+    []
+  );
+  const twoMonthsAgoRange = React.useMemo(
+    () => getTwoMonthsAgoStartEndDate(),
+    []
+  );
 
   // Single fetch for all accounts; filter by type for dashboard sections
   const {
@@ -133,6 +149,117 @@ export default function DashboardScreen() {
       )
   );
 
+  // ── Income vs Expenses queries ───────────────────────────────────────────
+  const {
+    data: currentMonthIncome,
+    isLoading: isLoadingCurIncome,
+    refetch: refetchCurIncome,
+  } = useQuery({
+    queryKey: [
+      "insightIncomeTotal",
+      currentMonthRange.startDateString,
+      currentMonthRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightIncomeTotal(
+        currentMonthRange.startDateString,
+        currentMonthRange.endDate
+      ),
+  });
+
+  const {
+    data: currentMonthExpense,
+    isLoading: isLoadingCurExpense,
+    refetch: refetchCurExpense,
+  } = useQuery({
+    queryKey: [
+      "insightExpenseTotal",
+      currentMonthRange.startDateString,
+      currentMonthRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightExpenseTotal(
+        currentMonthRange.startDateString,
+        currentMonthRange.endDate
+      ),
+  });
+
+  const {
+    data: previousMonthIncome,
+    isLoading: isLoadingPrevIncome,
+    refetch: refetchPrevIncome,
+  } = useQuery({
+    queryKey: [
+      "insightIncomeTotal",
+      previousMonthRange.startDateString,
+      previousMonthRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightIncomeTotal(
+        previousMonthRange.startDateString,
+        previousMonthRange.endDate
+      ),
+  });
+
+  const {
+    data: previousMonthExpense,
+    isLoading: isLoadingPrevExpense,
+    refetch: refetchPrevExpense,
+  } = useQuery({
+    queryKey: [
+      "insightExpenseTotal",
+      previousMonthRange.startDateString,
+      previousMonthRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightExpenseTotal(
+        previousMonthRange.startDateString,
+        previousMonthRange.endDate
+      ),
+  });
+
+  const {
+    data: twoMonthsAgoIncome,
+    isLoading: isLoadingTwoMonthsAgoIncome,
+    refetch: refetchTwoMonthsAgoIncome,
+  } = useQuery({
+    queryKey: [
+      "insightIncomeTotal",
+      twoMonthsAgoRange.startDateString,
+      twoMonthsAgoRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightIncomeTotal(
+        twoMonthsAgoRange.startDateString,
+        twoMonthsAgoRange.endDate
+      ),
+  });
+
+  const {
+    data: twoMonthsAgoExpense,
+    isLoading: isLoadingTwoMonthsAgoExpense,
+    refetch: refetchTwoMonthsAgoExpense,
+  } = useQuery({
+    queryKey: [
+      "insightExpenseTotal",
+      twoMonthsAgoRange.startDateString,
+      twoMonthsAgoRange.endDate,
+    ],
+    queryFn: () =>
+      apiClient.getInsightExpenseTotal(
+        twoMonthsAgoRange.startDateString,
+        twoMonthsAgoRange.endDate
+      ),
+  });
+
+  const isLoadingInsight =
+    isLoadingCurIncome ||
+    isLoadingCurExpense ||
+    isLoadingPrevIncome ||
+    isLoadingPrevExpense ||
+    isLoadingTwoMonthsAgoIncome ||
+    isLoadingTwoMonthsAgoExpense;
+
   // Calculate total balance by currency (asset accounts only)
   const balancesByCurrency = React.useMemo(() => {
     const acc: Record<string, { symbol: string; code: string; total: number }> =
@@ -166,6 +293,12 @@ export default function DashboardScreen() {
     refetchBudgets();
     refetchSubscriptionsBills();
     refetchExpenses();
+    refetchCurIncome();
+    refetchCurExpense();
+    refetchPrevIncome();
+    refetchPrevExpense();
+    refetchTwoMonthsAgoIncome();
+    refetchTwoMonthsAgoExpense();
   };
 
   return (
@@ -231,6 +364,19 @@ export default function DashboardScreen() {
                   expenseAccounts={expenseAccounts}
                   selectedDays={expenseChartDays}
                   onDaysChange={setExpenseChartDays}
+                />
+              );
+            case "incomeVsExpenses":
+              return (
+                <IncomeVsExpensesBarCard
+                  key={sectionId}
+                  currentMonthIncome={currentMonthIncome}
+                  currentMonthExpense={currentMonthExpense}
+                  previousMonthIncome={previousMonthIncome}
+                  previousMonthExpense={previousMonthExpense}
+                  twoMonthsAgoIncome={twoMonthsAgoIncome}
+                  twoMonthsAgoExpense={twoMonthsAgoExpense}
+                  isLoading={isLoadingInsight}
                 />
               );
             case "summaryCards":

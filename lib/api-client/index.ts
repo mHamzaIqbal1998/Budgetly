@@ -258,6 +258,22 @@ class FireflyApiClientImpl extends FireflyApiClient {
     );
   }
 
+  async getInsightIncomeTotal(start: string, end: string) {
+    return expensesModule.getInsightIncomeTotal(
+      this.ensureInitialized(),
+      start,
+      end
+    );
+  }
+
+  async getInsightExpenseTotal(start: string, end: string) {
+    return expensesModule.getInsightExpenseTotal(
+      this.ensureInitialized(),
+      start,
+      end
+    );
+  }
+
   // Currencies
   async getUserCurrencies() {
     return currenciesModule.getUserCurrencies(this.ensureInitialized());

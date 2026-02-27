@@ -39,19 +39,23 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 
 | Accounts-1                           | Accounts-press-hold                                    | Dashboard-1                            |
 | ------------------------------------ | ------------------------------------------------------ | -------------------------------------- |
-| ![Accounts-1](Public/Accounts-1.jpg) | ![Accounts-press-hold](Public/Accounts-press-hold.jpg) | ![Dashboard-1](Public/Dashboard-1.jpg) |
+| ![Accounts-1](Public/Accounts-1.PNG) | ![Accounts-press-hold](Public/Accounts-press-hold.PNG) | ![Dashboard-1](Public/Dashboard-1.PNG) |
 
-| Dashboard-2                            | Dashboard-3                            | Dashboard-4                            |
-| -------------------------------------- | -------------------------------------- | -------------------------------------- |
-| ![Dashboard-2](Public/Dashboard-2.jpg) | ![Dashboard-3](Public/Dashboard-3.jpg) | ![Dashboard-4](Public/Dashboard-4.jpg) |
+| Dashboard-2                            | Dashboard-3                            | Dashboard-light                                |
+| -------------------------------------- | -------------------------------------- | ---------------------------------------------- |
+| ![Dashboard-2](Public/Dashboard-2.PNG) | ![Dashboard-3](Public/Dashboard-3.PNG) | ![Dashboard-light](Public/Dashboard-light.PNG) |
 
 | create-account-1                                 | create-account-2                                 | create-transaction-1                                     |
 | ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- |
-| ![create-account-1](Public/create-account-1.jpg) | ![create-account-2](Public/create-account-2.jpg) | ![create-transaction-1](Public/create-transaction-1.jpg) |
+| ![create-account-1](Public/create-account-1.PNG) | ![create-account-2](Public/create-account-2.PNG) | ![create-transaction-1](Public/create-transaction-1.PNG) |
 
-| create-transaction-2                                     | transactions-1                               | transactions-press-hold                                        |
-| -------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------- |
-| ![create-transaction-2](Public/create-transaction-2.jpg) | ![transactions-1](Public/transactions-1.jpg) | ![transactions-press-hold](Public/transactions-press-hold.jpg) |
+| create-transaction-2                                     | transactions-1                               | sidebar                        |
+| -------------------------------------------------------- | -------------------------------------------- | ------------------------------ |
+| ![create-transaction-2](Public/create-transaction-2.PNG) | ![transactions-1](Public/transactions-1.PNG) | ![sidebar](Public/sidebar.PNG) |
+
+| settings                         | Add-button                           |
+| -------------------------------- | ------------------------------------ |
+| ![settings](Public/settings.PNG) | ![Add-button](Public/Add-button.PNG) |
 
 </div>
 
@@ -171,17 +175,39 @@ https://api-docs.firefly-iii.org/
 
 ## 📦 Building for Production
 
-### Android
+## Android
 
-You need to set eas credentials for build
+You can build the Android application using EAS (Expo Application Services) either in the cloud or locally.
+
+#### Cloud Build
+
+Use this option if you do not have a local Android development environment configured.
+
+```bash
+npm run build:android
+```
+
+#### Local Build
+
+Requires a macOS or Linux environment with the Android SDK installed.
 
 ```bash
 npm run build:android:local
 ```
 
-This will build the app for Android using the EAS build system locally.
+### iOS
 
-> **TODO:** Add instructions for building the app for iOS.
+To build for iOS, you can generate an IPA file for sideloading.
+
+#### Generate IPA
+
+Run the following command to initiate a cloud build for sideloading:
+
+```bash
+eas build -p ios --profile local-sideload
+```
+
+After the build completes, download the IPA from the generated link. You can then sign and sideload the application using tools such as [Sideloadly](https://sideloadly.io/).
 
 ## 🤝 Contributing
 
