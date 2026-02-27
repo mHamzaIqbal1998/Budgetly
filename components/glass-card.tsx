@@ -139,7 +139,6 @@ export function GlassContainer({
 
 const styles = StyleSheet.create({
   glassCard: {
-    overflow: "hidden",
     borderRadius: 28,
     elevation: 0,
   },
@@ -147,6 +146,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     padding: 16,
-    overflow: "hidden",
   },
 });
