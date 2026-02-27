@@ -181,6 +181,7 @@ export interface TransactionSplitUpdate {
   destination_id?: string | null;
   destination_name?: string | null;
   budget_id?: string | null;
+  budget_name?: string | null;
   category_id?: string | null;
   category_name?: string | null;
   bill_id?: string | null;
