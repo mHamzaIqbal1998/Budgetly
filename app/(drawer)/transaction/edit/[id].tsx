@@ -10,6 +10,7 @@ import type {
   AccountTransactionGroup,
   AutocompleteCategory,
   AutocompleteSubscription,
+  AutocompleteTransaction,
   Budget,
   FireflyApiResponse,
   TransactionUpdateData,
@@ -23,7 +24,13 @@ import {
   useRouter,
   type Href,
 } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   BackHandler,
@@ -313,6 +320,16 @@ export default function EditTransactionScreen() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
 
+  // Description autocomplete state
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<
+    AutocompleteTransaction[]
+  >([]);
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
+    useState(false);
+  const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
   // ---------------------------------------------------------------------------
   // Dynamic route for navigation based on account context
   // ---------------------------------------------------------------------------
@@ -504,6 +521,68 @@ export default function EditTransactionScreen() {
     });
     return () => sub.remove();
   }, [router, backRoute]);
+
+  // ---------------------------------------------------------------------------
+  // Description autocomplete with debouncing
+  // ---------------------------------------------------------------------------
+
+  const searchTransactionDescriptions = useCallback((query: string) => {
+    // Update description immediately
+    setDescription(query);
+
+    // Clear previous debounce timer
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+
+    // Hide suggestions if query is too short
+    if (!query.trim() || query.trim().length < 2) {
+      setDescriptionSuggestions([]);
+      setShowDescriptionSuggestions(false);
+      return;
+    }
+
+    // Debounce the API call
+    descriptionDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await apiClient.getAutocompleteTransactions(
+          query.trim(),
+          5
+        );
+        if (results.length > 0) {
+          setDescriptionSuggestions(results);
+          setShowDescriptionSuggestions(true);
+        } else {
+          setDescriptionSuggestions([]);
+          setShowDescriptionSuggestions(false);
+        }
+      } catch {
+        // Silently fail - don't show suggestions if API fails
+        setDescriptionSuggestions([]);
+        setShowDescriptionSuggestions(false);
+      }
+    }, 300);
+  }, []);
+
+  const selectDescriptionSuggestion = useCallback(
+    (suggestion: AutocompleteTransaction) => {
+      setDescription(suggestion.description);
+      setDescriptionSuggestions([]);
+      setShowDescriptionSuggestions(false);
+      if (descriptionDebounceRef.current) {
+        clearTimeout(descriptionDebounceRef.current);
+      }
+    },
+    []
+  );
+
+  const clearDescriptionSuggestions = useCallback(() => {
+    setDescriptionSuggestions([]);
+    setShowDescriptionSuggestions(false);
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Save handler
@@ -758,14 +837,70 @@ export default function EditTransactionScreen() {
               )}
             />
             <Card.Content>
-              <TextInput
-                label="Description *"
-                value={description}
-                onChangeText={setDescription}
-                mode="outlined"
-                style={styles.input}
-                error={!description.trim()}
-              />
+              <View style={styles.autocompleteContainer}>
+                <TextInput
+                  label="Description *"
+                  value={description}
+                  onChangeText={searchTransactionDescriptions}
+                  onBlur={() => {
+                    // Delay clearing to allow tap on suggestions
+                    setTimeout(() => clearDescriptionSuggestions(), 200);
+                  }}
+                  mode="outlined"
+                  style={styles.input}
+                  error={!description.trim()}
+                />
+
+                {/* Autocomplete suggestions dropdown */}
+                {showDescriptionSuggestions &&
+                  descriptionSuggestions.length > 0 && (
+                    <View
+                      style={[
+                        styles.suggestionsContainer,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <ScrollView
+                        keyboardShouldPersistTaps="always"
+                        nestedScrollEnabled
+                      >
+                        {descriptionSuggestions.map((item, itemIdx, arr) => (
+                          <React.Fragment key={item.id}>
+                            <Pressable
+                              onPress={() => selectDescriptionSuggestion(item)}
+                              style={({ pressed }) => [
+                                styles.suggestionItem,
+                                {
+                                  backgroundColor: pressed
+                                    ? theme.colors.surfaceVariant
+                                    : theme.colors.surface,
+                                },
+                              ]}
+                            >
+                              <Text
+                                variant="bodyMedium"
+                                style={{ color: theme.colors.onSurface }}
+                              >
+                                {item.description}
+                              </Text>
+                            </Pressable>
+                            {itemIdx < arr.length - 1 && (
+                              <Divider
+                                style={[
+                                  styles.suggestionDivider,
+                                  {
+                                    backgroundColor:
+                                      theme.colors.outlineVariant,
+                                  },
+                                ]}
+                              />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+              </View>
 
               <TextInput
                 label="Amount *"
@@ -1481,5 +1616,39 @@ const styles = StyleSheet.create({
   },
   splitDivider: {
     marginVertical: 8,
+  },
+  // Autocomplete styles
+  autocompleteContainer: {
+    position: "relative",
+    zIndex: 1000,
+    elevation: 10,
+    marginBottom: 0,
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    borderRadius: 8,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    maxHeight: 200,
+    zIndex: 1001,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  suggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  suggestionDivider: {
+    height: 1,
+    marginHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
 });

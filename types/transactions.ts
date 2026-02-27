@@ -193,6 +193,14 @@ export interface TransactionSplitUpdate {
   external_url?: string | null;
 }
 
+/** Autocomplete response item for /v1/autocomplete/transactions */
+export interface AutocompleteTransaction {
+  id: string;
+  transaction_group_id?: string;
+  name: string;
+  description: string;
+}
+
 /** Autocomplete response item for /v1/autocomplete/categories */
 export interface AutocompleteCategory {
   id: string;
