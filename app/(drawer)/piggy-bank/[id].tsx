@@ -799,6 +799,7 @@ const styles = StyleSheet.create({
   progressPercent: {
     fontWeight: "700",
     fontSize: 28,
+    lineHeight: 34,
   },
   progressLabel: {
     opacity: 0.5,

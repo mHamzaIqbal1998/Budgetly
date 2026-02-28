@@ -145,8 +145,14 @@ const SubscriptionItem = memo(
                     <Chip
                       compact
                       icon={freqIcon as any}
-                      style={styles.chip}
-                      textStyle={styles.chipText}
+                      style={[
+                        styles.chip,
+                        { alignItems: "center", justifyContent: "center" },
+                      ]}
+                      textStyle={[
+                        styles.chipText,
+                        { lineHeight: 16, textAlignVertical: "center" },
+                      ]}
                     >
                       {freqLabel}
                     </Chip>
@@ -156,9 +162,20 @@ const SubscriptionItem = memo(
                         icon="pause-circle"
                         style={[
                           styles.chip,
-                          { backgroundColor: errorColor + "20" },
+                          {
+                            backgroundColor: errorColor + "20",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          },
                         ]}
-                        textStyle={[styles.chipText, { color: errorColor }]}
+                        textStyle={[
+                          styles.chipText,
+                          {
+                            color: errorColor,
+                            lineHeight: 16,
+                            textAlignVertical: "center",
+                          },
+                        ]}
                       >
                         Inactive
                       </Chip>

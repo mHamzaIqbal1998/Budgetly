@@ -8,6 +8,7 @@ import type {
   Account,
   AutocompleteCategory,
   AutocompleteSubscription,
+  AutocompleteTransaction,
   Budget,
   CreateTransactionData,
   PiggyBank,
@@ -21,7 +22,13 @@ import {
   useRouter,
   type Href,
 } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   BackHandler,
@@ -291,6 +298,249 @@ function SelectorModal({
 }
 
 // ---------------------------------------------------------------------------
+// Creatable Selector Modal - Allows selecting existing or creating new items
+// ---------------------------------------------------------------------------
+
+interface CreatableSelectorModalProps {
+  visible: boolean;
+  title: string;
+  items: SelectorItem[];
+  selectedId: string | null;
+  selectedName: string;
+  onSelect: (id: string | null, name: string) => void;
+  onClose: () => void;
+  allowClear?: boolean;
+  surfaceColor: string;
+  primaryColor: string;
+  outlineVariantColor: string;
+  onSurfaceVariantColor: string;
+  placeholder?: string;
+}
+
+function CreatableSelectorModal({
+  visible,
+  title,
+  items,
+  selectedId,
+  selectedName,
+  onSelect,
+  onClose,
+  allowClear = true,
+  surfaceColor,
+  primaryColor,
+  outlineVariantColor,
+  onSurfaceVariantColor,
+  placeholder = "Search or create new...",
+}: CreatableSelectorModalProps) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => i.label.toLowerCase().includes(q));
+  }, [items, search]);
+
+  // Check if search matches any existing item exactly
+  const exactMatch = useMemo(() => {
+    if (!search.trim()) return null;
+    const q = search.trim().toLowerCase();
+    return items.find((i) => i.label.toLowerCase() === q);
+  }, [items, search]);
+
+  // Check if current selection is custom (not in items list)
+  const isCustomValue = useMemo(() => {
+    if (!selectedId && selectedName) return true;
+    return false;
+  }, [selectedId, selectedName]);
+
+  useEffect(() => {
+    if (visible) setSearch("");
+  }, [visible]);
+
+  const handleSelectExisting = (item: SelectorItem) => {
+    onSelect(item.id, item.label);
+    onClose();
+  };
+
+  const handleCreateNew = () => {
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      // When creating new: clear ID, set name to custom value
+      onSelect(null, trimmedSearch);
+      onClose();
+    }
+  };
+
+  const handleClear = () => {
+    onSelect(null, "");
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.selectorOverlay} onPress={onClose}>
+        <Pressable
+          style={[styles.selectorContent, { backgroundColor: surfaceColor }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View
+            style={[
+              styles.selectorHeader,
+              { borderBottomColor: outlineVariantColor },
+            ]}
+          >
+            <Text variant="titleMedium" style={styles.selectorTitle}>
+              {title}
+            </Text>
+            <Button mode="text" compact onPress={onClose}>
+              Done
+            </Button>
+          </View>
+
+          <Searchbar
+            placeholder={placeholder}
+            value={search}
+            onChangeText={setSearch}
+            style={styles.selectorSearch}
+            inputStyle={styles.selectorSearchInput}
+            right={() => null}
+          />
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            style={styles.selectorList}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={() => {
+              // Show "None" option if allowed
+              if (!allowClear) return null;
+              return (
+                <List.Item
+                  title="None"
+                  titleStyle={
+                    !selectedId && !selectedName
+                      ? { fontWeight: "600", color: primaryColor }
+                      : undefined
+                  }
+                  onPress={handleClear}
+                  left={(props) => (
+                    <List.Icon {...props} icon="close-circle-outline" />
+                  )}
+                  right={
+                    !selectedId && !selectedName
+                      ? (props) => (
+                          <List.Icon
+                            {...props}
+                            icon="check"
+                            color={primaryColor}
+                          />
+                        )
+                      : undefined
+                  }
+                />
+              );
+            }}
+            ListEmptyComponent={() => {
+              // When no items match, show option to create new if search has value
+              if (!search.trim()) {
+                return (
+                  <View style={styles.selectorEmpty}>
+                    <Text
+                      variant="bodyMedium"
+                      style={{ color: onSurfaceVariantColor }}
+                    >
+                      No items available
+                    </Text>
+                  </View>
+                );
+              }
+              return null;
+            }}
+            renderItem={({ item }) => {
+              const isSelected = selectedId === item.id;
+              return (
+                <List.Item
+                  title={item.label}
+                  description={item.subtitle}
+                  descriptionStyle={styles.selectorItemDescription}
+                  titleStyle={isSelected ? { fontWeight: "600" } : undefined}
+                  onPress={() => handleSelectExisting(item)}
+                  left={(props) => (
+                    <List.Icon {...props} icon="folder-outline" />
+                  )}
+                  right={
+                    isSelected
+                      ? (props) => (
+                          <List.Icon
+                            {...props}
+                            icon="check"
+                            color={primaryColor}
+                          />
+                        )
+                      : undefined
+                  }
+                />
+              );
+            }}
+            ListFooterComponent={() => {
+              // Show "Create new" option when:
+              // 1. Search has a value
+              // 2. No exact match exists
+              // 3. Current selection is not already the custom value being typed
+              if (!search.trim() || exactMatch) return null;
+
+              const trimmedSearch = search.trim();
+              const isCurrentlySelectedAsCustom =
+                isCustomValue && selectedName === trimmedSearch;
+
+              return (
+                <>
+                  <Divider
+                    style={{ marginHorizontal: 16, marginVertical: 8 }}
+                  />
+                  <List.Item
+                    title={`Create "${trimmedSearch}"`}
+                    titleStyle={
+                      isCurrentlySelectedAsCustom
+                        ? { fontWeight: "600", color: primaryColor }
+                        : { color: primaryColor }
+                    }
+                    onPress={handleCreateNew}
+                    left={(props) => (
+                      <List.Icon
+                        {...props}
+                        icon="plus-circle"
+                        color={primaryColor}
+                      />
+                    )}
+                    right={
+                      isCurrentlySelectedAsCustom
+                        ? (props) => (
+                            <List.Icon
+                              {...props}
+                              icon="check"
+                              color={primaryColor}
+                            />
+                          )
+                        : undefined
+                    }
+                  />
+                </>
+              );
+            }}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Screen
 // ---------------------------------------------------------------------------
 
@@ -322,6 +572,17 @@ export default function CreateTransactionScreen() {
 
   // Split transactions
   const [splits, setSplits] = useState<SplitState[]>([createEmptySplit()]);
+
+  // Description autocomplete state (per split)
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<
+    Map<number, AutocompleteTransaction[]>
+  >(new Map());
+  const [activeDescriptionSplit, setActiveDescriptionSplit] = useState<
+    number | null
+  >(null);
+  const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Reset form state every time the screen gains focus so that
   // navigating back after a successful create shows a clean form.
@@ -421,6 +682,88 @@ export default function CreateTransactionScreen() {
     },
     []
   );
+
+  // Description autocomplete with debouncing
+  const searchTransactionDescriptions = useCallback(
+    (splitIndex: number, query: string) => {
+      // Clear previous debounce timer
+      if (descriptionDebounceRef.current) {
+        clearTimeout(descriptionDebounceRef.current);
+      }
+
+      // Update the description immediately
+      updateSplit(splitIndex, { description: query });
+
+      // Hide suggestions if query is too short
+      if (!query.trim() || query.trim().length < 2) {
+        setDescriptionSuggestions((prev) => {
+          const next = new Map(prev);
+          next.delete(splitIndex);
+          return next;
+        });
+        setActiveDescriptionSplit(null);
+        return;
+      }
+
+      // Set active split for suggestions
+      setActiveDescriptionSplit(splitIndex);
+
+      // Debounce the API call
+      descriptionDebounceRef.current = setTimeout(async () => {
+        try {
+          const results = await apiClient.getAutocompleteTransactions(
+            query.trim(),
+            5
+          );
+          setDescriptionSuggestions((prev) => {
+            const next = new Map(prev);
+            if (results.length > 0) {
+              next.set(splitIndex, results);
+            } else {
+              next.delete(splitIndex);
+            }
+            return next;
+          });
+        } catch {
+          // Silently fail - don't show suggestions if API fails
+          setDescriptionSuggestions((prev) => {
+            const next = new Map(prev);
+            next.delete(splitIndex);
+            return next;
+          });
+        }
+      }, 300);
+    },
+    [updateSplit]
+  );
+
+  const selectDescriptionSuggestion = useCallback(
+    (splitIndex: number, suggestion: AutocompleteTransaction) => {
+      updateSplit(splitIndex, { description: suggestion.description });
+      setDescriptionSuggestions((prev) => {
+        const next = new Map(prev);
+        next.delete(splitIndex);
+        return next;
+      });
+      setActiveDescriptionSplit(null);
+      if (descriptionDebounceRef.current) {
+        clearTimeout(descriptionDebounceRef.current);
+      }
+    },
+    [updateSplit]
+  );
+
+  const clearDescriptionSuggestions = useCallback((splitIndex: number) => {
+    setDescriptionSuggestions((prev) => {
+      const next = new Map(prev);
+      next.delete(splitIndex);
+      return next;
+    });
+    setActiveDescriptionSplit(null);
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+  }, []);
 
   const addSplit = useCallback(() => {
     setSplits((prev) => [...prev, createEmptySplit()]);
@@ -926,13 +1269,74 @@ export default function CreateTransactionScreen() {
                 }
               />
               <Card.Content>
-                <TextInput
-                  label="Description *"
-                  value={split.description}
-                  onChangeText={(v) => updateSplit(idx, { description: v })}
-                  mode="outlined"
-                  style={styles.input}
-                />
+                <View style={styles.autocompleteContainer}>
+                  <TextInput
+                    label="Description *"
+                    value={split.description}
+                    onChangeText={(v) => searchTransactionDescriptions(idx, v)}
+                    onBlur={() => {
+                      // Delay clearing to allow tap on suggestions
+                      setTimeout(() => clearDescriptionSuggestions(idx), 200);
+                    }}
+                    mode="outlined"
+                    style={styles.input}
+                  />
+
+                  {/* Autocomplete suggestions dropdown */}
+                  {activeDescriptionSplit === idx &&
+                    descriptionSuggestions.has(idx) &&
+                    (descriptionSuggestions.get(idx)?.length ?? 0) > 0 && (
+                      <View
+                        style={[
+                          styles.suggestionsContainer,
+                          { backgroundColor: theme.colors.surface },
+                        ]}
+                      >
+                        <ScrollView
+                          keyboardShouldPersistTaps="always"
+                          nestedScrollEnabled
+                        >
+                          {descriptionSuggestions
+                            .get(idx)
+                            ?.map((item, itemIdx, arr) => (
+                              <React.Fragment key={item.id}>
+                                <Pressable
+                                  onPress={() =>
+                                    selectDescriptionSuggestion(idx, item)
+                                  }
+                                  style={({ pressed }) => [
+                                    styles.suggestionItem,
+                                    {
+                                      backgroundColor: pressed
+                                        ? theme.colors.surfaceVariant
+                                        : theme.colors.surface,
+                                    },
+                                  ]}
+                                >
+                                  <Text
+                                    variant="bodyMedium"
+                                    style={{ color: theme.colors.onSurface }}
+                                  >
+                                    {item.description}
+                                  </Text>
+                                </Pressable>
+                                {itemIdx < arr.length - 1 && (
+                                  <Divider
+                                    style={[
+                                      styles.suggestionDivider,
+                                      {
+                                        backgroundColor:
+                                          theme.colors.outlineVariant,
+                                      },
+                                    ]}
+                                  />
+                                )}
+                              </React.Fragment>
+                            ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                </View>
 
                 <TextInput
                   label="Amount *"
@@ -1118,7 +1522,7 @@ export default function CreateTransactionScreen() {
                     variant="bodyLarge"
                     style={{
                       flex: 1,
-                      color: split.categoryId
+                      color: split.categoryName
                         ? theme.colors.onSurface
                         : theme.colors.onSurfaceVariant,
                     }}
@@ -1356,14 +1760,15 @@ export default function CreateTransactionScreen() {
         outlineVariantColor={theme.colors.outlineVariant}
       />
 
-      <SelectorModal
+      <CreatableSelectorModal
         visible={categoryModalVisible}
         title="Select Category"
         items={categoryItems}
         selectedId={splits[activeSelectorSplit]?.categoryId ?? null}
+        selectedName={splits[activeSelectorSplit]?.categoryName ?? ""}
         onSelect={(selId, label) => {
           updateSplit(activeSelectorSplit, {
-            categoryId: selId || null,
+            categoryId: selId,
             categoryName: label,
           });
         }}
@@ -1371,6 +1776,8 @@ export default function CreateTransactionScreen() {
         surfaceColor={theme.colors.surface}
         primaryColor={theme.colors.primary}
         outlineVariantColor={theme.colors.outlineVariant}
+        onSurfaceVariantColor={theme.colors.onSurfaceVariant}
+        placeholder="Search or create new category..."
       />
 
       <SelectorModal
@@ -1392,7 +1799,7 @@ export default function CreateTransactionScreen() {
 
       <SelectorModal
         visible={subscriptionModalVisible}
-        title="Select Subscription"
+        title="Select Subscription / Bill"
         items={subscriptionItems}
         selectedId={splits[activeSelectorSplit]?.billId ?? null}
         onSelect={(selId, label) => {
@@ -1510,6 +1917,39 @@ const styles = StyleSheet.create({
   },
   splitDivider: {
     marginVertical: 12,
+  },
+  // Autocomplete styles
+  autocompleteContainer: {
+    position: "relative",
+    zIndex: 1000,
+    elevation: 10,
+    marginBottom: 0,
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    borderRadius: 8,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    maxHeight: 200,
+    zIndex: 1001,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  suggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  suggestionDivider: {
+    height: 1,
+    marginHorizontal: 12,
   },
   addSplitButton: {
     marginBottom: 16,
