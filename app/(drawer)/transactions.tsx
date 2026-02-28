@@ -968,7 +968,6 @@ const styles = StyleSheet.create({
   txCard: {
     marginBottom: ITEM_MARGIN,
     borderRadius: 16,
-    overflow: "hidden",
   },
   txCardPressed: {
     opacity: 0.85,

@@ -181,6 +181,7 @@ export interface TransactionSplitUpdate {
   destination_id?: string | null;
   destination_name?: string | null;
   budget_id?: string | null;
+  budget_name?: string | null;
   category_id?: string | null;
   category_name?: string | null;
   bill_id?: string | null;
@@ -191,6 +192,14 @@ export interface TransactionSplitUpdate {
   internal_reference?: string | null;
   external_id?: string | null;
   external_url?: string | null;
+}
+
+/** Autocomplete response item for /v1/autocomplete/transactions */
+export interface AutocompleteTransaction {
+  id: string;
+  transaction_group_id?: string;
+  name: string;
+  description: string;
 }
 
 /** Autocomplete response item for /v1/autocomplete/categories */

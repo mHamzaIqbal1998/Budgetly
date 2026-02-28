@@ -10,6 +10,7 @@ import type {
   AccountTransactionGroup,
   AutocompleteCategory,
   AutocompleteSubscription,
+  AutocompleteTransaction,
   Budget,
   FireflyApiResponse,
   TransactionUpdateData,
@@ -23,7 +24,13 @@ import {
   useRouter,
   type Href,
 } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   BackHandler,
@@ -247,6 +254,249 @@ function SelectorModal({
 }
 
 // ---------------------------------------------------------------------------
+// Creatable Selector Modal - Allows selecting existing or creating new items
+// ---------------------------------------------------------------------------
+
+interface CreatableSelectorModalProps {
+  visible: boolean;
+  title: string;
+  items: SelectorItem[];
+  selectedId: string | null;
+  selectedName: string;
+  onSelect: (id: string | null, name: string) => void;
+  onClose: () => void;
+  allowClear?: boolean;
+  surfaceColor: string;
+  primaryColor: string;
+  outlineVariantColor: string;
+  onSurfaceVariantColor: string;
+  placeholder?: string;
+}
+
+function CreatableSelectorModal({
+  visible,
+  title,
+  items,
+  selectedId,
+  selectedName,
+  onSelect,
+  onClose,
+  allowClear = true,
+  surfaceColor,
+  primaryColor,
+  outlineVariantColor,
+  onSurfaceVariantColor,
+  placeholder = "Search or create new...",
+}: CreatableSelectorModalProps) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => i.label.toLowerCase().includes(q));
+  }, [items, search]);
+
+  // Check if search matches any existing item exactly
+  const exactMatch = useMemo(() => {
+    if (!search.trim()) return null;
+    const q = search.trim().toLowerCase();
+    return items.find((i) => i.label.toLowerCase() === q);
+  }, [items, search]);
+
+  // Check if current selection is custom (not in items list)
+  const isCustomValue = useMemo(() => {
+    if (!selectedId && selectedName) return true;
+    return false;
+  }, [selectedId, selectedName]);
+
+  useEffect(() => {
+    if (visible) setSearch("");
+  }, [visible]);
+
+  const handleSelectExisting = (item: SelectorItem) => {
+    onSelect(item.id, item.label);
+    onClose();
+  };
+
+  const handleCreateNew = () => {
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      // When creating new: clear ID, set name to custom value
+      onSelect(null, trimmedSearch);
+      onClose();
+    }
+  };
+
+  const handleClear = () => {
+    onSelect(null, "");
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.selectorOverlay} onPress={onClose}>
+        <Pressable
+          style={[styles.selectorContent, { backgroundColor: surfaceColor }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View
+            style={[
+              styles.selectorHeader,
+              { borderBottomColor: outlineVariantColor },
+            ]}
+          >
+            <Text variant="titleMedium" style={styles.selectorTitle}>
+              {title}
+            </Text>
+            <Button mode="text" compact onPress={onClose}>
+              Done
+            </Button>
+          </View>
+
+          <Searchbar
+            placeholder={placeholder}
+            value={search}
+            onChangeText={setSearch}
+            style={styles.selectorSearch}
+            inputStyle={styles.selectorSearchInput}
+            right={() => null}
+          />
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            style={styles.selectorList}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={() => {
+              // Show "None" option if allowed
+              if (!allowClear) return null;
+              return (
+                <List.Item
+                  title="None"
+                  titleStyle={
+                    !selectedId && !selectedName
+                      ? { fontWeight: "600", color: primaryColor }
+                      : undefined
+                  }
+                  onPress={handleClear}
+                  left={(props) => (
+                    <List.Icon {...props} icon="close-circle-outline" />
+                  )}
+                  right={
+                    !selectedId && !selectedName
+                      ? (props) => (
+                          <List.Icon
+                            {...props}
+                            icon="check"
+                            color={primaryColor}
+                          />
+                        )
+                      : undefined
+                  }
+                />
+              );
+            }}
+            ListEmptyComponent={() => {
+              // When no items match, show option to create new if search has value
+              if (!search.trim()) {
+                return (
+                  <View style={styles.selectorEmpty}>
+                    <Text
+                      variant="bodyMedium"
+                      style={{ color: onSurfaceVariantColor }}
+                    >
+                      No items available
+                    </Text>
+                  </View>
+                );
+              }
+              return null;
+            }}
+            renderItem={({ item }) => {
+              const isSelected = selectedId === item.id;
+              return (
+                <List.Item
+                  title={item.label}
+                  description={item.subtitle}
+                  descriptionStyle={styles.selectorItemDescription}
+                  titleStyle={isSelected ? { fontWeight: "600" } : undefined}
+                  onPress={() => handleSelectExisting(item)}
+                  left={(props) => (
+                    <List.Icon {...props} icon="folder-outline" />
+                  )}
+                  right={
+                    isSelected
+                      ? (props) => (
+                          <List.Icon
+                            {...props}
+                            icon="check"
+                            color={primaryColor}
+                          />
+                        )
+                      : undefined
+                  }
+                />
+              );
+            }}
+            ListFooterComponent={() => {
+              // Show "Create new" option when:
+              // 1. Search has a value
+              // 2. No exact match exists
+              // 3. Current selection is not already the custom value being typed
+              if (!search.trim() || exactMatch) return null;
+
+              const trimmedSearch = search.trim();
+              const isCurrentlySelectedAsCustom =
+                isCustomValue && selectedName === trimmedSearch;
+
+              return (
+                <>
+                  <Divider
+                    style={{ marginHorizontal: 16, marginVertical: 8 }}
+                  />
+                  <List.Item
+                    title={`Create "${trimmedSearch}"`}
+                    titleStyle={
+                      isCurrentlySelectedAsCustom
+                        ? { fontWeight: "600", color: primaryColor }
+                        : { color: primaryColor }
+                    }
+                    onPress={handleCreateNew}
+                    left={(props) => (
+                      <List.Icon
+                        {...props}
+                        icon="plus-circle"
+                        color={primaryColor}
+                      />
+                    )}
+                    right={
+                      isCurrentlySelectedAsCustom
+                        ? (props) => (
+                            <List.Icon
+                              {...props}
+                              icon="check"
+                              color={primaryColor}
+                            />
+                          )
+                        : undefined
+                    }
+                  />
+                </>
+              );
+            }}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Screen
 // ---------------------------------------------------------------------------
 
@@ -312,6 +562,16 @@ export default function EditTransactionScreen() {
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
+
+  // Description autocomplete state
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<
+    AutocompleteTransaction[]
+  >([]);
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
+    useState(false);
+  const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // ---------------------------------------------------------------------------
   // Dynamic route for navigation based on account context
@@ -504,6 +764,68 @@ export default function EditTransactionScreen() {
     });
     return () => sub.remove();
   }, [router, backRoute]);
+
+  // ---------------------------------------------------------------------------
+  // Description autocomplete with debouncing
+  // ---------------------------------------------------------------------------
+
+  const searchTransactionDescriptions = useCallback((query: string) => {
+    // Update description immediately
+    setDescription(query);
+
+    // Clear previous debounce timer
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+
+    // Hide suggestions if query is too short
+    if (!query.trim() || query.trim().length < 2) {
+      setDescriptionSuggestions([]);
+      setShowDescriptionSuggestions(false);
+      return;
+    }
+
+    // Debounce the API call
+    descriptionDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await apiClient.getAutocompleteTransactions(
+          query.trim(),
+          5
+        );
+        if (results.length > 0) {
+          setDescriptionSuggestions(results);
+          setShowDescriptionSuggestions(true);
+        } else {
+          setDescriptionSuggestions([]);
+          setShowDescriptionSuggestions(false);
+        }
+      } catch {
+        // Silently fail - don't show suggestions if API fails
+        setDescriptionSuggestions([]);
+        setShowDescriptionSuggestions(false);
+      }
+    }, 300);
+  }, []);
+
+  const selectDescriptionSuggestion = useCallback(
+    (suggestion: AutocompleteTransaction) => {
+      setDescription(suggestion.description);
+      setDescriptionSuggestions([]);
+      setShowDescriptionSuggestions(false);
+      if (descriptionDebounceRef.current) {
+        clearTimeout(descriptionDebounceRef.current);
+      }
+    },
+    []
+  );
+
+  const clearDescriptionSuggestions = useCallback(() => {
+    setDescriptionSuggestions([]);
+    setShowDescriptionSuggestions(false);
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Save handler
@@ -758,14 +1080,70 @@ export default function EditTransactionScreen() {
               )}
             />
             <Card.Content>
-              <TextInput
-                label="Description *"
-                value={description}
-                onChangeText={setDescription}
-                mode="outlined"
-                style={styles.input}
-                error={!description.trim()}
-              />
+              <View style={styles.autocompleteContainer}>
+                <TextInput
+                  label="Description *"
+                  value={description}
+                  onChangeText={searchTransactionDescriptions}
+                  onBlur={() => {
+                    // Delay clearing to allow tap on suggestions
+                    setTimeout(() => clearDescriptionSuggestions(), 200);
+                  }}
+                  mode="outlined"
+                  style={styles.input}
+                  error={!description.trim()}
+                />
+
+                {/* Autocomplete suggestions dropdown */}
+                {showDescriptionSuggestions &&
+                  descriptionSuggestions.length > 0 && (
+                    <View
+                      style={[
+                        styles.suggestionsContainer,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <ScrollView
+                        keyboardShouldPersistTaps="always"
+                        nestedScrollEnabled
+                      >
+                        {descriptionSuggestions.map((item, itemIdx, arr) => (
+                          <React.Fragment key={item.id}>
+                            <Pressable
+                              onPress={() => selectDescriptionSuggestion(item)}
+                              style={({ pressed }) => [
+                                styles.suggestionItem,
+                                {
+                                  backgroundColor: pressed
+                                    ? theme.colors.surfaceVariant
+                                    : theme.colors.surface,
+                                },
+                              ]}
+                            >
+                              <Text
+                                variant="bodyMedium"
+                                style={{ color: theme.colors.onSurface }}
+                              >
+                                {item.description}
+                              </Text>
+                            </Pressable>
+                            {itemIdx < arr.length - 1 && (
+                              <Divider
+                                style={[
+                                  styles.suggestionDivider,
+                                  {
+                                    backgroundColor:
+                                      theme.colors.outlineVariant,
+                                  },
+                                ]}
+                              />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+              </View>
 
               <TextInput
                 label="Amount *"
@@ -1089,7 +1467,7 @@ export default function EditTransactionScreen() {
                   variant="bodyLarge"
                   style={{
                     flex: 1,
-                    color: categoryId
+                    color: categoryName
                       ? theme.colors.onSurface
                       : theme.colors.onSurfaceVariant,
                   }}
@@ -1274,19 +1652,22 @@ export default function EditTransactionScreen() {
         outlineVariantColor={theme.colors.outlineVariant}
       />
 
-      <SelectorModal
+      <CreatableSelectorModal
         visible={categoryModalVisible}
         title="Select Category"
         items={categoryItems}
         selectedId={categoryId}
+        selectedName={categoryName}
         onSelect={(selId, label) => {
-          setCategoryId(selId || null);
+          setCategoryId(selId);
           setCategoryName(label);
         }}
         onClose={() => setCategoryModalVisible(false)}
         surfaceColor={theme.colors.surface}
         primaryColor={theme.colors.primary}
         outlineVariantColor={theme.colors.outlineVariant}
+        onSurfaceVariantColor={theme.colors.onSurfaceVariant}
+        placeholder="Search or create new category..."
       />
 
       <SelectorModal
@@ -1306,7 +1687,7 @@ export default function EditTransactionScreen() {
 
       <SelectorModal
         visible={subscriptionModalVisible}
-        title="Select Subscription"
+        title="Select Subscription / Bill"
         items={subscriptionItems}
         selectedId={subscriptionId}
         onSelect={(selId, label) => {
@@ -1481,5 +1862,39 @@ const styles = StyleSheet.create({
   },
   splitDivider: {
     marginVertical: 8,
+  },
+  // Autocomplete styles
+  autocompleteContainer: {
+    position: "relative",
+    zIndex: 1000,
+    elevation: 10,
+    marginBottom: 0,
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    borderRadius: 8,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    maxHeight: 200,
+    zIndex: 1001,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  suggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  suggestionDivider: {
+    height: 1,
+    marginHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
 });

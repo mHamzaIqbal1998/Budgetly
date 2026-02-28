@@ -291,6 +291,14 @@ class FireflyApiClientImpl extends FireflyApiClient {
       this.ensureInitialized()
     );
   }
+
+  async getAutocompleteTransactions(query: string, limit: number = 10) {
+    return autocompleteModule.getAutocompleteTransactions(
+      this.ensureInitialized(),
+      query,
+      limit
+    );
+  }
 }
 
 export const apiClient = new FireflyApiClientImpl();
