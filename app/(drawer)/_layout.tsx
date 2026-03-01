@@ -32,6 +32,11 @@ export default function DrawerLayout() {
     router.push("/(drawer)/subscription/create" as Href);
   }, [router]);
 
+  const onCreateCategory = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/category/create" as Href);
+  }, [router]);
+
   const onCreatePiggyBank = useCallback(() => {
     setFabOpen(false);
     router.push("/(drawer)/piggy-bank/create" as Href);
@@ -69,6 +74,12 @@ export default function DrawerLayout() {
         containerStyle: layoutStyles.fabLabelContainer,
         onPress: onAddSubscription,
       },
+      {
+        icon: "shape-plus" as const,
+        label: "Create Category",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onCreateCategory,
+      },
     ],
     [
       onAddTransaction,
@@ -76,6 +87,7 @@ export default function DrawerLayout() {
       onAddAccount,
       onCreatePiggyBank,
       onAddSubscription,
+      onCreateCategory,
     ]
   );
 
@@ -141,6 +153,16 @@ export default function DrawerLayout() {
                 size={size}
                 color={color}
               />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="categories"
+          options={{
+            title: "Categories",
+            drawerLabel: "Categories",
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="shape" size={size} color={color} />
             ),
           }}
         />
@@ -214,6 +236,14 @@ export default function DrawerLayout() {
           name="piggy-bank"
           options={{
             title: "Piggy Bank Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
+        <Drawer.Screen
+          name="category"
+          options={{
+            title: "Category Detail",
             drawerItemStyle: { display: "none" },
             headerShown: false,
           }}

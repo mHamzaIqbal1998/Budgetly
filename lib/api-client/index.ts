@@ -11,6 +11,7 @@ import type {
 import * as accountsModule from "./accounts";
 import * as autocompleteModule from "./autocomplete";
 import * as budgetsModule from "./budgets";
+import * as categoriesModule from "./categories";
 import { FireflyApiClient } from "./core";
 import * as currenciesModule from "./currencies";
 import * as expensesModule from "./expenses";
@@ -277,6 +278,35 @@ class FireflyApiClientImpl extends FireflyApiClient {
   // Currencies
   async getUserCurrencies() {
     return currenciesModule.getUserCurrencies(this.ensureInitialized());
+  }
+
+  // Categories
+  async getCategories(page: number = 1) {
+    return categoriesModule.getCategories(this.ensureInitialized(), page);
+  }
+
+  async getCategory(id: string, start?: string, end?: string) {
+    return categoriesModule.getCategory(
+      this.ensureInitialized(),
+      id,
+      start,
+      end
+    );
+  }
+
+  async updateCategory(
+    id: string,
+    data: { name: string; notes?: string | null }
+  ) {
+    return categoriesModule.updateCategory(this.ensureInitialized(), id, data);
+  }
+
+  async deleteCategory(id: string) {
+    return categoriesModule.deleteCategory(this.ensureInitialized(), id);
+  }
+
+  async createCategory(data: { name: string; notes?: string | null }) {
+    return categoriesModule.createCategory(this.ensureInitialized(), data);
   }
 
   // Autocomplete
