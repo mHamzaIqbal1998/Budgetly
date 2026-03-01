@@ -11,6 +11,7 @@ import type {
 import * as accountsModule from "./accounts";
 import * as autocompleteModule from "./autocomplete";
 import * as budgetsModule from "./budgets";
+import * as categoriesModule from "./categories";
 import { FireflyApiClient } from "./core";
 import * as currenciesModule from "./currencies";
 import * as expensesModule from "./expenses";
@@ -277,6 +278,11 @@ class FireflyApiClientImpl extends FireflyApiClient {
   // Currencies
   async getUserCurrencies() {
     return currenciesModule.getUserCurrencies(this.ensureInitialized());
+  }
+
+  // Categories
+  async getCategories(page: number = 1) {
+    return categoriesModule.getCategories(this.ensureInitialized(), page);
   }
 
   // Autocomplete

@@ -145,6 +145,16 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="categories"
+          options={{
+            title: "Categories",
+            drawerLabel: "Categories",
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="shape" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="budgets"
           options={{
             title: "Budgets",
