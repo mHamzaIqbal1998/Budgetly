@@ -32,6 +32,11 @@ export default function DrawerLayout() {
     router.push("/(drawer)/subscription/create" as Href);
   }, [router]);
 
+  const onCreateCategory = useCallback(() => {
+    setFabOpen(false);
+    router.push("/(drawer)/category/create" as Href);
+  }, [router]);
+
   const onCreatePiggyBank = useCallback(() => {
     setFabOpen(false);
     router.push("/(drawer)/piggy-bank/create" as Href);
@@ -69,6 +74,12 @@ export default function DrawerLayout() {
         containerStyle: layoutStyles.fabLabelContainer,
         onPress: onAddSubscription,
       },
+      {
+        icon: "shape-plus" as const,
+        label: "Create Category",
+        containerStyle: layoutStyles.fabLabelContainer,
+        onPress: onCreateCategory,
+      },
     ],
     [
       onAddTransaction,
@@ -76,6 +87,7 @@ export default function DrawerLayout() {
       onAddAccount,
       onCreatePiggyBank,
       onAddSubscription,
+      onCreateCategory,
     ]
   );
 

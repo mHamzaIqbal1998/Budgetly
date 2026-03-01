@@ -6,15 +6,8 @@ import type { CategoryRead } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
-import { useNavigation, useRouter } from "expo-router";
-import React, {
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useRouter } from "expo-router";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,13 +21,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import {
-  Card,
-  IconButton,
-  Searchbar,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Card, Searchbar, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -331,7 +318,6 @@ function CategoryContextMenuCard({
 export default function CategoriesScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenuCategory, setContextMenuCategory] =
     useState<FlatCategory | null>(null);
@@ -466,24 +452,6 @@ export default function CategoriesScreen() {
       ]
     );
   }, [contextMenuCategory, refetch]);
-
-  const handleCreateCategory = useCallback(() => {
-    router.push("/(drawer)/category/create");
-  }, [router]);
-
-  // Set up headerRight for create button
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <IconButton
-          icon="plus"
-          size={24}
-          onPress={handleCreateCategory}
-          iconColor={theme.colors.onSurface}
-        />
-      ),
-    });
-  }, [navigation, handleCreateCategory, theme.colors.onSurface]);
 
   // -----------------------------------------------------------------------
   // Memoized FlatList sub-components
