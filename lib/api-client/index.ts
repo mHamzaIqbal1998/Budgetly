@@ -294,6 +294,17 @@ class FireflyApiClientImpl extends FireflyApiClient {
     );
   }
 
+  async updateCategory(
+    id: string,
+    data: { name: string; notes?: string | null }
+  ) {
+    return categoriesModule.updateCategory(this.ensureInitialized(), id, data);
+  }
+
+  async deleteCategory(id: string) {
+    return categoriesModule.deleteCategory(this.ensureInitialized(), id);
+  }
+
   // Autocomplete
   async getAutocompleteCategories() {
     return autocompleteModule.getAutocompleteCategories(

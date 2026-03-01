@@ -1,20 +1,27 @@
 // Categories Screen – lists all categories with infinite scroll and search
 import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
+import { queryClient } from "@/lib/query-client";
 import type { CategoryRead } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
   FlatList,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
-import { Searchbar, Text, useTheme } from "react-native-paper";
+import { Card, Searchbar, Text, useTheme } from "react-native-paper";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -28,6 +35,9 @@ type FlatCategory = CategoryRead & {
 // Approximate height of a category card + margin (for getItemLayout)
 const ITEM_HEIGHT = 72;
 const ITEM_MARGIN = 12;
+
+// Screen width for context menu
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -55,6 +65,7 @@ interface CategoryItemProps {
   surfaceVariantColor: string;
   primaryColor: string;
   onPress: () => void;
+  onLongPress: () => void;
 }
 
 const CategoryItem = memo(
@@ -63,6 +74,7 @@ const CategoryItem = memo(
     surfaceVariantColor,
     primaryColor,
     onPress,
+    onLongPress,
   }: CategoryItemProps) {
     const attributes = item.attributes;
     const name = attributes.name;
@@ -72,6 +84,7 @@ const CategoryItem = memo(
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
         style={({ pressed }) => pressed && styles.cardPressed}
       >
         <GlassCard variant="default" style={styles.card}>
@@ -111,13 +124,6 @@ const CategoryItem = memo(
                     Created {createdAt}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.right}>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color={surfaceVariantColor}
-                />
               </View>
             </View>
           </View>
@@ -168,6 +174,144 @@ const ListHeader = memo(function ListHeader({
 });
 
 // ---------------------------------------------------------------------------
+// Context Menu Card (shown on long press)
+// ---------------------------------------------------------------------------
+
+interface CategoryContextMenuCardProps {
+  item: FlatCategory;
+  primaryColor: string;
+  errorColor: string;
+  surfaceVariantColor: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function CategoryContextMenuCard({
+  item,
+  primaryColor,
+  errorColor,
+  surfaceVariantColor,
+  onEdit,
+  onDelete,
+  onClose,
+}: CategoryContextMenuCardProps) {
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const name = item.attributes.name;
+  const notes = item.attributes.notes;
+
+  return (
+    <Animated.View
+      style={[
+        styles.contextMenuContainer,
+        { transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      {/* Category Preview Card */}
+      <View style={styles.contextMenuCard}>
+        <GlassCard variant="elevated" style={styles.contextMenuCardInner}>
+          <Card.Content>
+            <View style={styles.contextRow}>
+              <View style={styles.contextLeft}>
+                <View
+                  style={[
+                    styles.contextIconWrap,
+                    { backgroundColor: surfaceVariantColor },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="shape"
+                    size={20}
+                    color={primaryColor}
+                  />
+                </View>
+                <View style={styles.contextBody}>
+                  <Text
+                    variant="titleSmall"
+                    numberOfLines={1}
+                    style={styles.contextName}
+                  >
+                    {name || "—"}
+                  </Text>
+                  {notes && (
+                    <Text
+                      variant="bodySmall"
+                      numberOfLines={1}
+                      style={styles.contextNotes}
+                    >
+                      {notes}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </GlassCard>
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.contextMenuActions}>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.editButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.editButtonText]}>
+            Edit Category
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.deleteButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={[styles.contextMenuButtonText, styles.deleteButtonText]}>
+            Delete Category
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.contextMenuButton,
+            styles.cancelButton,
+            pressed && styles.contextMenuButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+          <Text style={[styles.contextMenuButtonText, styles.cancelButtonText]}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Screen
 // ---------------------------------------------------------------------------
 
@@ -175,6 +319,9 @@ export default function CategoriesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [contextMenuCategory, setContextMenuCategory] =
+    useState<FlatCategory | null>(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
 
   // Infinite query: fetches pages of categories from the API
   const {
@@ -243,10 +390,68 @@ export default function CategoriesScreen() {
 
   const handleCategoryPress = useCallback(
     (category: FlatCategory) => {
-      router.push(`/(drawer)/category/${category.id}`);
+      router.replace(`/(drawer)/category/${category.id}`);
     },
     [router]
   );
+
+  const handleLongPress = useCallback((item: FlatCategory) => {
+    setContextMenuCategory(item);
+    setContextMenuVisible(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuVisible(false);
+    setContextMenuCategory(null);
+  }, []);
+
+  const handleEditCategory = useCallback(() => {
+    if (!contextMenuCategory) return;
+    const categoryId = contextMenuCategory.id;
+    setContextMenuVisible(false);
+    setContextMenuCategory(null);
+    router.push(`/(drawer)/category/edit/${categoryId}`);
+  }, [contextMenuCategory, router]);
+
+  const handleDeleteCategory = useCallback(() => {
+    if (!contextMenuCategory) return;
+    const categoryName = contextMenuCategory.attributes.name || "this category";
+    const categoryId = contextMenuCategory.id;
+    Alert.alert(
+      "Delete Category",
+      `Delete "${categoryName}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setContextMenuVisible(false);
+            setContextMenuCategory(null);
+            try {
+              await apiClient.deleteCategory(categoryId);
+              // Remove the detail cache for this category
+              queryClient.removeQueries({
+                queryKey: ["category-detail", categoryId],
+              });
+              queryClient.removeQueries({ queryKey: ["categories"] });
+              queryClient.invalidateQueries({ queryKey: ["categories"] });
+              // Refetch the categories list to reflect the deletion
+              refetch();
+              Alert.alert("Success", "Category deleted successfully");
+            } catch (error) {
+              console.error("Failed to delete category:", error);
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete category";
+              Alert.alert("Error", message);
+            }
+          },
+        },
+      ]
+    );
+  }, [contextMenuCategory, refetch]);
 
   // -----------------------------------------------------------------------
   // Memoized FlatList sub-components
@@ -319,9 +524,10 @@ export default function CategoriesScreen() {
         surfaceVariantColor={surfaceVariantColor}
         primaryColor={primaryColor}
         onPress={() => handleCategoryPress(item)}
+        onLongPress={() => handleLongPress(item)}
       />
     ),
-    [surfaceVariantColor, primaryColor, handleCategoryPress]
+    [surfaceVariantColor, primaryColor, handleCategoryPress, handleLongPress]
   );
 
   const keyExtractor = useCallback((item: FlatCategory) => item._flatKey, []);
@@ -388,6 +594,40 @@ export default function CategoriesScreen() {
         updateCellsBatchingPeriod={100}
         disableVirtualization={false}
       />
+
+      {/* Context Menu Modal */}
+      <Modal
+        visible={contextMenuVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleContextMenuClose}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleContextMenuClose}>
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={80}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <View style={styles.androidOverlay} />
+          )}
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            {contextMenuCategory && (
+              <CategoryContextMenuCard
+                item={contextMenuCategory}
+                primaryColor={primaryColor}
+                errorColor={theme.colors.error}
+                surfaceVariantColor={surfaceVariantColor}
+                onEdit={handleEditCategory}
+                onDelete={handleDeleteCategory}
+                onClose={handleContextMenuClose}
+              />
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -492,5 +732,96 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginLeft: 8,
+  },
+  // Context Menu Styles (matching accounts/transactions screens)
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  androidOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+  },
+  contextMenuContainer: {
+    width: SCREEN_WIDTH - 48,
+    maxWidth: 400,
+  },
+  contextMenuCard: {
+    marginBottom: 16,
+  },
+  contextMenuCardInner: {
+    borderWidth: 1,
+    borderColor: "rgba(63, 81, 181, 0.3)",
+  },
+  contextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  contextLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  contextIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  contextBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contextName: {
+    fontWeight: "600",
+  },
+  contextNotes: {
+    marginTop: 2,
+    opacity: 0.7,
+  },
+  contextMenuActions: {
+    gap: 10,
+  },
+  contextMenuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(120, 120, 120, 0.15)",
+  },
+  contextMenuButtonPressed: {
+    opacity: 0.92,
+  },
+  contextMenuButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  editButton: {
+    backgroundColor: "#3F51B5",
+    borderColor: "#3F51B5",
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+  },
+  deleteButton: {
+    backgroundColor: "#E53935",
+    borderColor: "#C62828",
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+  },
+  cancelButton: {
+    backgroundColor: "#525252",
+    borderColor: "#6B6B6B",
+  },
+  cancelButtonText: {
+    color: "#FFFFFF",
   },
 });

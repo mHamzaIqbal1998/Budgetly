@@ -34,3 +34,8 @@ export interface CategoryRead {
 }
 
 export type CategoryArray = FireflyApiResponse<CategoryRead[]>;
+
+export interface CategoryUpdate {
+  name: string;
+  notes?: string | null;
+}
