@@ -3,7 +3,7 @@ import { GlassCard } from "@/components/glass-card";
 import { apiClient } from "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -88,6 +88,15 @@ export default function CreateCategoryScreen() {
     });
     return () => sub.remove();
   }, [goBack]);
+
+  // Reset form on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      setName("");
+      setNotes("");
+      setIsSaving(false);
+    }, [])
+  );
 
   // ---------------------------------------------------------------------------
   // Save handler
