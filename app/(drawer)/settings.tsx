@@ -4,8 +4,9 @@ import { apiClient } from "@/lib/api-client";
 import { useStore } from "@/lib/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Linking,
@@ -22,6 +23,7 @@ import {
   Modal,
   Portal,
   SegmentedButtons,
+  Switch,
   Text,
   TextInput,
   useTheme,
@@ -38,6 +40,8 @@ export default function SettingsScreen() {
     setCredentials,
     themeMode,
     setThemeMode,
+    biometricEnabled,
+    setBiometricEnabled,
   } = useStore();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,6 +50,91 @@ export default function SettingsScreen() {
   );
   const [token, setToken] = useState("");
   const [isValidating, setIsValidating] = useState(false);
+
+  // Biometric state
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<string>("Not Available");
+  const [biometricToggling, setBiometricToggling] = useState(false);
+
+  // Check device biometric capabilities
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        setBiometricAvailable(hasHardware && isEnrolled);
+
+        if (hasHardware && isEnrolled) {
+          const types =
+            await LocalAuthentication.supportedAuthenticationTypesAsync();
+          if (
+            types.includes(
+              LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+            )
+          ) {
+            setBiometricType("Face ID");
+          } else if (
+            types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)
+          ) {
+            setBiometricType("Fingerprint");
+          } else if (
+            types.includes(LocalAuthentication.AuthenticationType.IRIS)
+          ) {
+            setBiometricType("Iris");
+          } else {
+            setBiometricType("Device Passcode");
+          }
+        } else if (!hasHardware) {
+          setBiometricType("Not Supported");
+        } else {
+          setBiometricType("Not Enrolled");
+        }
+      } catch {
+        setBiometricAvailable(false);
+        setBiometricType("Not Available");
+      }
+    };
+
+    checkBiometrics();
+  }, []);
+
+  const handleBiometricToggle = useCallback(async () => {
+    if (biometricToggling) return;
+    setBiometricToggling(true);
+
+    try {
+      if (!biometricAvailable) {
+        Alert.alert(
+          "Not Available",
+          "Your device does not have biometric authentication set up. Please configure fingerprint or Face ID in your device settings."
+        );
+        return;
+      }
+
+      // Authenticate before enabling or disabling
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: biometricEnabled
+          ? "Confirm to disable App Lock"
+          : "Confirm to enable App Lock",
+        fallbackLabel: "Use Passcode",
+        cancelLabel: "Cancel",
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        setBiometricEnabled(!biometricEnabled);
+      }
+    } catch {
+      Alert.alert("Error", "Authentication failed. Please try again.");
+    } finally {
+      setBiometricToggling(false);
+    }
+  }, [
+    biometricAvailable,
+    biometricEnabled,
+    biometricToggling,
+    setBiometricEnabled,
+  ]);
 
   const handleUpdateCredentials = async () => {
     if (!instanceUrl || !token) {
@@ -241,6 +330,68 @@ export default function SettingsScreen() {
                 style={styles.segmentedButtons}
               />
             </View>
+          </Card.Content>
+        </GlassCard>
+
+        {/* Security Section */}
+        <GlassCard variant="elevated" style={styles.card}>
+          <Card.Title
+            title="Security"
+            titleStyle={styles.cardTitle}
+            left={(props) => (
+              <MaterialCommunityIcons
+                name="shield-lock"
+                size={24}
+                color={theme.colors.primary}
+              />
+            )}
+          />
+          <Card.Content style={styles.cardContent}>
+            <List.Item
+              title="App Lock"
+              description="Require authentication to open the app"
+              left={(props) => (
+                <MaterialCommunityIcons
+                  name="fingerprint"
+                  size={24}
+                  color={theme.colors.onSurfaceVariant}
+                  style={styles.listIcon}
+                />
+              )}
+              right={() => (
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  disabled={biometricToggling}
+                  color={theme.colors.primary}
+                />
+              )}
+              titleStyle={styles.listTitle}
+              descriptionStyle={styles.listDescription}
+            />
+            <Divider style={styles.divider} />
+            <List.Item
+              title="Security Method"
+              description={biometricType}
+              left={(props) => (
+                <MaterialCommunityIcons
+                  name={
+                    biometricType === "Face ID"
+                      ? "face-recognition"
+                      : biometricType === "Fingerprint"
+                        ? "fingerprint"
+                        : biometricType === "Iris"
+                          ? "eye-outline"
+                          : "cellphone-lock"
+                  }
+                  size={24}
+                  color={theme.colors.onSurfaceVariant}
+                  style={styles.listIcon}
+                />
+              )}
+              titleStyle={styles.listTitle}
+              descriptionStyle={styles.listDescription}
+            />
           </Card.Content>
         </GlassCard>
 

@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 
+import { BiometricLockScreen } from "@/components/biometric-lock-screen";
+
 import { PixelDarkTheme, PixelLightTheme } from "@/constants/spotify-theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { apiClient } from "@/lib/api-client";
@@ -18,8 +20,14 @@ export const unstable_settings = {
 function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
-  const { isAuthenticated, isLoading, loadCredentials, credentials } =
-    useStore();
+  const {
+    isAuthenticated,
+    isLoading,
+    loadCredentials,
+    credentials,
+    biometricEnabled,
+    biometricUnlocked,
+  } = useStore();
 
   // Load credentials on mount
   useEffect(() => {
@@ -48,6 +56,11 @@ function RootLayoutNav() {
       router.replace("/(drawer)/dashboard");
     }
   }, [isAuthenticated, isLoading, segments]);
+
+  // Show biometric lock screen when required
+  if (!isLoading && isAuthenticated && biometricEnabled && !biometricUnlocked) {
+    return <BiometricLockScreen />;
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
