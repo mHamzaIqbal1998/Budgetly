@@ -1,4 +1,9 @@
-import type { CategoryArray, CategoryRead, CategoryUpdate } from "@/types";
+import type {
+  CategoryArray,
+  CategoryRead,
+  CategoryStore,
+  CategoryUpdate,
+} from "@/types";
 import type { FireflyApiResponse } from "@/types/common";
 import type { AxiosInstance } from "axios";
 
@@ -34,6 +39,17 @@ export async function updateCategory(
 ): Promise<FireflyApiResponse<CategoryRead>> {
   const response = await api.put<FireflyApiResponse<CategoryRead>>(
     `categories/${id}`,
+    data
+  );
+  return response.data;
+}
+
+export async function createCategory(
+  api: AxiosInstance,
+  data: CategoryStore
+): Promise<FireflyApiResponse<CategoryRead>> {
+  const response = await api.post<FireflyApiResponse<CategoryRead>>(
+    "categories",
     data
   );
   return response.data;

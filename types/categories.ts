@@ -39,3 +39,8 @@ export interface CategoryUpdate {
   name: string;
   notes?: string | null;
 }
+
+export interface CategoryStore {
+  name: string;
+  notes?: string | null;
+}

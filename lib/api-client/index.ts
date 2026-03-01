@@ -305,6 +305,10 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return categoriesModule.deleteCategory(this.ensureInitialized(), id);
   }
 
+  async createCategory(data: { name: string; notes?: string | null }) {
+    return categoriesModule.createCategory(this.ensureInitialized(), data);
+  }
+
   // Autocomplete
   async getAutocompleteCategories() {
     return autocompleteModule.getAutocompleteCategories(
