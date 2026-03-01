@@ -285,6 +285,15 @@ class FireflyApiClientImpl extends FireflyApiClient {
     return categoriesModule.getCategories(this.ensureInitialized(), page);
   }
 
+  async getCategory(id: string, start?: string, end?: string) {
+    return categoriesModule.getCategory(
+      this.ensureInitialized(),
+      id,
+      start,
+      end
+    );
+  }
+
   // Autocomplete
   async getAutocompleteCategories() {
     return autocompleteModule.getAutocompleteCategories(

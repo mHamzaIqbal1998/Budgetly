@@ -228,6 +228,14 @@ export default function DrawerLayout() {
             headerShown: false,
           }}
         />
+        <Drawer.Screen
+          name="category"
+          options={{
+            title: "Category Detail",
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
         {/* <Drawer.Screen
           name="reports"
           options={{

@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import type { CategoryRead } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -172,6 +173,7 @@ const ListHeader = memo(function ListHeader({
 
 export default function CategoriesScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Infinite query: fetches pages of categories from the API
@@ -239,10 +241,12 @@ export default function CategoriesScreen() {
     refetch();
   }, [refetch]);
 
-  const handleCategoryPress = useCallback((category: FlatCategory) => {
-    // Placeholder for future category detail screen
-    console.log("Category pressed:", category.id, category.attributes.name);
-  }, []);
+  const handleCategoryPress = useCallback(
+    (category: FlatCategory) => {
+      router.push(`/(drawer)/category/${category.id}`);
+    },
+    [router]
+  );
 
   // -----------------------------------------------------------------------
   // Memoized FlatList sub-components
