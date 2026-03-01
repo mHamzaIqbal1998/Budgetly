@@ -248,22 +248,6 @@ export default function DrawerLayout() {
             headerShown: false,
           }}
         />
-        <Drawer.Screen
-          name="category/edit"
-          options={{
-            title: "Edit Category",
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="category/create"
-          options={{
-            title: "Create Category",
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-          }}
-        />
         {/* <Drawer.Screen
           name="reports"
           options={{
