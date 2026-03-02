@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { createBiometricSlice } from "./biometric";
 import { createCacheSlice } from "./cache-slice";
 import { createCredentialsSlice } from "./credentials";
 import { createDashboardSlice } from "./dashboard-slice";
@@ -13,6 +14,7 @@ export const useStore = create<AppState>()(
     (...a) => ({
       ...createCredentialsSlice(...a),
       ...createUiSlice(...a),
+      ...createBiometricSlice(...a),
       ...createCacheSlice(...a),
       ...createPendingSlice(...a),
       ...createDashboardSlice(...a),
@@ -33,6 +35,7 @@ export const useStore = create<AppState>()(
         dashboardVisibleSectionIds: state.dashboardVisibleSectionIds,
         dashboardHiddenSectionIds: state.dashboardHiddenSectionIds,
         themeMode: state.themeMode,
+        biometricEnabled: state.biometricEnabled,
       }),
     }
   )
