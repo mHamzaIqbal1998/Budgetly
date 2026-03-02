@@ -6,6 +6,7 @@ import { createCacheSlice } from "./cache-slice";
 import { createCredentialsSlice } from "./credentials";
 import { createDashboardSlice } from "./dashboard-slice";
 import { createPendingSlice } from "./pending";
+import { createReminderSlice } from "./reminders";
 import type { AppState } from "./types";
 import { createUiSlice } from "./ui";
 
@@ -18,6 +19,7 @@ export const useStore = create<AppState>()(
       ...createCacheSlice(...a),
       ...createPendingSlice(...a),
       ...createDashboardSlice(...a),
+      ...createReminderSlice(...a),
     }),
     {
       name: "budgetly-storage",
@@ -36,6 +38,11 @@ export const useStore = create<AppState>()(
         dashboardHiddenSectionIds: state.dashboardHiddenSectionIds,
         themeMode: state.themeMode,
         biometricEnabled: state.biometricEnabled,
+        subscriptionRemindersEnabled: state.subscriptionRemindersEnabled,
+        lastSubscriptionReminderSync: state.lastSubscriptionReminderSync,
+        expenseReminderEnabled: state.expenseReminderEnabled,
+        expenseReminderFrequency: state.expenseReminderFrequency,
+        expenseReminderTime: state.expenseReminderTime,
       }),
     }
   )

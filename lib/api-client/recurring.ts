@@ -81,6 +81,23 @@ export async function updateBill(
   return response.data;
 }
 
+export async function getBillsWithDates(
+  api: AxiosInstance,
+  page: number = 1,
+  limit: number = 50,
+  start?: string,
+  end?: string
+): Promise<FireflyApiResponse<AllBillsResponse[]>> {
+  const params: Record<string, unknown> = { page, limit };
+  if (start) params.start = start;
+  if (end) params.end = end;
+  const response = await api.get<FireflyApiResponse<AllBillsResponse[]>>(
+    "bills",
+    { params }
+  );
+  return response.data;
+}
+
 export async function deleteBill(
   api: AxiosInstance,
   id: string

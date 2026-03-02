@@ -201,6 +201,20 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="reminders"
+          options={{
+            title: "Reminders",
+            drawerLabel: "Reminders",
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="bell-ring-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="account"
           options={{
             title: "Transactions",

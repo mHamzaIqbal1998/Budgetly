@@ -63,4 +63,16 @@ export interface AppState {
   moveDashboardSectionToHidden: (id: string) => void;
   moveDashboardSectionToVisible: (id: string) => void;
   reorderDashboardVisible: (fromIndex: number, toIndex: number) => void;
+
+  // Reminders
+  subscriptionRemindersEnabled: boolean;
+  lastSubscriptionReminderSync: number | null;
+  expenseReminderEnabled: boolean;
+  expenseReminderFrequency: "daily" | "weekdays" | "weekly";
+  expenseReminderTime: string;
+  setSubscriptionRemindersEnabled: (enabled: boolean) => void;
+  setLastSubscriptionReminderSync: (ts: number) => void;
+  setExpenseReminderEnabled: (enabled: boolean) => void;
+  setExpenseReminderFrequency: (freq: "daily" | "weekdays" | "weekly") => void;
+  setExpenseReminderTime: (time: string) => void;
 }
