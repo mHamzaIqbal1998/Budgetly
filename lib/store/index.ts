@@ -39,6 +39,7 @@ export const useStore = create<AppState>()(
         themeMode: state.themeMode,
         biometricEnabled: state.biometricEnabled,
         subscriptionRemindersEnabled: state.subscriptionRemindersEnabled,
+        subscriptionReminderTime: state.subscriptionReminderTime,
         lastSubscriptionReminderSync: state.lastSubscriptionReminderSync,
         expenseReminderEnabled: state.expenseReminderEnabled,
         expenseReminderFrequency: state.expenseReminderFrequency,

@@ -72,9 +72,12 @@ function buildNotificationId(billId: string, dateStr: string): string {
 
 /**
  * Fetch all bills with upcoming pay_dates and schedule local notifications.
+ * @param reminderTime - HH:MM format string for time-of-day notifications fire (default: "09:00")
  * Returns the number of notifications scheduled.
  */
-export async function scheduleSubscriptionReminders(): Promise<number> {
+export async function scheduleSubscriptionReminders(
+  reminderTime: string = "09:00"
+): Promise<number> {
   // Cancel existing subscription reminders first
   await cancelSubscriptionReminders();
 
@@ -129,16 +132,12 @@ export async function scheduleSubscriptionReminders(): Promise<number> {
 
     for (const dateStr of payDates) {
       const payDate = new Date(dateStr);
-      if (payDate <= now) continue; // Skip past dates
 
-      // If the time component is midnight (00:00:00), default to 09:00 AM
-      if (
-        payDate.getHours() === 0 &&
-        payDate.getMinutes() === 0 &&
-        payDate.getSeconds() === 0
-      ) {
-        payDate.setHours(9, 0, 0, 0);
-      }
+      // Set the user-configured reminder time BEFORE checking if it's past
+      const [rHours, rMinutes] = reminderTime.split(":").map(Number);
+      payDate.setHours(rHours || 9, rMinutes || 0, 0, 0);
+
+      if (payDate <= now) continue; // Skip dates+times already past
 
       const notifId = buildNotificationId(bill.id, dateStr);
 
@@ -289,7 +288,9 @@ export function defineBackgroundTask() {
       if (storeData) {
         const parsed = JSON.parse(storeData);
         if (parsed?.state?.subscriptionRemindersEnabled) {
-          await scheduleSubscriptionReminders();
+          const reminderTime =
+            parsed?.state?.subscriptionReminderTime || "09:00";
+          await scheduleSubscriptionReminders(reminderTime);
         }
       }
       // Return NewData result

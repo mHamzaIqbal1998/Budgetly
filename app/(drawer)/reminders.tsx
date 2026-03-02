@@ -52,6 +52,8 @@ export default function RemindersScreen() {
   const {
     subscriptionRemindersEnabled,
     setSubscriptionRemindersEnabled,
+    subscriptionReminderTime,
+    setSubscriptionReminderTime,
     lastSubscriptionReminderSync,
     setLastSubscriptionReminderSync,
     expenseReminderEnabled,
@@ -64,6 +66,7 @@ export default function RemindersScreen() {
 
   const [subLoading, setSubLoading] = useState(false);
   const [expenseLoading, setExpenseLoading] = useState(false);
+  const [showSubTimePicker, setShowSubTimePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [notifCounts, setNotifCounts] = useState({
     subscription: 0,
@@ -114,7 +117,9 @@ export default function RemindersScreen() {
         }
 
         // Schedule reminders
-        const count = await scheduleSubscriptionReminders();
+        const count = await scheduleSubscriptionReminders(
+          subscriptionReminderTime
+        );
         setSubscriptionRemindersEnabled(true);
         setLastSubscriptionReminderSync(Date.now());
         await refreshCounts();
@@ -146,6 +151,7 @@ export default function RemindersScreen() {
   }, [
     subLoading,
     subscriptionRemindersEnabled,
+    subscriptionReminderTime,
     setSubscriptionRemindersEnabled,
     setLastSubscriptionReminderSync,
     refreshCounts,
@@ -156,7 +162,9 @@ export default function RemindersScreen() {
     setSubLoading(true);
 
     try {
-      const count = await scheduleSubscriptionReminders();
+      const count = await scheduleSubscriptionReminders(
+        subscriptionReminderTime
+      );
       setLastSubscriptionReminderSync(Date.now());
       await refreshCounts();
 
@@ -175,7 +183,51 @@ export default function RemindersScreen() {
     } finally {
       setSubLoading(false);
     }
-  }, [subLoading, setLastSubscriptionReminderSync, refreshCounts]);
+  }, [
+    subLoading,
+    subscriptionReminderTime,
+    setLastSubscriptionReminderSync,
+    refreshCounts,
+  ]);
+
+  const handleSubTimeChange = useCallback(
+    async (_event: unknown, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowSubTimePicker(false);
+      }
+
+      if (selectedDate) {
+        const hours = String(selectedDate.getHours()).padStart(2, "0");
+        const mins = String(selectedDate.getMinutes()).padStart(2, "0");
+        const newTime = `${hours}:${mins}`;
+        setSubscriptionReminderTime(newTime);
+
+        // Reschedule if enabled
+        if (subscriptionRemindersEnabled) {
+          try {
+            await scheduleSubscriptionReminders(newTime);
+            setLastSubscriptionReminderSync(Date.now());
+            await refreshCounts();
+          } catch (error) {
+            console.error(
+              "[Reminders] Failed to reschedule subscription reminders:",
+              error
+            );
+          }
+        }
+      }
+
+      if (Platform.OS === "ios") {
+        setShowSubTimePicker(false);
+      }
+    },
+    [
+      subscriptionRemindersEnabled,
+      setSubscriptionReminderTime,
+      setLastSubscriptionReminderSync,
+      refreshCounts,
+    ]
+  );
 
   // -----------------------------------------------------------------------
   // Expense Reminders
@@ -317,6 +369,13 @@ export default function RemindersScreen() {
     return `${h12}:${String(m).padStart(2, "0")} ${period}`;
   };
 
+  const subTimePickerValue = (() => {
+    const [h, m] = subscriptionReminderTime.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  })();
+
   const timePickerValue = (() => {
     const [h, m] = expenseReminderTime.split(":").map(Number);
     const d = new Date();
@@ -444,6 +503,44 @@ export default function RemindersScreen() {
                   </Button>
                 </View>
 
+                <Divider style={styles.divider} />
+                <List.Item
+                  title="Reminder Time"
+                  description={formatTime(subscriptionReminderTime)}
+                  left={() => (
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={24}
+                      color={theme.colors.onSurfaceVariant}
+                      style={styles.listIcon}
+                    />
+                  )}
+                  right={() => (
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={24}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                  )}
+                  onPress={() => setShowSubTimePicker(true)}
+                  titleStyle={styles.listTitle}
+                  descriptionStyle={[
+                    styles.listDescription,
+                    { color: theme.colors.primary, fontWeight: "600" },
+                  ]}
+                  style={styles.pressableItem}
+                />
+
+                {showSubTimePicker && (
+                  <DateTimePicker
+                    value={subTimePickerValue}
+                    mode="time"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={handleSubTimeChange}
+                    themeVariant={theme.dark ? "dark" : "light"}
+                  />
+                )}
+
                 <View style={styles.infoBox}>
                   <MaterialCommunityIcons
                     name="information-outline"
@@ -458,9 +555,9 @@ export default function RemindersScreen() {
                     ]}
                   >
                     Reminders are scheduled for the next 90 days. Notifications
-                    fire at the payment time, or at 9:00 AM if no time is set.
-                    Reminders are refreshed when you open the app or modify
-                    subscriptions.
+                    fire at {formatTime(subscriptionReminderTime)} on the day
+                    subscriptions are due. Reminders are refreshed when you open
+                    the app or modify subscriptions.
                   </Text>
                 </View>
               </>

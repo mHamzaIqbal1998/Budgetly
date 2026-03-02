@@ -3,6 +3,7 @@ import type { StateCreator } from "zustand";
 export interface ReminderSlice {
   // Subscription reminders
   subscriptionRemindersEnabled: boolean;
+  subscriptionReminderTime: string; // HH:MM format
   lastSubscriptionReminderSync: number | null;
 
   // Expense reminders
@@ -12,6 +13,7 @@ export interface ReminderSlice {
 
   // Actions
   setSubscriptionRemindersEnabled: (enabled: boolean) => void;
+  setSubscriptionReminderTime: (time: string) => void;
   setLastSubscriptionReminderSync: (ts: number) => void;
   setExpenseReminderEnabled: (enabled: boolean) => void;
   setExpenseReminderFrequency: (freq: "daily" | "weekdays" | "weekly") => void;
@@ -20,6 +22,7 @@ export interface ReminderSlice {
 
 export const createReminderSlice: StateCreator<ReminderSlice> = (set) => ({
   subscriptionRemindersEnabled: false,
+  subscriptionReminderTime: "09:00",
   lastSubscriptionReminderSync: null,
 
   expenseReminderEnabled: false,
@@ -28,6 +31,8 @@ export const createReminderSlice: StateCreator<ReminderSlice> = (set) => ({
 
   setSubscriptionRemindersEnabled: (enabled) =>
     set({ subscriptionRemindersEnabled: enabled }),
+  setSubscriptionReminderTime: (time) =>
+    set({ subscriptionReminderTime: time }),
   setLastSubscriptionReminderSync: (ts) =>
     set({ lastSubscriptionReminderSync: ts }),
   setExpenseReminderEnabled: (enabled) =>
