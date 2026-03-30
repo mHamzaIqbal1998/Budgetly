@@ -5,8 +5,9 @@ import type {
   FireflyCredentials,
   Transaction,
 } from "@/types";
+import type { ReminderSlice } from "./reminder";
 
-export interface AppState {
+export interface AppState extends ReminderSlice {
   credentials: FireflyCredentials | null;
   isAuthenticated: boolean;
   isLoading: boolean;

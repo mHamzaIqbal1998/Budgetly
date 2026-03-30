@@ -12,6 +12,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { apiClient } from "@/lib/api-client";
 import { persistOptions, queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
+import { initNotificationChannel } from "@/lib/utils/notification-service";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -32,6 +33,9 @@ function RootLayoutNav() {
   // Load credentials on mount
   useEffect(() => {
     loadCredentials();
+    // Initialize Android notification channel at startup so scheduled
+    // notifications are delivered even after the app is killed and restarted.
+    initNotificationChannel();
   }, []);
 
   // Initialize API client when credentials are available

@@ -30,7 +30,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.budgetly.app",
-      "permissions": ["android.permission.INTERNET"],
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -61,7 +64,15 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-local-authentication"
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-chrome-512x512.png",
+          "color": "#ffffff",
+          "defaultChannel": "reminders"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
