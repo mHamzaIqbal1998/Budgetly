@@ -13,6 +13,11 @@ export interface AppState {
   balanceVisible: boolean;
   themeMode: "system" | "light" | "dark";
 
+  biometricEnabled: boolean;
+  biometricUnlocked: boolean;
+  setBiometricEnabled: (enabled: boolean) => void;
+  setBiometricUnlocked: (unlocked: boolean) => void;
+
   cachedAccounts: Account[] | null;
   cachedTransactions: Transaction[] | null;
   cachedBudgetLimits: BudgetLimitsListResponse | null;

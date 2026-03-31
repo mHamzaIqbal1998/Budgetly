@@ -19,13 +19,13 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 - [x] Subscription management
 - [x] Multiple currency support
 - [x] Dark/Light Theme
+- [x] Biometric authentication
 - [ ] Tag management
 - [ ] Recurring transaction improvements
 - [ ] Advanced filtering and search
 - [ ] Advanced charts and analytics
 - [ ] Budget categories and tags
 - [ ] Export functionality
-- [ ] Biometric authentication
 - [ ] Push notifications for recurring transactions
 - [ ] Offline Support (Semi implemented)
 - [ ] Offline transaction creation with sync

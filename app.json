@@ -2,7 +2,7 @@
   "expo": {
     "name": "Budgetly",
     "slug": "budgetly",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/android-chrome-512x512.png",
     "scheme": "budgetly",
@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.budgetly.app",
       "icon": "./assets/apple-touch-icon.png",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Budgetly uses Face ID to secure your financial data."
       }
     },
     "android": {
@@ -59,7 +60,8 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-local-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
