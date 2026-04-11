@@ -366,7 +366,7 @@ export default function RemindersScreen() {
         }
       }
 
-      // On iOS, we keep the picker open - user dismisses manually
+      // On iOS, dismiss the picker
       if (Platform.OS === "ios") {
         setShowTimePicker(false);
       }
@@ -862,7 +862,7 @@ export default function RemindersScreen() {
                       </Text>
                       {activeRemindersList
                         .filter((i) => i.type === "subscription")
-                        .map((item, idx) => (
+                        .map((item) => (
                           <View key={item.id} style={styles.reminderRow}>
                             <View style={styles.reminderRowLeft}>
                               <Text
@@ -904,7 +904,7 @@ export default function RemindersScreen() {
                       </Text>
                       {activeRemindersList
                         .filter((i) => i.type === "expense")
-                        .map((item, idx) => (
+                        .map((item) => (
                           <View key={item.id} style={styles.reminderRow}>
                             <View style={styles.reminderRowLeft}>
                               <Text

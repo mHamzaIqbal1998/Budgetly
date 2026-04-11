@@ -344,8 +344,10 @@ export function defineBackgroundTask() {
       // Only refresh if subscription reminders are enabled
       // We check AsyncStorage directly since Zustand store may not be hydrated
 
-      const AsyncStorage = // @ts-ignore
-        (await import("@react-native-async-storage/async-storage")).default;
+      // @ts-ignore
+      const AsyncStorage = (
+        await import("@react-native-async-storage/async-storage")
+      ).default;
       const storeData = await AsyncStorage.getItem("budgetly-storage");
       if (storeData) {
         const parsed = JSON.parse(storeData);
@@ -369,26 +371,13 @@ export function defineBackgroundTask() {
 
 /**
  * Register the background fetch task.
- * Call after permissions are granted and subscription reminders are enabled.
+ * Note: expo-background-fetch is not installed, so this project relies on
+ * app-open refreshes (via scheduleSubscriptionReminders on focus) instead of
+ * true background wakeups. This function is a no-op kept for API symmetry.
  */
 export async function registerBackgroundFetch(): Promise<void> {
-  try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(
-      BACKGROUND_FETCH_TASK
-    );
-    if (!isRegistered) {
-      // Use expo-notifications background fetch since we don't have expo-background-fetch
-      // The background task will be triggered by the system periodically
-      console.log(
-        "[BackgroundTask] Background task defined, will refresh on app open"
-      );
-    }
-  } catch (error) {
-    console.warn(
-      "[BackgroundTask] Failed to register background fetch:",
-      error
-    );
-  }
+  // No-op: background fetch requires expo-background-fetch which is not a
+  // dependency. Subscription reminders are refreshed on app open instead.
 }
 
 /**
@@ -497,17 +486,16 @@ export async function getScheduledNotificationsList(
       if (n.identifier.includes("daily")) {
         freq = "Daily";
       } else if (wdMatch) {
-        const wdMap = [
-          "",
-          "Every Sunday",
-          "Every Monday",
-          "Every Tuesday",
-          "Every Wednesday",
-          "Every Thursday",
-          "Every Friday",
-          "Every Saturday",
-        ];
-        freq = wdMap[parseInt(wdMatch[1], 10)] || "Weekdays";
+        const wdMap: Record<number, string> = {
+          1: "Every Sunday",
+          2: "Every Monday",
+          3: "Every Tuesday",
+          4: "Every Wednesday",
+          5: "Every Thursday",
+          6: "Every Friday",
+          7: "Every Saturday",
+        };
+        freq = wdMap[parseInt(wdMatch[1], 10)] ?? "Weekdays";
       } else if (n.identifier.includes("weekly")) {
         freq = "Every Sunday";
       }
