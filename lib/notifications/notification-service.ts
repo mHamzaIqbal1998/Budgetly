@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import type { AllBillsResponse } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
@@ -344,10 +345,6 @@ export function defineBackgroundTask() {
       // Only refresh if subscription reminders are enabled
       // We check AsyncStorage directly since Zustand store may not be hydrated
 
-      // @ts-ignore
-      const AsyncStorage = (
-        await import("@react-native-async-storage/async-storage")
-      ).default;
       const storeData = await AsyncStorage.getItem("budgetly-storage");
       if (storeData) {
         const parsed = JSON.parse(storeData);
