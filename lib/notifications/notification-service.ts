@@ -1,8 +1,9 @@
 import { apiClient } from "@/lib/api-client";
 import type { AllBillsResponse } from "@/types";
+import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -52,6 +53,67 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   }
 
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Android exact-alarm special permission (Android 12+ / API 31+)
+// ---------------------------------------------------------------------------
+
+/**
+ * On Android 12+ (API 31+) the system requires the special "Alarms & Reminders"
+ * permission (SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM) for exact alarms to fire.
+ * This permission is controlled by the user in Settings → Apps → Special App Access
+ * → Alarms & Reminders. Without it, scheduled notifications are silently dropped.
+ *
+ * Returns `true` if exact alarms are allowed (or on iOS / older Android).
+ */
+export async function checkExactAlarmPermission(): Promise<boolean> {
+  if (Platform.OS !== "android") return true;
+
+  try {
+    // expo-notifications exposes this on SDK 50+
+    const result = await (
+      Notifications as unknown as {
+        canScheduleExactNotificationsAsync?: () => Promise<boolean>;
+      }
+    ).canScheduleExactNotificationsAsync?.();
+    // If the API isn't available (SDK < 50 or older Android), assume ok
+    if (result === undefined || result === null) return true;
+    return result;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Open the system Alarms & Reminders special-app-access settings screen so the
+ * user can grant SCHEDULE_EXACT_ALARM for this app.
+ *
+ * Passes the app package as a URI so Samsung One UI / OEM builds open the
+ * per-app toggle directly, rather than the global list of all apps.
+ */
+export async function openAlarmPermissionSettings(): Promise<void> {
+  if (Platform.OS !== "android") return;
+
+  // Read package name from Expo config (expo-constants is a project dependency)
+  const packageName: string =
+    (Constants.expoConfig?.android?.package as string | undefined) ??
+    "com.budgetly.app";
+
+  try {
+    // Package URI form — forces Samsung One UI / OEM builds to the per-app toggle
+    await Linking.openURL(
+      `android.settings.REQUEST_SCHEDULE_EXACT_ALARM:package:${packageName}`
+    );
+  } catch {
+    try {
+      // Fallback 1: plain action intent (standard Android 12+)
+      await Linking.sendIntent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM");
+    } catch {
+      // Fallback 2: open the app's own settings page
+      await Linking.openSettings();
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -134,8 +196,10 @@ export async function scheduleSubscriptionReminders(
       const payDate = new Date(dateStr);
 
       // Set the user-configured reminder time BEFORE checking if it's past
-      const [rHours, rMinutes] = reminderTime.split(":").map(Number);
-      payDate.setHours(rHours || 9, rMinutes || 0, 0, 0);
+      const parts = reminderTime.split(":").map(Number);
+      const rHours = !isNaN(parts[0]) ? parts[0] : 9;
+      const rMinutes = !isNaN(parts[1]) ? parts[1] : 0;
+      payDate.setHours(rHours, rMinutes, 0, 0);
 
       if (payDate <= now) continue; // Skip dates+times already past
 
@@ -280,10 +344,8 @@ export function defineBackgroundTask() {
       // Only refresh if subscription reminders are enabled
       // We check AsyncStorage directly since Zustand store may not be hydrated
 
-      // @ts-ignore
-      const AsyncStorage = (
-        await import("@react-native-async-storage/async-storage")
-      ).default;
+      const AsyncStorage = // @ts-ignore
+        (await import("@react-native-async-storage/async-storage")).default;
       const storeData = await AsyncStorage.getItem("budgetly-storage");
       if (storeData) {
         const parsed = JSON.parse(storeData);
@@ -362,4 +424,102 @@ export async function getScheduledNotificationCount(): Promise<{
       n.identifier?.startsWith(EXPENSE_REMINDER_ID)
     ).length,
   };
+}
+
+export interface ScheduledNotificationInfo {
+  id: string;
+  type: "subscription" | "expense";
+  title: string;
+  body: string;
+  triggerInfo: string;
+}
+
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatTime12h(hours: number, minutes: number): string {
+  const period = hours >= 12 ? "PM" : "AM";
+  const h12 = hours % 12 || 12;
+  return `${h12}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * Get detailed list of currently scheduled notifications.
+ * @param subReminderTime - subscription reminder time in HH:MM (used to display time on date entries)
+ * @param expReminderTime - expense reminder time in HH:MM
+ */
+export async function getScheduledNotificationsList(
+  subReminderTime: string = "09:00",
+  expReminderTime: string = "09:00"
+): Promise<ScheduledNotificationInfo[]> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+  const subTimeParts = subReminderTime.split(":").map(Number);
+  const subH = !isNaN(subTimeParts[0]) ? subTimeParts[0] : 9;
+  const subM = !isNaN(subTimeParts[1]) ? subTimeParts[1] : 0;
+
+  const expTimeParts = expReminderTime.split(":").map(Number);
+  const expH = !isNaN(expTimeParts[0]) ? expTimeParts[0] : 9;
+  const expM = !isNaN(expTimeParts[1]) ? expTimeParts[1] : 0;
+
+  return scheduled.map((n) => {
+    let type: "subscription" | "expense" = "expense";
+    let triggerInfo = "Unknown";
+
+    if (n.identifier?.startsWith(SUBSCRIPTION_REMINDER_PREFIX)) {
+      type = "subscription";
+      const parts = n.identifier.split("-");
+      const lastPart = parts[parts.length - 1]; // "YYYYMMDD"
+      if (lastPart && lastPart.length === 8 && !isNaN(Number(lastPart))) {
+        const dd = lastPart.slice(6, 8);
+        const mmIdx = parseInt(lastPart.slice(4, 6), 10) - 1;
+        const yyyy = lastPart.slice(0, 4);
+        const month = MONTH_ABBR[mmIdx] || lastPart.slice(4, 6);
+        triggerInfo = `${dd}-${month}-${yyyy}  ${formatTime12h(subH, subM)}`;
+      }
+    } else if (n.identifier?.startsWith(EXPENSE_REMINDER_ID)) {
+      type = "expense";
+      let freq = "Repeating";
+      const wdMatch = n.identifier.match(/-wd(\d)$/);
+
+      if (n.identifier.includes("daily")) {
+        freq = "Daily";
+      } else if (wdMatch) {
+        const wdMap = [
+          "",
+          "Every Sunday",
+          "Every Monday",
+          "Every Tuesday",
+          "Every Wednesday",
+          "Every Thursday",
+          "Every Friday",
+          "Every Saturday",
+        ];
+        freq = wdMap[parseInt(wdMatch[1], 10)] || "Weekdays";
+      } else if (n.identifier.includes("weekly")) {
+        freq = "Every Sunday";
+      }
+      triggerInfo = `${freq}  ·  ${formatTime12h(expH, expM)}`;
+    }
+
+    return {
+      id: n.identifier || "unknown",
+      type,
+      title: n.content.title || "Reminder",
+      body: n.content.body || "",
+      triggerInfo,
+    };
+  });
 }

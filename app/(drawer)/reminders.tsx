@@ -3,11 +3,15 @@ import { GlassCard } from "@/components/glass-card";
 import {
   cancelExpenseReminders,
   cancelSubscriptionReminders,
+  checkExactAlarmPermission,
   configureNotifications,
   getScheduledNotificationCount,
+  getScheduledNotificationsList,
+  openAlarmPermissionSettings,
   requestNotificationPermissions,
   scheduleExpenseReminder,
   scheduleSubscriptionReminders,
+  type ScheduledNotificationInfo,
 } from "@/lib/notifications";
 import { useStore } from "@/lib/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,13 +24,16 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
 import {
   Button,
   Card,
+  Dialog,
   Divider,
   List,
+  Portal,
   SegmentedButtons,
   Switch,
   Text,
@@ -72,6 +79,13 @@ export default function RemindersScreen() {
     subscription: 0,
     expense: 0,
   });
+  // Android 12+: track whether the Alarms & Reminders special permission is granted
+  const [exactAlarmGranted, setExactAlarmGranted] = useState(true);
+
+  const [showActiveReminders, setShowActiveReminders] = useState(false);
+  const [activeRemindersList, setActiveRemindersList] = useState<
+    ScheduledNotificationInfo[]
+  >([]);
 
   // Configure notification handler
   useEffect(() => {
@@ -91,8 +105,26 @@ export default function RemindersScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshCounts();
+      // Re-check every time we come back from Settings
+      if (Platform.OS === "android") {
+        checkExactAlarmPermission().then(setExactAlarmGranted);
+      }
     }, [refreshCounts])
   );
+
+  // View active reminders handler
+  const handleViewReminders = useCallback(async () => {
+    try {
+      const list = await getScheduledNotificationsList(
+        subscriptionReminderTime,
+        expenseReminderTime
+      );
+      setActiveRemindersList(list);
+      setShowActiveReminders(true);
+    } catch (error) {
+      console.error("[Reminders] Failed to load reminders list:", error);
+    }
+  }, [subscriptionReminderTime, expenseReminderTime]);
 
   // -----------------------------------------------------------------------
   // Subscription Reminders
@@ -411,6 +443,76 @@ export default function RemindersScreen() {
           </Text>
         </View>
 
+        <View
+          style={{
+            alignItems: "flex-start",
+            paddingHorizontal: 20,
+            marginBottom: 8,
+          }}
+        >
+          <Button
+            mode="text"
+            onPress={handleViewReminders}
+            compact
+            icon="format-list-bulleted"
+          >
+            View active reminders
+          </Button>
+        </View>
+
+        {/* ── Android: Alarms & Reminders permission banner ── */}
+        {Platform.OS === "android" && !exactAlarmGranted && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={openAlarmPermissionSettings}
+            style={[styles.alarmBanner, { borderColor: theme.colors.error }]}
+          >
+            <View style={styles.alarmBannerRow}>
+              <MaterialCommunityIcons
+                name="alarm-light-outline"
+                size={22}
+                color={theme.colors.error}
+                style={{ marginRight: 10, marginTop: 1 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  variant="titleSmall"
+                  style={[
+                    styles.alarmBannerTitle,
+                    { color: theme.colors.error },
+                  ]}
+                >
+                  Alarms &amp; Reminders Permission Required
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.alarmBannerBody,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
+                  Android 12+ requires a special permission for exact alarms to
+                  fire. Your reminders may be silently skipped until you enable
+                  it.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.alarmBannerFooter}>
+              <MaterialCommunityIcons
+                name="open-in-new"
+                size={14}
+                color={theme.colors.error}
+              />
+              <Text
+                variant="labelMedium"
+                style={[styles.alarmBannerLink, { color: theme.colors.error }]}
+              >
+                Tap to open Alarms &amp; Reminders settings
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* ── Subscription Reminders ── */}
         <GlassCard variant="elevated" style={styles.card}>
           <Card.Title
@@ -712,6 +814,129 @@ export default function RemindersScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Portal>
+        <Dialog
+          visible={showActiveReminders}
+          onDismiss={() => setShowActiveReminders(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>
+            Active Reminders
+          </Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScrollArea}>
+            <ScrollView contentContainerStyle={styles.dialogContent}>
+              {activeRemindersList.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialCommunityIcons
+                    name="bell-off-outline"
+                    size={36}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ opacity: 0.5, marginBottom: 8 }}
+                  />
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      opacity: 0.7,
+                    }}
+                  >
+                    No reminders scheduled
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {/* Subscription section */}
+                  {activeRemindersList.some(
+                    (i) => i.type === "subscription"
+                  ) && (
+                    <>
+                      <Text
+                        variant="labelSmall"
+                        style={[
+                          styles.sectionLabel,
+                          { color: theme.colors.onSurfaceVariant },
+                        ]}
+                      >
+                        SUBSCRIPTIONS
+                      </Text>
+                      {activeRemindersList
+                        .filter((i) => i.type === "subscription")
+                        .map((item, idx) => (
+                          <View key={item.id} style={styles.reminderRow}>
+                            <View style={styles.reminderRowLeft}>
+                              <Text
+                                variant="bodyMedium"
+                                numberOfLines={1}
+                                style={styles.reminderRowTitle}
+                              >
+                                {item.body || item.title}
+                              </Text>
+                              <Text
+                                variant="bodySmall"
+                                style={[
+                                  styles.reminderRowSub,
+                                  { color: theme.colors.onSurfaceVariant },
+                                ]}
+                              >
+                                {item.triggerInfo}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                    </>
+                  )}
+
+                  {/* Expense section */}
+                  {activeRemindersList.some((i) => i.type === "expense") && (
+                    <>
+                      <Text
+                        variant="labelSmall"
+                        style={[
+                          styles.sectionLabel,
+                          { color: theme.colors.onSurfaceVariant },
+                          activeRemindersList.some(
+                            (i) => i.type === "subscription"
+                          ) && { marginTop: 16 },
+                        ]}
+                      >
+                        EXPENSE REMINDERS
+                      </Text>
+                      {activeRemindersList
+                        .filter((i) => i.type === "expense")
+                        .map((item, idx) => (
+                          <View key={item.id} style={styles.reminderRow}>
+                            <View style={styles.reminderRowLeft}>
+                              <Text
+                                variant="bodyMedium"
+                                numberOfLines={1}
+                                style={styles.reminderRowTitle}
+                              >
+                                {item.body || item.title}
+                              </Text>
+                              <Text
+                                variant="bodySmall"
+                                style={[
+                                  styles.reminderRowSub,
+                                  { color: theme.colors.onSurfaceVariant },
+                                ]}
+                              >
+                                {item.triggerInfo}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                    </>
+                  )}
+                </>
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setShowActiveReminders(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -721,6 +946,38 @@ export default function RemindersScreen() {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+  alarmBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    backgroundColor: "rgba(255, 82, 82, 0.07)",
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  alarmBannerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  alarmBannerTitle: {
+    fontWeight: "700",
+    marginBottom: 3,
+  },
+  alarmBannerBody: {
+    lineHeight: 17,
+    opacity: 0.85,
+  },
+  alarmBannerFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 4,
+  },
+  alarmBannerLink: {
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
   container: {
     flex: 1,
   },
@@ -818,5 +1075,46 @@ const styles = StyleSheet.create({
   },
   segmentedButtons: {
     borderRadius: 12,
+  },
+  dialog: {
+    maxHeight: "80%",
+    borderRadius: 20,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  dialogScrollArea: {
+    paddingHorizontal: 0,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+  },
+  dialogContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  sectionLabel: {
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    opacity: 0.6,
+  },
+  reminderRow: {
+    paddingVertical: 8,
+  },
+  reminderRowLeft: {
+    flex: 1,
+  },
+  reminderRowTitle: {
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  reminderRowSub: {
+    opacity: 0.7,
+    fontSize: 12,
   },
 });
