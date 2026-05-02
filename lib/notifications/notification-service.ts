@@ -6,6 +6,12 @@ import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { Linking, Platform } from "react-native";
 
+// Default notification content (kept in sync with store/reminders.ts defaults)
+const DEFAULT_EXPENSE_TITLE = "📝 Time to Log Expenses";
+const DEFAULT_EXPENSE_BODY = "Don't forget to record today's expenses!";
+const DEFAULT_SUB_TITLE = "💰 Subscription Payment Due";
+const DEFAULT_SUB_BODY = "{{name}}{{amount}} is due today.";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -135,11 +141,15 @@ function buildNotificationId(billId: string, dateStr: string): string {
 
 /**
  * Fetch all bills with upcoming pay_dates and schedule local notifications.
- * @param reminderTime - HH:MM format string for time-of-day notifications fire (default: "09:00")
+ * @param reminderTime  - HH:MM format string for time-of-day notifications fire (default: "09:00")
+ * @param notifTitle    - Custom notification title (supports no variables)
+ * @param notifBody     - Custom notification body (supports {{name}} and {{amount}} variables)
  * Returns the number of notifications scheduled.
  */
 export async function scheduleSubscriptionReminders(
-  reminderTime: string = "09:00"
+  reminderTime: string = "09:00",
+  notifTitle: string = DEFAULT_SUB_TITLE,
+  notifBody: string = DEFAULT_SUB_BODY
 ): Promise<number> {
   // Cancel existing subscription reminders first
   await cancelSubscriptionReminders();
@@ -206,12 +216,18 @@ export async function scheduleSubscriptionReminders(
 
       const notifId = buildNotificationId(bill.id, dateStr);
 
+      // Resolve template variables in title and body
+      const resolvedTitle = notifTitle.replace(/{{name}}/g, billName);
+      const resolvedBody = notifBody
+        .replace(/{{name}}/g, billName)
+        .replace(/{{amount}}/g, amountStr);
+
       try {
         await Notifications.scheduleNotificationAsync({
           identifier: notifId,
           content: {
-            title: "💰 Subscription Payment Due",
-            body: `${billName}${amountStr} is due today.`,
+            title: resolvedTitle,
+            body: resolvedBody,
             data: { type: "subscription", billId: bill.id },
             sound: "default",
             ...(Platform.OS === "android" && { channelId: "reminders" }),
@@ -252,12 +268,16 @@ export async function cancelSubscriptionReminders(): Promise<void> {
 
 /**
  * Schedule a repeating expense reminder notification.
- * @param time - HH:MM format string
+ * @param time      - HH:MM format string
  * @param frequency - 'daily' | 'weekdays' | 'weekly'
+ * @param title     - Custom notification title (optional)
+ * @param body      - Custom notification body (optional)
  */
 export async function scheduleExpenseReminder(
   time: string,
-  frequency: "daily" | "weekdays" | "weekly"
+  frequency: "daily" | "weekdays" | "weekly",
+  title: string = DEFAULT_EXPENSE_TITLE,
+  body: string = DEFAULT_EXPENSE_BODY
 ): Promise<void> {
   // Cancel existing expense reminders first
   await cancelExpenseReminders();
@@ -265,8 +285,8 @@ export async function scheduleExpenseReminder(
   const [hours, minutes] = time.split(":").map(Number);
 
   const baseContent = {
-    title: "📝 Time to Log Expenses",
-    body: "Don't forget to record today's expenses!",
+    title,
+    body,
     data: { type: "expense_reminder" },
     sound: "default" as const,
     ...(Platform.OS === "android" && { channelId: "reminders" }),
@@ -351,7 +371,15 @@ export function defineBackgroundTask() {
         if (parsed?.state?.subscriptionRemindersEnabled) {
           const reminderTime =
             parsed?.state?.subscriptionReminderTime || "09:00";
-          await scheduleSubscriptionReminders(reminderTime);
+          const reminderTitle =
+            parsed?.state?.subscriptionReminderTitle || DEFAULT_SUB_TITLE;
+          const reminderBody =
+            parsed?.state?.subscriptionReminderBody || DEFAULT_SUB_BODY;
+          await scheduleSubscriptionReminders(
+            reminderTime,
+            reminderTitle,
+            reminderBody
+          );
         }
       }
       // Return NewData result

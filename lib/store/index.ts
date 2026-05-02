@@ -41,9 +41,13 @@ export const useStore = create<AppState>()(
         subscriptionRemindersEnabled: state.subscriptionRemindersEnabled,
         subscriptionReminderTime: state.subscriptionReminderTime,
         lastSubscriptionReminderSync: state.lastSubscriptionReminderSync,
+        subscriptionReminderTitle: state.subscriptionReminderTitle,
+        subscriptionReminderBody: state.subscriptionReminderBody,
         expenseReminderEnabled: state.expenseReminderEnabled,
         expenseReminderFrequency: state.expenseReminderFrequency,
         expenseReminderTime: state.expenseReminderTime,
+        expenseReminderTitle: state.expenseReminderTitle,
+        expenseReminderBody: state.expenseReminderBody,
       }),
     }
   )

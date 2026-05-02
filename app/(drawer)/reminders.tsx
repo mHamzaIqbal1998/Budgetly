@@ -13,11 +13,17 @@ import {
   scheduleSubscriptionReminders,
   type ScheduledNotificationInfo,
 } from "@/lib/notifications";
+import {
+  DEFAULT_EXPENSE_REMINDER_BODY,
+  DEFAULT_EXPENSE_REMINDER_TITLE,
+  DEFAULT_SUBSCRIPTION_REMINDER_BODY,
+  DEFAULT_SUBSCRIPTION_REMINDER_TITLE,
+} from "@/lib/store/reminders";
 import { useStore } from "@/lib/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -37,6 +43,7 @@ import {
   SegmentedButtons,
   Switch,
   Text,
+  TextInput,
   useTheme,
 } from "react-native-paper";
 
@@ -63,13 +70,58 @@ export default function RemindersScreen() {
     setSubscriptionReminderTime,
     lastSubscriptionReminderSync,
     setLastSubscriptionReminderSync,
+    subscriptionReminderTitle,
+    setSubscriptionReminderTitle,
+    subscriptionReminderBody,
+    setSubscriptionReminderBody,
     expenseReminderEnabled,
     setExpenseReminderEnabled,
     expenseReminderFrequency,
     setExpenseReminderFrequency,
     expenseReminderTime,
     setExpenseReminderTime,
+    expenseReminderTitle,
+    setExpenseReminderTitle,
+    expenseReminderBody,
+    setExpenseReminderBody,
   } = useStore();
+
+  // Local draft state for notification text inputs
+  // (committed to store + rescheduled on blur)
+  const [subTitleDraft, setSubTitleDraft] = useState(subscriptionReminderTitle);
+  const [subBodyDraft, setSubBodyDraft] = useState(subscriptionReminderBody);
+  const [expTitleDraft, setExpTitleDraft] = useState(expenseReminderTitle);
+  const [expBodyDraft, setExpBodyDraft] = useState(expenseReminderBody);
+
+  // Keep drafts in sync if store changes externally (e.g. reset)
+  const subTitleRef = useRef(subscriptionReminderTitle);
+  const subBodyRef = useRef(subscriptionReminderBody);
+  const expTitleRef = useRef(expenseReminderTitle);
+  const expBodyRef = useRef(expenseReminderBody);
+  useEffect(() => {
+    if (subscriptionReminderTitle !== subTitleRef.current) {
+      subTitleRef.current = subscriptionReminderTitle;
+      setSubTitleDraft(subscriptionReminderTitle);
+    }
+  }, [subscriptionReminderTitle]);
+  useEffect(() => {
+    if (subscriptionReminderBody !== subBodyRef.current) {
+      subBodyRef.current = subscriptionReminderBody;
+      setSubBodyDraft(subscriptionReminderBody);
+    }
+  }, [subscriptionReminderBody]);
+  useEffect(() => {
+    if (expenseReminderTitle !== expTitleRef.current) {
+      expTitleRef.current = expenseReminderTitle;
+      setExpTitleDraft(expenseReminderTitle);
+    }
+  }, [expenseReminderTitle]);
+  useEffect(() => {
+    if (expenseReminderBody !== expBodyRef.current) {
+      expBodyRef.current = expenseReminderBody;
+      setExpBodyDraft(expenseReminderBody);
+    }
+  }, [expenseReminderBody]);
 
   const [subLoading, setSubLoading] = useState(false);
   const [expenseLoading, setExpenseLoading] = useState(false);
@@ -237,7 +289,11 @@ export default function RemindersScreen() {
         // Reschedule if enabled
         if (subscriptionRemindersEnabled) {
           try {
-            await scheduleSubscriptionReminders(newTime);
+            await scheduleSubscriptionReminders(
+              newTime,
+              subscriptionReminderTitle,
+              subscriptionReminderBody
+            );
             setLastSubscriptionReminderSync(Date.now());
             await refreshCounts();
           } catch (error) {
@@ -255,11 +311,87 @@ export default function RemindersScreen() {
     },
     [
       subscriptionRemindersEnabled,
+      subscriptionReminderTitle,
+      subscriptionReminderBody,
       setSubscriptionReminderTime,
       setLastSubscriptionReminderSync,
       refreshCounts,
     ]
   );
+
+  // -----------------------------------------------------------------------
+  // Subscription custom message handlers
+  // -----------------------------------------------------------------------
+
+  const handleSubCustomBlur = useCallback(async () => {
+    // Commit drafts to store
+    const titleToSave =
+      subTitleDraft.trim() || DEFAULT_SUBSCRIPTION_REMINDER_TITLE;
+    const bodyToSave =
+      subBodyDraft.trim() || DEFAULT_SUBSCRIPTION_REMINDER_BODY;
+    setSubscriptionReminderTitle(titleToSave);
+    setSubscriptionReminderBody(bodyToSave);
+    setSubTitleDraft(titleToSave);
+    setSubBodyDraft(bodyToSave);
+
+    // Reschedule with new text if enabled
+    if (subscriptionRemindersEnabled) {
+      try {
+        await scheduleSubscriptionReminders(
+          subscriptionReminderTime,
+          titleToSave,
+          bodyToSave
+        );
+        setLastSubscriptionReminderSync(Date.now());
+        await refreshCounts();
+      } catch (error) {
+        console.error(
+          "[Reminders] Failed to reschedule subscription reminders after text change:",
+          error
+        );
+      }
+    }
+  }, [
+    subTitleDraft,
+    subBodyDraft,
+    subscriptionRemindersEnabled,
+    subscriptionReminderTime,
+    setSubscriptionReminderTitle,
+    setSubscriptionReminderBody,
+    setLastSubscriptionReminderSync,
+    refreshCounts,
+  ]);
+
+  const handleResetSubCustom = useCallback(async () => {
+    setSubscriptionReminderTitle(DEFAULT_SUBSCRIPTION_REMINDER_TITLE);
+    setSubscriptionReminderBody(DEFAULT_SUBSCRIPTION_REMINDER_BODY);
+    setSubTitleDraft(DEFAULT_SUBSCRIPTION_REMINDER_TITLE);
+    setSubBodyDraft(DEFAULT_SUBSCRIPTION_REMINDER_BODY);
+
+    if (subscriptionRemindersEnabled) {
+      try {
+        await scheduleSubscriptionReminders(
+          subscriptionReminderTime,
+          DEFAULT_SUBSCRIPTION_REMINDER_TITLE,
+          DEFAULT_SUBSCRIPTION_REMINDER_BODY
+        );
+        setLastSubscriptionReminderSync(Date.now());
+        await refreshCounts();
+      } catch (error) {
+        console.error(
+          "[Reminders] Failed to reschedule subscription reminders after reset:",
+          error
+        );
+      }
+    }
+  }, [
+    subscriptionRemindersEnabled,
+    subscriptionReminderTime,
+    setSubscriptionReminderTitle,
+    setSubscriptionReminderBody,
+    setLastSubscriptionReminderSync,
+    refreshCounts,
+  ]);
 
   // -----------------------------------------------------------------------
   // Expense Reminders
@@ -285,7 +417,9 @@ export default function RemindersScreen() {
 
         await scheduleExpenseReminder(
           expenseReminderTime,
-          expenseReminderFrequency
+          expenseReminderFrequency,
+          expenseReminderTitle,
+          expenseReminderBody
         );
         setExpenseReminderEnabled(true);
         await refreshCounts();
@@ -309,6 +443,8 @@ export default function RemindersScreen() {
     expenseReminderEnabled,
     expenseReminderTime,
     expenseReminderFrequency,
+    expenseReminderTitle,
+    expenseReminderBody,
     setExpenseReminderEnabled,
     refreshCounts,
   ]);
@@ -321,7 +457,12 @@ export default function RemindersScreen() {
       // Reschedule if enabled
       if (expenseReminderEnabled) {
         try {
-          await scheduleExpenseReminder(expenseReminderTime, freq);
+          await scheduleExpenseReminder(
+            expenseReminderTime,
+            freq,
+            expenseReminderTitle,
+            expenseReminderBody
+          );
           await refreshCounts();
         } catch (error) {
           console.error(
@@ -334,6 +475,8 @@ export default function RemindersScreen() {
     [
       expenseReminderEnabled,
       expenseReminderTime,
+      expenseReminderTitle,
+      expenseReminderBody,
       setExpenseReminderFrequency,
       refreshCounts,
     ]
@@ -355,7 +498,12 @@ export default function RemindersScreen() {
         // Reschedule if enabled
         if (expenseReminderEnabled) {
           try {
-            await scheduleExpenseReminder(newTime, expenseReminderFrequency);
+            await scheduleExpenseReminder(
+              newTime,
+              expenseReminderFrequency,
+              expenseReminderTitle,
+              expenseReminderBody
+            );
             await refreshCounts();
           } catch (error) {
             console.error(
@@ -374,10 +522,82 @@ export default function RemindersScreen() {
     [
       expenseReminderEnabled,
       expenseReminderFrequency,
+      expenseReminderTitle,
+      expenseReminderBody,
       setExpenseReminderTime,
       refreshCounts,
     ]
   );
+
+  // -----------------------------------------------------------------------
+  // Expense custom message handlers
+  // -----------------------------------------------------------------------
+
+  const handleExpCustomBlur = useCallback(async () => {
+    const titleToSave = expTitleDraft.trim() || DEFAULT_EXPENSE_REMINDER_TITLE;
+    const bodyToSave = expBodyDraft.trim() || DEFAULT_EXPENSE_REMINDER_BODY;
+    setExpenseReminderTitle(titleToSave);
+    setExpenseReminderBody(bodyToSave);
+    setExpTitleDraft(titleToSave);
+    setExpBodyDraft(bodyToSave);
+
+    if (expenseReminderEnabled) {
+      try {
+        await scheduleExpenseReminder(
+          expenseReminderTime,
+          expenseReminderFrequency,
+          titleToSave,
+          bodyToSave
+        );
+        await refreshCounts();
+      } catch (error) {
+        console.error(
+          "[Reminders] Failed to reschedule expense reminder after text change:",
+          error
+        );
+      }
+    }
+  }, [
+    expTitleDraft,
+    expBodyDraft,
+    expenseReminderEnabled,
+    expenseReminderTime,
+    expenseReminderFrequency,
+    setExpenseReminderTitle,
+    setExpenseReminderBody,
+    refreshCounts,
+  ]);
+
+  const handleResetExpCustom = useCallback(async () => {
+    setExpenseReminderTitle(DEFAULT_EXPENSE_REMINDER_TITLE);
+    setExpenseReminderBody(DEFAULT_EXPENSE_REMINDER_BODY);
+    setExpTitleDraft(DEFAULT_EXPENSE_REMINDER_TITLE);
+    setExpBodyDraft(DEFAULT_EXPENSE_REMINDER_BODY);
+
+    if (expenseReminderEnabled) {
+      try {
+        await scheduleExpenseReminder(
+          expenseReminderTime,
+          expenseReminderFrequency,
+          DEFAULT_EXPENSE_REMINDER_TITLE,
+          DEFAULT_EXPENSE_REMINDER_BODY
+        );
+        await refreshCounts();
+      } catch (error) {
+        console.error(
+          "[Reminders] Failed to reschedule expense reminder after reset:",
+          error
+        );
+      }
+    }
+  }, [
+    expenseReminderEnabled,
+    expenseReminderTime,
+    expenseReminderFrequency,
+    setExpenseReminderTitle,
+    setExpenseReminderBody,
+    refreshCounts,
+  ]);
 
   // -----------------------------------------------------------------------
   // Helpers
@@ -643,6 +863,166 @@ export default function RemindersScreen() {
                   />
                 )}
 
+                {/* ── Customize Notification ── */}
+                <Divider style={styles.divider} />
+                <View style={styles.customizeSection}>
+                  <View style={styles.customizeHeader}>
+                    <MaterialCommunityIcons
+                      name="message-text-outline"
+                      size={20}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                    <Text
+                      variant="bodyMedium"
+                      style={[
+                        styles.customizeHeaderText,
+                        { color: theme.colors.onSurface },
+                      ]}
+                    >
+                      Customize Notification
+                    </Text>
+                    <Button
+                      mode="text"
+                      compact
+                      onPress={handleResetSubCustom}
+                      style={styles.resetButton}
+                      labelStyle={styles.resetButtonLabel}
+                    >
+                      Reset
+                    </Button>
+                  </View>
+
+                  {/* Variable hint */}
+                  <View
+                    style={[
+                      styles.variableHint,
+                      {
+                        backgroundColor: theme.colors.primaryContainer + "55",
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="code-braces"
+                      size={14}
+                      color={theme.colors.primary}
+                    />
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.variableHintText,
+                        { color: theme.colors.onSurfaceVariant },
+                      ]}
+                    >
+                      Use{" "}
+                      <Text
+                        style={{
+                          color: theme.colors.primary,
+                          fontFamily: "monospace",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {"{{name}}"}
+                      </Text>{" "}
+                      for subscription name,{" "}
+                      <Text
+                        style={{
+                          color: theme.colors.primary,
+                          fontFamily: "monospace",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {"{{amount}}"}
+                      </Text>{" "}
+                      for amount.
+                    </Text>
+                  </View>
+
+                  <TextInput
+                    label="Notification Title"
+                    value={subTitleDraft}
+                    onChangeText={setSubTitleDraft}
+                    onBlur={handleSubCustomBlur}
+                    onEndEditing={handleSubCustomBlur}
+                    mode="outlined"
+                    dense
+                    style={styles.customInput}
+                    maxLength={100}
+                    right={
+                      <TextInput.Affix text={`${subTitleDraft.length}/100`} />
+                    }
+                  />
+
+                  <TextInput
+                    label="Notification Message"
+                    value={subBodyDraft}
+                    onChangeText={setSubBodyDraft}
+                    onBlur={handleSubCustomBlur}
+                    onEndEditing={handleSubCustomBlur}
+                    mode="outlined"
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.customInput, styles.multilineInput]}
+                    maxLength={200}
+                    right={
+                      <TextInput.Affix text={`${subBodyDraft.length}/200`} />
+                    }
+                  />
+
+                  {/* Live preview */}
+                  <View
+                    style={[
+                      styles.previewBox,
+                      {
+                        backgroundColor: theme.colors.surfaceVariant,
+                        borderColor: theme.colors.outlineVariant,
+                      },
+                    ]}
+                  >
+                    <View style={styles.previewHeader}>
+                      <MaterialCommunityIcons
+                        name="bell-outline"
+                        size={13}
+                        color={theme.colors.onSurfaceVariant}
+                      />
+                      <Text
+                        variant="labelSmall"
+                        style={[
+                          styles.previewLabel,
+                          { color: theme.colors.onSurfaceVariant },
+                        ]}
+                      >
+                        PREVIEW
+                      </Text>
+                    </View>
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.previewTitle,
+                        { color: theme.colors.onSurface },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {subTitleDraft
+                        .replace(/{{name}}/g, "Netflix")
+                        .replace(/{{amount}}/g, " ($15)") ||
+                        DEFAULT_SUBSCRIPTION_REMINDER_TITLE}
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.previewBody,
+                        { color: theme.colors.onSurfaceVariant },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {subBodyDraft
+                        .replace(/{{name}}/g, "Netflix")
+                        .replace(/{{amount}}/g, " ($15)") ||
+                        DEFAULT_SUBSCRIPTION_REMINDER_BODY}
+                    </Text>
+                  </View>
+                </View>
+
                 <View style={styles.infoBox}>
                   <MaterialCommunityIcons
                     name="information-outline"
@@ -785,6 +1165,115 @@ export default function RemindersScreen() {
                     themeVariant={theme.dark ? "dark" : "light"}
                   />
                 )}
+
+                {/* ── Customize Notification ── */}
+                <Divider style={styles.divider} />
+                <View style={styles.customizeSection}>
+                  <View style={styles.customizeHeader}>
+                    <MaterialCommunityIcons
+                      name="message-text-outline"
+                      size={20}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                    <Text
+                      variant="bodyMedium"
+                      style={[
+                        styles.customizeHeaderText,
+                        { color: theme.colors.onSurface },
+                      ]}
+                    >
+                      Customize Notification
+                    </Text>
+                    <Button
+                      mode="text"
+                      compact
+                      onPress={handleResetExpCustom}
+                      style={styles.resetButton}
+                      labelStyle={styles.resetButtonLabel}
+                    >
+                      Reset
+                    </Button>
+                  </View>
+
+                  <TextInput
+                    label="Notification Title"
+                    value={expTitleDraft}
+                    onChangeText={setExpTitleDraft}
+                    onBlur={handleExpCustomBlur}
+                    onEndEditing={handleExpCustomBlur}
+                    mode="outlined"
+                    dense
+                    style={styles.customInput}
+                    maxLength={100}
+                    right={
+                      <TextInput.Affix text={`${expTitleDraft.length}/100`} />
+                    }
+                  />
+
+                  <TextInput
+                    label="Notification Message"
+                    value={expBodyDraft}
+                    onChangeText={setExpBodyDraft}
+                    onBlur={handleExpCustomBlur}
+                    onEndEditing={handleExpCustomBlur}
+                    mode="outlined"
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.customInput, styles.multilineInput]}
+                    maxLength={200}
+                    right={
+                      <TextInput.Affix text={`${expBodyDraft.length}/200`} />
+                    }
+                  />
+
+                  {/* Live preview */}
+                  <View
+                    style={[
+                      styles.previewBox,
+                      {
+                        backgroundColor: theme.colors.surfaceVariant,
+                        borderColor: theme.colors.outlineVariant,
+                      },
+                    ]}
+                  >
+                    <View style={styles.previewHeader}>
+                      <MaterialCommunityIcons
+                        name="bell-outline"
+                        size={13}
+                        color={theme.colors.onSurfaceVariant}
+                      />
+                      <Text
+                        variant="labelSmall"
+                        style={[
+                          styles.previewLabel,
+                          { color: theme.colors.onSurfaceVariant },
+                        ]}
+                      >
+                        PREVIEW
+                      </Text>
+                    </View>
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.previewTitle,
+                        { color: theme.colors.onSurface },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {expTitleDraft || DEFAULT_EXPENSE_REMINDER_TITLE}
+                    </Text>
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.previewBody,
+                        { color: theme.colors.onSurfaceVariant },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {expBodyDraft || DEFAULT_EXPENSE_REMINDER_BODY}
+                    </Text>
+                  </View>
+                </View>
 
                 <View style={styles.infoBox}>
                   <MaterialCommunityIcons
@@ -1116,5 +1605,77 @@ const styles = StyleSheet.create({
   reminderRowSub: {
     opacity: 0.7,
     fontSize: 12,
+  },
+  // ── Customize notification styles ──────────────────────────────────────
+  customizeSection: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 10,
+  },
+  customizeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 2,
+  },
+  customizeHeaderText: {
+    flex: 1,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  resetButton: {
+    marginRight: -8,
+  },
+  resetButtonLabel: {
+    fontSize: 12,
+  },
+  variableHint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  variableHintText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  customInput: {
+    marginBottom: 2,
+    fontSize: 13,
+  },
+  multilineInput: {
+    textAlignVertical: "top",
+  },
+  previewBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    marginTop: 2,
+  },
+  previewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 4,
+  },
+  previewLabel: {
+    opacity: 0.5,
+    letterSpacing: 0.5,
+  },
+  previewTitle: {
+    fontWeight: "600",
+    marginBottom: 2,
+    fontSize: 13,
+  },
+  previewBody: {
+    fontSize: 12,
+    opacity: 0.8,
+    lineHeight: 16,
   },
 });
