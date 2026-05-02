@@ -10,6 +10,7 @@ import { BiometricLockScreen } from "@/components/biometric-lock-screen";
 import { PixelDarkTheme, PixelLightTheme } from "@/constants/spotify-theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { apiClient } from "@/lib/api-client";
+import { scheduleSubscriptionReminders } from "@/lib/notifications";
 import { persistOptions, queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
 
@@ -27,6 +28,8 @@ function RootLayoutNav() {
     credentials,
     biometricEnabled,
     biometricUnlocked,
+    subscriptionRemindersEnabled,
+    subscriptionReminderTime,
   } = useStore();
 
   // Load credentials on mount
@@ -39,6 +42,18 @@ function RootLayoutNav() {
     if (credentials) {
       apiClient.initialize(credentials);
     }
+  }, [credentials]);
+
+  // Refresh subscription reminders on every app open (keeps schedule in sync
+  // with any subscriptions added/deleted/modified since last launch)
+  useEffect(() => {
+    if (credentials && isAuthenticated && subscriptionRemindersEnabled) {
+      scheduleSubscriptionReminders(subscriptionReminderTime).catch((err) =>
+        console.warn("[Layout] Failed to refresh reminders on open:", err)
+      );
+    }
+    // Only run once when credentials first become available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentials]);
 
   // Handle routing based on authentication
