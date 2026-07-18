@@ -1,13 +1,23 @@
 // Transactions Screen – lists all transactions with infinite scroll and filters
 import { GlassCard } from "@/components/glass-card";
+import { TransactionFiltersModal } from "@/components/transaction-filters-modal";
 import { apiClient } from "@/lib/api-client";
 import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
 import { useStore } from "@/lib/store";
+import {
+  DEFAULT_FILTERS,
+  buildSearchQuery,
+  clearFilter,
+  countActiveFilters,
+  getActiveFilterChips,
+  type AdvancedFilters,
+  type FilterChipKey,
+} from "@/lib/transaction-filters";
 import type { AccountTransaction, AccountTransactionGroup } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
 import {
   useLocalSearchParams,
@@ -258,6 +268,13 @@ interface ListHeaderProps {
   onTypeFilterChange: (filter: TransactionTypeFilter) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onOpenFilters: () => void;
+  activeFilterCount: number;
+  activeFilterChips: { key: FilterChipKey; label: string; icon: string }[];
+  onRemoveFilter: (key: FilterChipKey) => void;
+  onClearAllFilters: () => void;
+  primaryColor: string;
+  onPrimaryColor: string;
   primaryContainerColor: string;
   onPrimaryContainerColor: string;
   surfaceVariantColor: string;
@@ -270,6 +287,13 @@ const ListHeader = memo(function ListHeader({
   onTypeFilterChange,
   searchQuery,
   onSearchChange,
+  onOpenFilters,
+  activeFilterCount,
+  activeFilterChips,
+  onRemoveFilter,
+  onClearAllFilters,
+  primaryColor,
+  onPrimaryColor,
   primaryContainerColor,
   onPrimaryContainerColor,
   surfaceVariantColor,
@@ -305,16 +329,84 @@ const ListHeader = memo(function ListHeader({
           </Chip>
         ))}
       </ScrollView>
-      <Searchbar
-        placeholder="Search by description, category, account..."
-        value={searchQuery}
-        onChangeText={onSearchChange}
-        style={[styles.searchBar, { backgroundColor: surfaceVariantColor }]}
-        iconColor={onSurfaceVariantColor}
-        placeholderTextColor={onSurfaceVariantColor}
-        inputStyle={{ color: onSurfaceColor }}
-        right={() => null}
-      />
+
+      <View style={styles.searchRow}>
+        <Searchbar
+          placeholder="Search description, category, account..."
+          value={searchQuery}
+          onChangeText={onSearchChange}
+          style={[
+            styles.searchBar,
+            styles.searchBarFlex,
+            { backgroundColor: surfaceVariantColor },
+          ]}
+          iconColor={onSurfaceVariantColor}
+          placeholderTextColor={onSurfaceVariantColor}
+          inputStyle={{ color: onSurfaceColor }}
+          right={() => null}
+        />
+        <Pressable
+          onPress={onOpenFilters}
+          style={({ pressed }) => [
+            styles.filterButton,
+            {
+              backgroundColor:
+                activeFilterCount > 0 ? primaryColor : surfaceVariantColor,
+            },
+            pressed && styles.filterButtonPressed,
+          ]}
+          hitSlop={6}
+        >
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={22}
+            color={
+              activeFilterCount > 0 ? onPrimaryColor : onSurfaceVariantColor
+            }
+          />
+          {activeFilterCount > 0 ? (
+            <View
+              style={[styles.filterBadge, { backgroundColor: onPrimaryColor }]}
+            >
+              <Text style={[styles.filterBadgeText, { color: primaryColor }]}>
+                {activeFilterCount}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+
+      {activeFilterChips.length > 0 ? (
+        <View style={styles.activeFiltersWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.activeFiltersContent}
+          >
+            {activeFilterChips.map((chip) => (
+              <Chip
+                key={chip.key}
+                compact
+                icon={chip.icon}
+                onClose={() => onRemoveFilter(chip.key)}
+                style={[
+                  styles.activeChip,
+                  { backgroundColor: primaryContainerColor },
+                ]}
+                textStyle={{ color: onPrimaryContainerColor }}
+                closeIcon="close"
+              >
+                {chip.label}
+              </Chip>
+            ))}
+            <Pressable onPress={onClearAllFilters} style={styles.clearAllChip}>
+              <Text style={[styles.clearAllText, { color: primaryColor }]}>
+                Clear all
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      ) : null}
     </>
   );
 });
@@ -508,9 +600,53 @@ export default function TransactionsScreen() {
   }>();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
+  const [filters, setFilters] = useState<AdvancedFilters>(DEFAULT_FILTERS);
+  const [filtersModalVisible, setFiltersModalVisible] = useState(false);
   const [contextMenuTransaction, setContextMenuTransaction] =
     useState<FlatTransaction | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
+
+  // Advanced-filter derived values
+  const activeFilterCount = useMemo(
+    () => countActiveFilters(filters),
+    [filters]
+  );
+  const activeFilterChips = useMemo(
+    () => getActiveFilterChips(filters),
+    [filters]
+  );
+  // Use the search endpoint whenever we are scoped to an account OR any
+  // advanced filter is active. Otherwise keep the original plain list path.
+  const useSearchEndpoint = !!accountId || activeFilterCount > 0;
+  const composedQuery = useMemo(
+    () => buildSearchQuery({ accountId, type: typeFilter, filters }),
+    [accountId, typeFilter, filters]
+  );
+
+  // Reference data for the filter modal selectors
+  const { data: categoriesData } = useQuery({
+    queryKey: ["autocomplete-categories"],
+    queryFn: () => apiClient.getAutocompleteCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: budgetsData } = useQuery({
+    queryKey: ["all-budgets-filter"],
+    queryFn: () => apiClient.getAllBudgets(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const categoryOptions = useMemo(
+    () => (categoriesData ?? []).map((c) => ({ id: c.id, name: c.name })),
+    [categoriesData]
+  );
+  const budgetOptions = useMemo(
+    () =>
+      (budgetsData?.data ?? []).map((b) => ({
+        id: b.id,
+        name: b.attributes.name,
+      })),
+    [budgetsData]
+  );
 
   // Setup navigation header based on whether account info is provided
   useEffect(() => {
@@ -552,16 +688,12 @@ export default function TransactionsScreen() {
     isRefetching,
     refetch,
   } = useInfiniteQuery({
-    queryKey: accountId
-      ? ["accountTransactions", accountId, typeFilter]
+    queryKey: useSearchEndpoint
+      ? ["transactionsSearch", accountId ?? "all", typeFilter, composedQuery]
       : ["transactions", typeFilter],
     queryFn: ({ pageParam }) =>
-      accountId
-        ? apiClient.searchTransactions(
-            `account_id:${accountId}${typeFilter !== "all" ? ` type:${typeFilter}` : ""}`,
-            pageParam,
-            PAGE_SIZE
-          )
+      useSearchEndpoint
+        ? apiClient.searchTransactions(composedQuery, pageParam, PAGE_SIZE)
         : apiClient.getTransactions(
             pageParam,
             undefined,
@@ -613,6 +745,27 @@ export default function TransactionsScreen() {
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
+  }, []);
+
+  const handleOpenFilters = useCallback(() => {
+    setFiltersModalVisible(true);
+  }, []);
+
+  const handleCloseFilters = useCallback(() => {
+    setFiltersModalVisible(false);
+  }, []);
+
+  const handleApplyFilters = useCallback((next: AdvancedFilters) => {
+    setFilters(next);
+    setFiltersModalVisible(false);
+  }, []);
+
+  const handleRemoveFilter = useCallback((key: FilterChipKey) => {
+    setFilters((prev) => clearFilter(prev, key));
+  }, []);
+
+  const handleClearAllFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
   }, []);
 
   const handleLoadMore = useCallback(() => {
@@ -712,6 +865,13 @@ export default function TransactionsScreen() {
         onTypeFilterChange={handleTypeFilterChange}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
+        onOpenFilters={handleOpenFilters}
+        activeFilterCount={activeFilterCount}
+        activeFilterChips={activeFilterChips}
+        onRemoveFilter={handleRemoveFilter}
+        onClearAllFilters={handleClearAllFilters}
+        primaryColor={theme.colors.primary}
+        onPrimaryColor={theme.colors.onPrimary}
         primaryContainerColor={theme.colors.primaryContainer}
         onPrimaryContainerColor={theme.colors.onPrimaryContainer}
         surfaceVariantColor={theme.colors.surfaceVariant}
@@ -724,6 +884,13 @@ export default function TransactionsScreen() {
       handleTypeFilterChange,
       searchQuery,
       handleSearchChange,
+      handleOpenFilters,
+      activeFilterCount,
+      activeFilterChips,
+      handleRemoveFilter,
+      handleClearAllFilters,
+      theme.colors.primary,
+      theme.colors.onPrimary,
       theme.colors.primaryContainer,
       theme.colors.onPrimaryContainer,
       theme.colors.surfaceVariant,
@@ -744,19 +911,26 @@ export default function TransactionsScreen() {
       );
     }
     const noResults = flatData.length > 0 && filteredFlatData.length === 0;
+    const hasFilters = activeFilterCount > 0;
     return (
       <View style={styles.emptyState}>
         <MaterialCommunityIcons
-          name={noResults ? "magnify" : "swap-horizontal"}
+          name={
+            noResults || hasFilters
+              ? "filter-remove-outline"
+              : "swap-horizontal"
+          }
           size={64}
           color={theme.colors.onSurfaceVariant}
         />
         <Text variant="headlineSmall" style={styles.emptyTitle}>
-          {noResults ? "No matching transactions" : "No transactions"}
+          {noResults || hasFilters
+            ? "No matching transactions"
+            : "No transactions"}
         </Text>
         <Text variant="bodyMedium" style={styles.emptySubtitle}>
-          {noResults
-            ? "Try a different search or filter"
+          {noResults || hasFilters
+            ? "Try adjusting your search or filters"
             : "No transactions found for the selected filter."}
         </Text>
       </View>
@@ -765,6 +939,7 @@ export default function TransactionsScreen() {
     isLoading,
     flatData.length,
     filteredFlatData.length,
+    activeFilterCount,
     theme.colors.primary,
     theme.colors.onSurfaceVariant,
   ]);
@@ -905,6 +1080,16 @@ export default function TransactionsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Advanced Filters Modal */}
+      <TransactionFiltersModal
+        visible={filtersModalVisible}
+        onClose={handleCloseFilters}
+        initialFilters={filters}
+        onApply={handleApplyFilters}
+        categories={categoryOptions}
+        budgets={budgetOptions}
+      />
     </View>
   );
 }
@@ -955,8 +1140,13 @@ const styles = StyleSheet.create({
   tabChip: {
     marginRight: 4,
   },
-  searchBar: {
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 16,
+  },
+  searchBar: {
     elevation: 0,
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -964,6 +1154,56 @@ const styles = StyleSheet.create({
       width: 0,
       height: 0,
     },
+  },
+  searchBarFlex: {
+    flex: 1,
+  },
+  filterButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterButtonPressed: {
+    opacity: 0.8,
+  },
+  filterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  activeFiltersWrap: {
+    marginBottom: 16,
+    marginTop: -4,
+  },
+  activeFiltersContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 2,
+  },
+  activeChip: {
+    marginRight: 2,
+  },
+  clearAllChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: "center",
+  },
+  clearAllText: {
+    fontWeight: "700",
+    fontSize: 13,
   },
   txCard: {
     marginBottom: ITEM_MARGIN,

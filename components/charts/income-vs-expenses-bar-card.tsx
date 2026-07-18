@@ -4,9 +4,16 @@ import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import { InsightTotalEntry } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing,
+  interpolate,
+} from "react-native-reanimated";
 
 // ─── Colors ────────────────────────────────────────────────────────────────
 const INCOME_COLOR_DARK = "#66BB6A"; // Green 400
@@ -160,6 +167,37 @@ export function IncomeVsExpensesBarCard({
   const { balanceVisible } = useStore();
   const [activeTooltip, setActiveTooltip] = useState<TooltipInfo | null>(null);
 
+  // Animation shared values for tooltip reveal
+  const tooltipProgress = useSharedValue(0);
+  const [showTooltipContent, setShowTooltipContent] = useState(false);
+
+  useEffect(() => {
+    if (activeTooltip) {
+      setShowTooltipContent(true);
+      tooltipProgress.value = withTiming(1, {
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      tooltipProgress.value = withTiming(1, {
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+      });
+      // Delay hiding content until animation completes
+      const timeout = setTimeout(() => setShowTooltipContent(false), 220);
+      return () => clearTimeout(timeout);
+    }
+  }, [activeTooltip]);
+
+  const tooltipAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      maxHeight: interpolate(tooltipProgress.value, [0, 1], [0, 100]),
+      opacity: tooltipProgress.value,
+      marginTop: interpolate(tooltipProgress.value, [0, 1], [0, 4]),
+      overflow: "hidden" as const,
+    };
+  });
+
   const isDark = theme.dark;
   const incomeColor = isDark ? INCOME_COLOR_DARK : INCOME_COLOR_LIGHT;
   const expenseColor = isDark ? EXPENSE_COLOR_DARK : EXPENSE_COLOR_LIGHT;
@@ -278,57 +316,6 @@ export function IncomeVsExpensesBarCard({
           </View>
         </View>
 
-        {/* Tooltip */}
-        {activeTooltip && (
-          <View
-            style={[
-              styles.tooltipContainer,
-              {
-                backgroundColor: hexToRgba(
-                  theme.colors.inverseSurface,
-                  isDark ? 0.92 : 0.88
-                ),
-              },
-            ]}
-          >
-            <Text
-              variant="labelMedium"
-              style={[
-                styles.tooltipTitle,
-                { color: theme.colors.inverseOnSurface },
-              ]}
-            >
-              {activeTooltip.label} ({activeTooltip.currencyCode})
-            </Text>
-            <View style={styles.tooltipRow}>
-              <View
-                style={[styles.tooltipDot, { backgroundColor: incomeColor }]}
-              />
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.inverseOnSurface }}
-              >
-                Income:{" "}
-                {balanceVisible ? formatAmount(activeTooltip.income) : "••••••"}
-              </Text>
-            </View>
-            <View style={styles.tooltipRow}>
-              <View
-                style={[styles.tooltipDot, { backgroundColor: expenseColor }]}
-              />
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.inverseOnSurface }}
-              >
-                Expense:{" "}
-                {balanceVisible
-                  ? formatAmount(activeTooltip.expense)
-                  : "••••••"}
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Chart per currency */}
         {currencyCodes.map((code) => {
           const monthsData = dataByCurrency.get(code) ?? [];
@@ -354,8 +341,9 @@ export function IncomeVsExpensesBarCard({
 
               {/* Custom rendered bars for better touchability */}
               <View style={styles.barsContainer}>
-                {monthsData.map((m, monthIdx) => {
-                  const maxBarHeight = CHART_HEIGHT - 24; // leave room for labels
+                {monthsData.map((m) => {
+                  // Available height = container height minus paddingBottom (for month labels)
+                  const maxBarHeight = CHART_HEIGHT - 36;
                   const incomeHeight =
                     maxValue > 0
                       ? Math.max((m.income / maxValue) * maxBarHeight, 4)
@@ -437,6 +425,61 @@ export function IncomeVsExpensesBarCard({
           );
         })}
 
+        {/* Tooltip - animated reveal below bars */}
+        <Animated.View style={tooltipAnimatedStyle}>
+          {showTooltipContent && activeTooltip && (
+            <View
+              style={[
+                styles.tooltipContainer,
+                {
+                  backgroundColor: hexToRgba(
+                    theme.colors.inverseSurface,
+                    isDark ? 0.92 : 0.88
+                  ),
+                },
+              ]}
+            >
+              <Text
+                variant="labelMedium"
+                style={[
+                  styles.tooltipTitle,
+                  { color: theme.colors.inverseOnSurface },
+                ]}
+              >
+                {activeTooltip.label} ({activeTooltip.currencyCode})
+              </Text>
+              <View style={styles.tooltipRow}>
+                <View
+                  style={[styles.tooltipDot, { backgroundColor: incomeColor }]}
+                />
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.inverseOnSurface }}
+                >
+                  Income:{" "}
+                  {balanceVisible
+                    ? formatAmount(activeTooltip.income)
+                    : "••••••"}
+                </Text>
+              </View>
+              <View style={styles.tooltipRow}>
+                <View
+                  style={[styles.tooltipDot, { backgroundColor: expenseColor }]}
+                />
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.inverseOnSurface }}
+                >
+                  Expense:{" "}
+                  {balanceVisible
+                    ? formatAmount(activeTooltip.expense)
+                    : "••••••"}
+                </Text>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
         {/* Tap hint */}
         {!activeTooltip && (
           <Text
@@ -452,7 +495,7 @@ export function IncomeVsExpensesBarCard({
 }
 
 // ─── Constants & Styles ────────────────────────────────────────────────────
-const CHART_HEIGHT = 160;
+const CHART_HEIGHT = 180;
 const BAR_WIDTH = 28;
 
 const styles = StyleSheet.create({
@@ -477,7 +520,7 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: "row",
     gap: 20,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   legendItem: {
     flexDirection: "row",
@@ -503,7 +546,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginBottom: 12,
     gap: 4,
   },
   tooltipTitle: {
@@ -521,7 +563,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   currencySection: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   currencyLabel: {
     fontWeight: "600",
