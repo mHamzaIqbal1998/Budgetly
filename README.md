@@ -22,7 +22,7 @@ A beautiful, modern React Native app for managing your personal finances with Fi
 - [x] Biometric authentication
 - [x] Daily reminder functionality
 - [x] Notifications for recurring transactions
-- [ ] Advanced filtering and search
+- [x] Advanced filtering and search
 - [ ] Advanced charts and analytics
 - [ ] Budget categories and tags
 - [ ] Export functionality
