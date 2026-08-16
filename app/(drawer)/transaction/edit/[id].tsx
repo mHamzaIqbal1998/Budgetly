@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
+import { filterAccountsByType } from "@/lib/utils/accounts";
 import type {
   Account,
   AccountTransaction,
@@ -588,9 +589,9 @@ export default function EditTransactionScreen() {
   // Derived selector data
   // ---------------------------------------------------------------------------
 
-  const accountItems: SelectorItem[] = useMemo(
-    () =>
-      accounts.map((a) => {
+  const toSelectorItems = useCallback(
+    (accts: Account[]): SelectorItem[] =>
+      accts.map((a) => {
         const label = `${a.attributes.name} (${a.attributes.currency_code})`;
         const isAsset =
           a.attributes.type?.toLowerCase() === "asset" ||
@@ -603,8 +604,35 @@ export default function EditTransactionScreen() {
           : undefined;
         return { id: a.id, label, subtitle };
       }),
-    [accounts]
+    []
   );
+
+  // Filter accounts based on transaction type for source and destination
+  const sourceAccountItems: SelectorItem[] = useMemo(() => {
+    switch (txType) {
+      case "withdrawal":
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      case "deposit":
+        return toSelectorItems(filterAccountsByType(accounts, "revenue"));
+      case "transfer":
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      default:
+        return toSelectorItems(accounts);
+    }
+  }, [accounts, txType, toSelectorItems]);
+
+  const destinationAccountItems: SelectorItem[] = useMemo(() => {
+    switch (txType) {
+      case "withdrawal":
+        return toSelectorItems(filterAccountsByType(accounts, "expense"));
+      case "deposit":
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      case "transfer":
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      default:
+        return toSelectorItems(accounts);
+    }
+  }, [accounts, txType, toSelectorItems]);
 
   const budgetItems: SelectorItem[] = useMemo(
     () =>
@@ -632,6 +660,23 @@ export default function EditTransactionScreen() {
         subtitle: c.symbol,
       })),
     [userCurrencies]
+  );
+
+  // ---------------------------------------------------------------------------
+  // Transaction type change handler
+  // ---------------------------------------------------------------------------
+
+  const handleTxTypeChange = useCallback(
+    (newType: TxType) => {
+      if (newType === txType) return;
+      setTxType(newType);
+      // Reset source and destination since account types differ per tx type
+      setSourceId(null);
+      setSourceName("");
+      setDestinationId(null);
+      setDestinationName("");
+    },
+    [txType]
   );
 
   // ---------------------------------------------------------------------------
@@ -1033,7 +1078,7 @@ export default function EditTransactionScreen() {
                       key={opt.value}
                       selected={selected}
                       showSelectedOverlay
-                      onPress={() => setTxType(opt.value)}
+                      onPress={() => handleTxTypeChange(opt.value)}
                       icon={() => (
                         <MaterialCommunityIcons
                           name={
@@ -1625,7 +1670,7 @@ export default function EditTransactionScreen() {
       <SelectorModal
         visible={sourceModalVisible}
         title="Select Source Account"
-        items={accountItems}
+        items={sourceAccountItems}
         selectedId={sourceId}
         onSelect={(selId, label) => {
           setSourceId(selId || null);
@@ -1640,7 +1685,7 @@ export default function EditTransactionScreen() {
       <SelectorModal
         visible={destModalVisible}
         title="Select Destination Account"
-        items={accountItems}
+        items={destinationAccountItems}
         selectedId={destinationId}
         onSelect={(selId, label) => {
           setDestinationId(selId || null);
