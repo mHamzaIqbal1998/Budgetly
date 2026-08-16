@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import { CACHE_KEYS, cache } from "@/lib/cache";
 import { formatAmount } from "@/lib/format-currency";
 import { queryClient } from "@/lib/query-client";
+import { filterAccountsByType } from "@/lib/utils/accounts";
 import type {
   Account,
   AutocompleteCategory,
@@ -616,9 +617,9 @@ export default function CreateTransactionScreen() {
   // Derived selector data
   // ---------------------------------------------------------------------------
 
-  const accountItems: SelectorItem[] = useMemo(
-    () =>
-      accounts.map((a) => {
+  const toSelectorItems = useCallback(
+    (accts: Account[]): SelectorItem[] =>
+      accts.map((a) => {
         const label = `${a.attributes.name} (${a.attributes.currency_code})`;
         const isAsset =
           a.attributes.type?.toLowerCase() === "asset" ||
@@ -631,8 +632,41 @@ export default function CreateTransactionScreen() {
           : undefined;
         return { id: a.id, label, subtitle };
       }),
-    [accounts]
+    []
   );
+
+  // Filter accounts based on transaction type for source and destination
+  const sourceAccountItems: SelectorItem[] = useMemo(() => {
+    switch (txType) {
+      case "withdrawal":
+        // Expense: source is an asset account (where money comes from)
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      case "deposit":
+        // Income: source is a revenue account (who pays you)
+        return toSelectorItems(filterAccountsByType(accounts, "revenue"));
+      case "transfer":
+        // Transfer: source is an asset account
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      default:
+        return toSelectorItems(accounts);
+    }
+  }, [accounts, txType, toSelectorItems]);
+
+  const destinationAccountItems: SelectorItem[] = useMemo(() => {
+    switch (txType) {
+      case "withdrawal":
+        // Expense: destination is an expense account (where money goes)
+        return toSelectorItems(filterAccountsByType(accounts, "expense"));
+      case "deposit":
+        // Income: destination is an asset account (your account receiving money)
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      case "transfer":
+        // Transfer: destination is an asset account
+        return toSelectorItems(filterAccountsByType(accounts, "asset"));
+      default:
+        return toSelectorItems(accounts);
+    }
+  }, [accounts, txType, toSelectorItems]);
 
   const budgetItems: SelectorItem[] = useMemo(
     () =>
@@ -681,6 +715,25 @@ export default function CreateTransactionScreen() {
       );
     },
     []
+  );
+
+  // Clear source/destination selections when transaction type changes
+  const handleTxTypeChange = useCallback(
+    (newType: TxType) => {
+      if (newType === txType) return;
+      setTxType(newType);
+      // Reset source and destination for all splits since account types differ
+      setSplits((prev) =>
+        prev.map((s) => ({
+          ...s,
+          sourceId: null,
+          sourceName: "",
+          destinationId: null,
+          destinationName: "",
+        }))
+      );
+    },
+    [txType]
   );
 
   // Description autocomplete with debouncing
@@ -1042,7 +1095,7 @@ export default function CreateTransactionScreen() {
                       key={opt.value}
                       selected={selected}
                       showSelectedOverlay
-                      onPress={() => setTxType(opt.value)}
+                      onPress={() => handleTxTypeChange(opt.value)}
                       icon={() => (
                         <MaterialCommunityIcons
                           name={
@@ -1729,7 +1782,7 @@ export default function CreateTransactionScreen() {
       <SelectorModal
         visible={sourceModalVisible}
         title="Select Source Account"
-        items={accountItems}
+        items={sourceAccountItems}
         selectedId={splits[activeSelectorSplit]?.sourceId ?? null}
         onSelect={(selId, label) => {
           updateSplit(activeSelectorSplit, {
@@ -1746,7 +1799,7 @@ export default function CreateTransactionScreen() {
       <SelectorModal
         visible={destModalVisible}
         title="Select Destination Account"
-        items={accountItems}
+        items={destinationAccountItems}
         selectedId={splits[activeSelectorSplit]?.destinationId ?? null}
         onSelect={(selId, label) => {
           updateSplit(activeSelectorSplit, {
