@@ -5,7 +5,7 @@ import { formatAmount } from "@/lib/format-currency";
 import { useStore } from "@/lib/store";
 import type { AllBillsResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -297,7 +297,7 @@ function SubscriptionContextMenuCard({
   onDelete,
   onClose,
 }: ContextMenuCardProps) {
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+  const scaleAnim = React.useMemo(() => new Animated.Value(0.9), []);
 
   React.useEffect(() => {
     Animated.spring(scaleAnim, {

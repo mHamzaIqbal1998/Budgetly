@@ -11,7 +11,7 @@ import { Account, FireflyApiResponse } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter, type Href } from "expo-router";
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Animated,
@@ -206,7 +206,7 @@ function ContextMenuCard({
   onDelete,
   onClose,
 }: ContextMenuCardProps) {
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const scaleAnim = useMemo(() => new Animated.Value(0.9), []);
 
   React.useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   androidBlurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.85)",
   },
   contextMenuContainer: {

@@ -4,7 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import type { CreateBudgetData, UserCurrenciesList } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {

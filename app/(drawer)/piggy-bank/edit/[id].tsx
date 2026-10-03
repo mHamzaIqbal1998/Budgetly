@@ -521,12 +521,13 @@ export default function EditPiggyBankScreen() {
                   value={startDatePickerValue}
                   mode="date"
                   display="default"
-                  onChange={(event, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setStartDatePickerOpen(false);
-                    if (event.type === "set" && selectedDate) {
+                    if (selectedDate) {
                       setStartDate(toApiDateString(selectedDate));
                     }
                   }}
+                  onDismiss={() => setStartDatePickerOpen(false)}
                 />
               )}
               {/* iOS modal date picker */}
@@ -584,7 +585,7 @@ export default function EditPiggyBankScreen() {
                         value={startDatePickerValue}
                         mode="date"
                         display="spinner"
-                        onChange={(_, selectedDate) => {
+                        onValueChange={(_, selectedDate) => {
                           if (selectedDate)
                             setStartDatePickerValue(selectedDate);
                         }}
@@ -650,12 +651,13 @@ export default function EditPiggyBankScreen() {
                   value={targetDatePickerValue}
                   mode="date"
                   display="default"
-                  onChange={(event, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setTargetDatePickerOpen(false);
-                    if (event.type === "set" && selectedDate) {
+                    if (selectedDate) {
                       setTargetDate(toApiDateString(selectedDate));
                     }
                   }}
+                  onDismiss={() => setTargetDatePickerOpen(false)}
                 />
               )}
               {/* iOS modal date picker */}
@@ -715,7 +717,7 @@ export default function EditPiggyBankScreen() {
                         value={targetDatePickerValue}
                         mode="date"
                         display="spinner"
-                        onChange={(_, selectedDate) => {
+                        onValueChange={(_, selectedDate) => {
                           if (selectedDate)
                             setTargetDatePickerValue(selectedDate);
                         }}

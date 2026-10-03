@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/query-client";
 import type { Account, CreatePiggyBankData } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -534,12 +534,13 @@ export default function CreatePiggyBankScreen() {
                     value={startDatePickerValue}
                     mode="date"
                     display="default"
-                    onChange={(event, selectedDate) => {
+                    onValueChange={(_, selectedDate) => {
                       setStartDatePickerOpen(false);
-                      if (event.type === "set" && selectedDate) {
+                      if (selectedDate) {
                         setStartDate(toApiDateString(selectedDate));
                       }
                     }}
+                    onDismiss={() => setStartDatePickerOpen(false)}
                   />
                 )}
                 {/* iOS modal date picker */}
@@ -599,7 +600,7 @@ export default function CreatePiggyBankScreen() {
                           value={startDatePickerValue}
                           mode="date"
                           display="spinner"
-                          onChange={(_, selectedDate) => {
+                          onValueChange={(_, selectedDate) => {
                             if (selectedDate)
                               setStartDatePickerValue(selectedDate);
                           }}
@@ -665,12 +666,13 @@ export default function CreatePiggyBankScreen() {
                     value={targetDatePickerValue}
                     mode="date"
                     display="default"
-                    onChange={(event, selectedDate) => {
+                    onValueChange={(_, selectedDate) => {
                       setTargetDatePickerOpen(false);
-                      if (event.type === "set" && selectedDate) {
+                      if (selectedDate) {
                         setTargetDate(toApiDateString(selectedDate));
                       }
                     }}
+                    onDismiss={() => setTargetDatePickerOpen(false)}
                   />
                 )}
                 {/* iOS modal date picker */}
@@ -730,7 +732,7 @@ export default function CreatePiggyBankScreen() {
                           value={targetDatePickerValue}
                           mode="date"
                           display="spinner"
-                          onChange={(_, selectedDate) => {
+                          onValueChange={(_, selectedDate) => {
                             if (selectedDate)
                               setTargetDatePickerValue(selectedDate);
                           }}

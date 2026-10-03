@@ -22,7 +22,7 @@ import {
 import { useStore } from "@/lib/store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -858,7 +858,8 @@ export default function RemindersScreen() {
                     value={subTimePickerValue}
                     mode="time"
                     display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={handleSubTimeChange}
+                    onValueChange={handleSubTimeChange}
+                    onDismiss={() => setShowSubTimePicker(false)}
                     themeVariant={theme.dark ? "dark" : "light"}
                   />
                 )}
@@ -1161,7 +1162,8 @@ export default function RemindersScreen() {
                     value={timePickerValue}
                     mode="time"
                     display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={handleTimeChange}
+                    onValueChange={handleTimeChange}
+                    onDismiss={() => setShowTimePicker(false)}
                     themeVariant={theme.dark ? "dark" : "light"}
                   />
                 )}

@@ -25,14 +25,7 @@ import {
   useRouter,
   type Href,
 } from "expo-router";
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -436,7 +429,7 @@ function TransactionContextMenuCard({
   onDelete,
   onClose,
 }: TransactionContextMenuCardProps) {
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const scaleAnim = useMemo(() => new Animated.Value(0.9), []);
 
   React.useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -1277,7 +1270,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   androidOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.85)",
   },
   contextMenuContainer: {

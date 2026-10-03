@@ -2,9 +2,42 @@ import { apiClient } from "@/lib/api-client";
 import type { AllBillsResponse } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { Linking, Platform } from "react-native";
+
+// ---------------------------------------------------------------------------
+// Lazy expo-notifications loader
+// ---------------------------------------------------------------------------
+// expo-notifications throws at import time on Android inside Expo Go (remote
+// push notification support was removed from Expo Go in SDK 53). Importing it
+// at the top level therefore crashes the whole app in Expo Go.
+//
+// We import it lazily instead and degrade gracefully when it is unavailable:
+// in Expo Go every notification function becomes a safe no-op, while dev
+// builds and production builds get the full, unchanged behaviour.
+
+type NotificationsModule = typeof import("expo-notifications");
+
+let notificationsModule: NotificationsModule | null = null;
+let notificationsUnavailable = false;
+
+function getNotifications(): NotificationsModule | null {
+  if (notificationsModule) return notificationsModule;
+  if (notificationsUnavailable) return null;
+  try {
+    notificationsModule = require("expo-notifications") as NotificationsModule;
+    return notificationsModule;
+  } catch (error) {
+    notificationsUnavailable = true;
+    console.warn(
+      "[Notifications] expo-notifications is unavailable in this environment " +
+        "(Expo Go). Notification features are disabled — use a development " +
+        "build to enable them. https://docs.expo.dev/develop/development-builds/introduction/",
+      error
+    );
+    return null;
+  }
+}
 
 // Default notification content (kept in sync with store/reminders.ts defaults)
 const DEFAULT_EXPENSE_TITLE = "📝 Time to Log Expenses";
@@ -27,6 +60,8 @@ const LOOK_AHEAD_DAYS = 90;
 
 /** Configure how notifications behave when the app is in the foreground */
 export function configureNotifications() {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -42,6 +77,8 @@ export function configureNotifications() {
 // ---------------------------------------------------------------------------
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  const Notifications = getNotifications();
+  if (!Notifications) return false;
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   if (existingStatus === "granted") return true;
 
@@ -55,7 +92,6 @@ export async function requestNotificationPermissions(): Promise<boolean> {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#3F51B5",
-      sound: "default",
     });
   }
 
@@ -76,6 +112,8 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  */
 export async function checkExactAlarmPermission(): Promise<boolean> {
   if (Platform.OS !== "android") return true;
+  const Notifications = getNotifications();
+  if (!Notifications) return true;
 
   try {
     // expo-notifications exposes this on SDK 50+
@@ -151,6 +189,9 @@ export async function scheduleSubscriptionReminders(
   notifTitle: string = DEFAULT_SUB_TITLE,
   notifBody: string = DEFAULT_SUB_BODY
 ): Promise<number> {
+  const Notifications = getNotifications();
+  if (!Notifications) return 0;
+
   // Cancel existing subscription reminders first
   await cancelSubscriptionReminders();
 
@@ -229,7 +270,6 @@ export async function scheduleSubscriptionReminders(
             title: resolvedTitle,
             body: resolvedBody,
             data: { type: "subscription", billId: bill.id },
-            sound: "default",
             ...(Platform.OS === "android" && { channelId: "reminders" }),
           },
           trigger: {
@@ -253,6 +293,8 @@ export async function scheduleSubscriptionReminders(
 
 /** Cancel all subscription reminder notifications */
 export async function cancelSubscriptionReminders(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const toCancel = scheduled.filter((n) =>
     n.identifier?.startsWith(SUBSCRIPTION_REMINDER_PREFIX)
@@ -279,6 +321,9 @@ export async function scheduleExpenseReminder(
   title: string = DEFAULT_EXPENSE_TITLE,
   body: string = DEFAULT_EXPENSE_BODY
 ): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
   // Cancel existing expense reminders first
   await cancelExpenseReminders();
 
@@ -288,7 +333,6 @@ export async function scheduleExpenseReminder(
     title,
     body,
     data: { type: "expense_reminder" },
-    sound: "default" as const,
     ...(Platform.OS === "android" && { channelId: "reminders" }),
   };
 
@@ -333,6 +377,8 @@ export async function scheduleExpenseReminder(
 
 /** Cancel all expense reminder notifications */
 export async function cancelExpenseReminders(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const toCancel = scheduled.filter((n) =>
     n.identifier?.startsWith(EXPENSE_REMINDER_ID)
@@ -429,6 +475,8 @@ export async function getScheduledNotificationCount(): Promise<{
   subscription: number;
   expense: number;
 }> {
+  const Notifications = getNotifications();
+  if (!Notifications) return { subscription: 0, expense: 0 };
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   return {
     subscription: scheduled.filter((n) =>
@@ -478,6 +526,8 @@ export async function getScheduledNotificationsList(
   subReminderTime: string = "09:00",
   expReminderTime: string = "09:00"
 ): Promise<ScheduledNotificationInfo[]> {
+  const Notifications = getNotifications();
+  if (!Notifications) return [];
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
   const subTimeParts = subReminderTime.split(":").map(Number);

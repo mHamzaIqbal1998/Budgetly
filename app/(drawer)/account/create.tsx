@@ -615,9 +615,9 @@ export default function CreateAccountScreen() {
                   value={datePickerValue}
                   mode="date"
                   display="default"
-                  onChange={(event, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setDatePickerOpen(null);
-                    if (event.type === "set" && selectedDate) {
+                    if (selectedDate) {
                       const apiStr = toApiDateString(selectedDate);
                       if (datePickerOpen === "openingBalance") {
                         setOpeningBalanceDate(apiStr);
@@ -626,6 +626,7 @@ export default function CreateAccountScreen() {
                       }
                     }
                   }}
+                  onDismiss={() => setDatePickerOpen(null)}
                 />
               )}
               {datePickerOpen !== null && Platform.OS === "ios" && (
@@ -687,7 +688,7 @@ export default function CreateAccountScreen() {
                         value={datePickerValue}
                         mode="date"
                         display="spinner"
-                        onChange={(_, selectedDate) => {
+                        onValueChange={(_, selectedDate) => {
                           if (selectedDate) setDatePickerValue(selectedDate);
                         }}
                         style={styles.datePickerIOS}

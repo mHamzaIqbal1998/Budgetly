@@ -11,7 +11,6 @@ export function BiometricLockScreen() {
   const [authFailed, setAuthFailed] = useState(false);
 
   const authenticate = useCallback(async () => {
-    setAuthFailed(false);
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: "Unlock Budgetly",
@@ -30,8 +29,10 @@ export function BiometricLockScreen() {
     }
   }, [setBiometricUnlocked]);
 
-  // Auto-trigger on mount
+  // Auto-trigger on mount; all state updates inside `authenticate` happen
+  // after `await`, so there is no synchronous cascading render.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     authenticate();
   }, [authenticate]);
 
@@ -81,7 +82,10 @@ export function BiometricLockScreen() {
         {authFailed && (
           <Button
             mode="contained"
-            onPress={authenticate}
+            onPress={() => {
+              setAuthFailed(false);
+              authenticate();
+            }}
             icon="fingerprint"
             style={styles.retryButton}
             contentStyle={styles.retryButtonContent}

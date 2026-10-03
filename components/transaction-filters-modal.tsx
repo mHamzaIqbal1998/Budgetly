@@ -10,7 +10,7 @@ import {
 } from "@/lib/transaction-filters";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Dimensions,
   Modal,
@@ -46,6 +46,63 @@ interface TransactionFiltersModalProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+/** Section header row with an icon and title (module scope so it keeps a
+ * stable component identity across renders). */
+function SectionLabel({ icon, title }: { icon: string; title: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.sectionLabelRow}>
+      <MaterialCommunityIcons
+        name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
+        size={18}
+        color={theme.colors.primary}
+      />
+      <Text variant="titleSmall" style={styles.sectionLabelText}>
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+/** Boolean filter toggle row (module scope so it keeps a stable component
+ * identity across renders). */
+function ToggleRow({
+  icon,
+  label,
+  value,
+  onChange,
+}: {
+  icon: string;
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={() => onChange(!value)}
+      style={styles.toggleRow}
+      android_ripple={{ color: theme.colors.surfaceVariant }}
+    >
+      <View style={styles.toggleLeft}>
+        <MaterialCommunityIcons
+          name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
+          size={20}
+          color={theme.colors.onSurfaceVariant}
+        />
+        <Text variant="bodyMedium" style={styles.toggleLabel}>
+          {label}
+        </Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        color={theme.colors.primary}
+      />
+    </Pressable>
+  );
+}
+
 export function TransactionFiltersModal({
   visible,
   onClose,
@@ -61,15 +118,20 @@ export function TransactionFiltersModal({
     "after" | "before" | null
   >(null);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
+  const [lastSync, setLastSync] = useState({ visible, initialFilters });
 
-  // Re-sync the draft each time the sheet opens.
-  useEffect(() => {
+  // Re-sync the draft each time the sheet opens (state adjusted during render).
+  if (
+    visible !== lastSync.visible ||
+    initialFilters !== lastSync.initialFilters
+  ) {
+    setLastSync({ visible, initialFilters });
     if (visible) {
       setDraft(initialFilters);
       setCategorySearch("");
       setDatePickerField(null);
     }
-  }, [visible, initialFilters]);
+  }
 
   const activeCount = useMemo(() => countActiveFilters(draft), [draft]);
 
@@ -135,55 +197,8 @@ export function TransactionFiltersModal({
   // Render helpers
   // -----------------------------------------------------------------------
 
-  const SectionLabel = ({ icon, title }: { icon: string; title: string }) => (
-    <View style={styles.sectionLabelRow}>
-      <MaterialCommunityIcons
-        name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
-        size={18}
-        color={theme.colors.primary}
-      />
-      <Text variant="titleSmall" style={styles.sectionLabelText}>
-        {title}
-      </Text>
-    </View>
-  );
-
   const dateFieldValue = (field: "after" | "before") =>
     field === "after" ? draft.dateAfter : draft.dateBefore;
-
-  const ToggleRow = ({
-    icon,
-    label,
-    value,
-    onChange,
-  }: {
-    icon: string;
-    label: string;
-    value: boolean;
-    onChange: (v: boolean) => void;
-  }) => (
-    <Pressable
-      onPress={() => onChange(!value)}
-      style={styles.toggleRow}
-      android_ripple={{ color: theme.colors.surfaceVariant }}
-    >
-      <View style={styles.toggleLeft}>
-        <MaterialCommunityIcons
-          name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
-          size={20}
-          color={theme.colors.onSurfaceVariant}
-        />
-        <Text variant="bodyMedium" style={styles.toggleLabel}>
-          {label}
-        </Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        color={theme.colors.primary}
-      />
-    </Pressable>
-  );
 
   return (
     <Modal
@@ -311,7 +326,7 @@ export function TransactionFiltersModal({
                   value={datePickerValue}
                   mode="date"
                   display="spinner"
-                  onChange={(_, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     if (selectedDate) {
                       setDatePickerValue(selectedDate);
                       commitDate(selectedDate);
@@ -334,12 +349,11 @@ export function TransactionFiltersModal({
                 value={datePickerValue}
                 mode="date"
                 display="default"
-                onChange={(event, selectedDate) => {
+                onValueChange={(_, selectedDate) => {
                   setDatePickerField(null);
-                  if (event.type === "set" && selectedDate) {
-                    commitDate(selectedDate);
-                  }
+                  commitDate(selectedDate);
                 }}
+                onDismiss={() => setDatePickerField(null)}
               />
             ) : null}
 

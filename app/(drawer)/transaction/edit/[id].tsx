@@ -137,6 +137,7 @@ function SelectorModal({
   outlineVariantColor,
 }: SelectorModalProps) {
   const [search, setSearch] = useState("");
+  const [lastOpen, setLastOpen] = useState(visible);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
@@ -144,10 +145,11 @@ function SelectorModal({
     return items.filter((i) => i.label.toLowerCase().includes(q));
   }, [items, search]);
 
-  // Reset search when opening
-  useEffect(() => {
+  // Reset search when the modal opens (state adjusted during render)
+  if (visible !== lastOpen) {
+    setLastOpen(visible);
     if (visible) setSearch("");
-  }, [visible]);
+  }
 
   return (
     <Modal
@@ -310,9 +312,13 @@ function CreatableSelectorModal({
     return false;
   }, [selectedId, selectedName]);
 
-  useEffect(() => {
+  const [lastOpen, setLastOpen] = useState(visible);
+
+  // Reset search when the modal opens (state adjusted during render)
+  if (visible !== lastOpen) {
+    setLastOpen(visible);
     if (visible) setSearch("");
-  }, [visible]);
+  }
 
   const handleSelectExisting = (item: SelectorItem) => {
     onSelect(item.id, item.label);
@@ -1307,12 +1313,13 @@ export default function EditTransactionScreen() {
                   value={datePickerValue}
                   mode="date"
                   display="default"
-                  onChange={(event, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setDatePickerOpen(false);
-                    if (event.type === "set" && selectedDate) {
+                    if (selectedDate) {
                       setDateStr(toApiDateString(selectedDate));
                     }
                   }}
+                  onDismiss={() => setDatePickerOpen(false)}
                 />
               )}
               {/* iOS modal date picker */}
@@ -1370,7 +1377,7 @@ export default function EditTransactionScreen() {
                         value={datePickerValue}
                         mode="date"
                         display="spinner"
-                        onChange={(_, selectedDate) => {
+                        onValueChange={(_, selectedDate) => {
                           if (selectedDate) setDatePickerValue(selectedDate);
                         }}
                         style={styles.datePickerIOS}

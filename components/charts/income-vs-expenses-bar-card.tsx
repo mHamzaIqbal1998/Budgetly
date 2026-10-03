@@ -173,21 +173,20 @@ export function IncomeVsExpensesBarCard({
 
   useEffect(() => {
     if (activeTooltip) {
-      setShowTooltipContent(true);
       tooltipProgress.value = withTiming(1, {
         duration: 280,
         easing: Easing.out(Easing.cubic),
       });
-    } else {
-      tooltipProgress.value = withTiming(1, {
-        duration: 200,
-        easing: Easing.in(Easing.cubic),
-      });
-      // Delay hiding content until animation completes
-      const timeout = setTimeout(() => setShowTooltipContent(false), 220);
-      return () => clearTimeout(timeout);
+      return;
     }
-  }, [activeTooltip]);
+    tooltipProgress.value = withTiming(1, {
+      duration: 200,
+      easing: Easing.in(Easing.cubic),
+    });
+    // Delay hiding content until animation completes
+    const timeout = setTimeout(() => setShowTooltipContent(false), 220);
+    return () => clearTimeout(timeout);
+  }, [activeTooltip, tooltipProgress]);
 
   const tooltipAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -228,12 +227,13 @@ export function IncomeVsExpensesBarCard({
   );
 
   const handleBarPress = (tooltip: TooltipInfo) => {
-    setActiveTooltip((prev) =>
-      prev?.label === tooltip.label &&
-      prev?.currencyCode === tooltip.currencyCode
-        ? null
-        : tooltip
-    );
+    const isSame =
+      activeTooltip?.label === tooltip.label &&
+      activeTooltip?.currencyCode === tooltip.currencyCode;
+    const next = isSame ? null : tooltip;
+    setActiveTooltip(next);
+    // Reveal the tooltip content immediately when a bar is selected
+    if (next) setShowTooltipContent(true);
   };
 
   // ── Header ─────────────────────────────────────────────────────────────

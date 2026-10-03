@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/query-client";
 import type { UserCurrenciesList } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -571,10 +571,11 @@ export default function CreateSubscriptionScreen() {
                   value={date}
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={(_, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setShowDatePicker(Platform.OS === "ios");
                     if (selectedDate) setDate(selectedDate);
                   }}
+                  onDismiss={() => setShowDatePicker(false)}
                 />
               )}
 
@@ -755,10 +756,11 @@ export default function CreateSubscriptionScreen() {
                   value={endDate || new Date()}
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={(_, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setShowEndDatePicker(Platform.OS === "ios");
                     if (selectedDate) setEndDate(selectedDate);
                   }}
+                  onDismiss={() => setShowEndDatePicker(false)}
                 />
               )}
 
@@ -823,10 +825,11 @@ export default function CreateSubscriptionScreen() {
                   value={extensionDate || new Date()}
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={(_, selectedDate) => {
+                  onValueChange={(_, selectedDate) => {
                     setShowExtensionDatePicker(Platform.OS === "ios");
                     if (selectedDate) setExtensionDate(selectedDate);
                   }}
+                  onDismiss={() => setShowExtensionDatePicker(false)}
                 />
               )}
             </Card.Content>

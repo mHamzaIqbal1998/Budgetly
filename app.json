@@ -7,12 +7,6 @@
     "icon": "./assets/android-chrome-512x512.png",
     "scheme": "budgetly",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/android-chrome-512x512.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetly.app",
@@ -27,7 +21,6 @@
         "foregroundImage": "./assets/android-chrome-512x512.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.budgetly.app",
       "permissions": [
@@ -40,7 +33,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/favicon.ico"
+      "favicon": "./assets/favicon-96x96.png"
     },
     "plugins": [
       "expo-router",
@@ -67,7 +60,11 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-local-authentication",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

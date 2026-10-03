@@ -363,7 +363,7 @@ function PiggyBankContextMenu({
   onDelete,
   onClose,
 }: PiggyBankContextMenuProps) {
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+  const scaleAnim = React.useMemo(() => new Animated.Value(0.9), []);
 
   React.useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -491,14 +491,16 @@ function AddRemoveModal({
   const theme = useTheme();
   const [amount, setAmount] = useState("");
   const [isAdding, setIsAdding] = useState(true);
+  const [lastOpen, setLastOpen] = useState(visible);
 
-  // Reset state when modal opens
-  React.useEffect(() => {
+  // Reset state when the modal opens (state adjusted during render)
+  if (visible !== lastOpen) {
+    setLastOpen(visible);
     if (visible) {
       setAmount("");
       setIsAdding(true);
     }
-  }, [visible]);
+  }
 
   if (!piggyBank) return null;
 
